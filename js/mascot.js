@@ -200,8 +200,8 @@
     /* ---- placing the bird ----------------------------------------------
        One bird for the whole lesson, re-parented between slots. Flip measures
        where it was and where it now is and plays the difference, so welcome
-       screen -> centre stage -> board header reads as one continuous
-       character rather than three that appear and disappear. */
+       screen -> its mark on the field -> board header reads as one
+       continuous character rather than three that appear and disappear. */
     function moveTo(slot, vars) {
       if (!slot || el.parentNode === slot) {
         if (slot && el.parentNode !== slot) slot.appendChild(el);

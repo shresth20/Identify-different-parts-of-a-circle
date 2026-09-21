@@ -88,10 +88,54 @@
     M.set(dom.promptLine, { clearProps: 'opacity,transform,filter' });
   }
 
+  /* Say a line in the header, and carry the bird to where the new line
+     leaves room for it.
+       The prompt row is centred as a pair, so the bird's resting place is a
+     function of how long the line beside it is -- and the ghost takes the
+     whole line's width in a single frame, before one word of it is visible.
+     Left alone that is a hard sideways jump of the bird on every line.
+       So: note where the bird is, let the line lay itself out, note where the
+     bird has ended up, and put it back where it was with a transform that
+     then eases to nothing. The bird steps aside to make room instead of
+     teleporting, and because it is a transform on the SLOT, the sprite
+     player's own inline styles on the bird inside it are never touched.
+       The line itself is not worth carrying: every word in it is still at
+     opacity 0 while this happens, so its jump is invisible. */
+  function sayInHeader(text) {
+    var slot = dom.slotHeader;
+    var before = slot.getBoundingClientRect().left;
+    var reveal = sayPrompt.reserve(text);      /* the row takes its width now */
+    var shift = before - slot.getBoundingClientRect().left;
+
+    if (Math.abs(shift) > 0.5) {
+      M.set(slot, { x: shift });
+      M.to(slot, { x: 0, duration: M.dur(0.42), ease: 'power2.inOut' });
+    }
+    return reveal();
+  }
+
+  /* The bird arrives to a line that is already laid out but not yet said.
+     Reserving the width BEFORE the jump is what lets it land on its mark:
+     the row is centred as a pair, so a bird that jumped in while the row was
+     still empty would land in the middle of the header and then be shoved
+     sideways the moment the words took their space. */
+  function arriveSaying(text) {
+    var reveal = sayPrompt.reserve(text);
+    return Flow.anim(Beats.riseIntoHeader(mascot, dom.slotHeader))
+      .then(function () {
+        mascot.state('talking');
+        return reveal();
+      });
+  }
+
   /* ======================================================================
    * The lesson
    * ====================================================================== */
   function play() {
+    /* Armed at the moment the dot becomes tappable, awaited several beats
+       later -- see step 5. */
+    var tapped = null;
+
     /* ---- 0. Welcome ----------------------------------------------------
        The bird is waving before a word is on screen, so the first thing that
        moves is the character rather than the interface. */
@@ -115,10 +159,11 @@
         Beats.sfx('click');
 
         /* ---- 1. "Hey there!" ------------------------------------------
-           The welcome stands aside and the bird walks to centre stage in
-           the same beat. Re-parent FIRST so Flip measures the move against
-           a welcome screen that is still on screen; the fade then happens
-           around a bird that is already travelling. */
+           The welcome stands aside and the bird walks to its mark on the
+           field in the same beat -- a step from where it was already
+           standing, not a flight. Re-parent FIRST so Flip measures the move
+           against a welcome screen that is still on screen; the fade then
+           happens around a bird that is already travelling. */
         var walk = mascot.moveTo(dom.slotHero, {
           vars: { duration: 0.62, ease: 'power2.inOut' }
         });
@@ -172,15 +217,9 @@
 
       /* ---- 4. "This is a circle." ---------------------------------------- */
       .then(function () { return Flow.wait(BEAT); })
-      .then(function () {
-        return Flow.anim(Beats.riseIntoHeader(mascot, dom.slotHeader));
-      })
-      .then(function () {
-        mascot.state('talking');
-        return sayPrompt(LINES.isCircle);
-      })
+      .then(function () { return arriveSaying(LINES.isCircle); })
       .then(function () { return Flow.wait(BEAT); })
-      .then(function () { return sayPrompt(LINES.letsGo); })
+      .then(function () { return sayInHeader(LINES.letsGo); })
       .then(function () {
         mascot.settle();
         /* The script's own hold: the line stays up to be read, and then the
@@ -196,18 +235,20 @@
       /* ---- 5. The centre, marked ----------------------------------------- */
       .then(function () { return Flow.wait(SHORT); })
       .then(function () { return Flow.anim(Beats.plantCentre(dom.centre, dom.dot)); })
-      .then(function () { return Flow.wait(BEAT); })
       .then(function () {
-        return Flow.anim(Beats.riseIntoHeader(mascot, dom.slotHeader));
+        /* Listen from the instant the dot is planted and glowing, which is
+           the instant it starts LOOKING tappable -- a good second before the
+           bird gets back to the header to ask for it. Arming only after the
+           line would swallow the tap of anyone who did not wait to be told,
+           and they would have to tap again for no reason they could see. */
+        tapped = Flow.once(dom.centreHit);
+        return Flow.wait(BEAT);
       })
-      .then(function () {
-        mascot.state('talking');
-        return sayPrompt(LINES.tapDot);
-      })
+      .then(function () { return arriveSaying(LINES.tapDot); })
       .then(function () { mascot.settle(); })
 
       /* ---- 6. Tapped ------------------------------------------------------ */
-      .then(function () { return Flow.once(dom.centreHit); })
+      .then(function () { return tapped; })
       .then(function (ev) {
         /* The ripple goes where the finger landed. A keyboard activation has
            no coordinates, so it gets the dot's own centre instead. */
@@ -221,8 +262,12 @@
         return Flow.anim(Beats.lineOut(dom.promptLine));
       })
       .then(function () {
-        clearPrompt();
-        return sayPrompt(LINES.centre);
+        /* Undo what lineOut wrote, but do NOT clear the box first: an empty
+           box would re-centre the bird and the next line would push it back
+           out again, two shifts where the learner should see one. The typer
+           replaces the line in place. */
+        M.set(dom.promptLine, { clearProps: 'opacity,transform,filter' });
+        return sayInHeader(LINES.centre);
       })
       .then(function () { return Flow.wait(BEAT); })
       .then(function () { mascot.settle(); });
@@ -250,15 +295,21 @@
     dom.board.setAttribute('aria-hidden', 'true');
     dom.centre.setAttribute('hidden', '');
     dom.centre.classList.remove('is-calling', 'is-found');
-    dom.slotHeader.classList.remove('is-clipped');
 
     /* Named rather than 'all': the mascot's background-image and
        background-size are written straight to its style by the sprite
        player, not by GSAP, and a blanket clear is a tempting way to wipe
        them out one refactor from now. */
     M.set([dom.welcome, dom.title, dom.startBtn, dom.nextBtn, dom.bubble,
-           dom.board, dom.promptLine, dom.disc, dom.dot, mascot.el],
+           dom.board, dom.promptLine, dom.slotHeader, dom.rim, dom.disc,
+           dom.dot, mascot.el],
           { clearProps: 'opacity,transform,filter' });
+    /* And the dash pattern, in case the replay caught the rim mid-stroke:
+       motion.js hands it back when it kills the draw, but a run that reached
+       the end has already had it handed back, so this is the one that
+       matters for a rim left solid. */
+    dom.rim.style.strokeDasharray = '';
+    dom.rim.style.strokeDashoffset = '';
   }
 
   function init() {

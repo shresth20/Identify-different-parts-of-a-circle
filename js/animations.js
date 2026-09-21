@@ -75,14 +75,17 @@
    * The figure
    * ====================================================================== */
 
-  /* The outline, drawn. The rim is rotated a quarter turn back in CSS, so the
-     stroke unrolls from twelve o'clock and runs clockwise -- the way a hand
-     draws one, rather than from three o'clock where an SVG circle's path
-     happens to start.
+  /* The outline, drawn. The rim's own path starts at twelve o'clock and runs
+     clockwise (see index.html), so the stroke unrolls the way a hand draws
+     one without any rotation on the element.
        The duration is stated rather than left to motion.js's drawTime(),
      which caps at REVEAL: this is the one stroke in the scene the learner is
      meant to watch being made, so it is allowed to take its time. */
   function drawRim(rim) {
+    /* Take the rim off its undrawn resting state (see .figure__rim) before
+       the stroke starts, not as part of it: a stroke that fades in while it
+       unrolls reads as a smudge rather than as a line being drawn. */
+    M.set(rim, { opacity: 1 });
     return M.drawPath(rim, { duration: 1.05, ease: 'power1.inOut' });
   }
 
@@ -123,41 +126,77 @@
    * The mascot's entrances
    * ====================================================================== */
 
-  /* Up out of the board's surface and onto the header.
-     The slot clips its own contents while .is-clipped is set, and the slot's
-     bottom edge IS the line between the header band and the stage below it --
-     so the bird starts fully below that line, invisible, and rises through
-     it. The clip comes off only once it has landed, when there is nothing
-     left outside the slot for it to have hidden. */
+  /* The bird jumps out from behind the board and onto the header.
+     The slot is cut off at the board line (see .prompt__mascot), so
+     everything below that line is behind the panel and is not drawn. The
+     whole entrance is therefore one move: start below the line, leap up
+     through it, and land.
+       DOWN THERE IT IS SMALLER. That is the only cue that says "behind"
+     rather than "below" -- the bird is further away, so it comes up towards
+     the learner as well as up the board. The origin sits on its feet (the
+     sprite's baseline is 88% down the cell), so the shrink and the landing
+     squash both happen about the ground it is standing on rather than about
+     the middle of the air above it.
+       THE ARC HAS A CEILING. The board does not clip its own contents (the
+     halo around it has to escape), so the apex is tuned to bring the bird's
+     head up to the panel's top edge and no further -- a jump that cleared
+     the board would read as the bird leaving it. */
+  var FEET = 'center 88%';
+
   function riseIntoHeader(mascot, slot) {
-    slot.classList.add('is-clipped');
     mascot.placeIn(slot);
     /* Stated in full rather than as a bare yPercent: the bird has been
        through a Flip on its way here, and GSAP would add this offset to
        whatever that left behind rather than replacing it. */
-    M.set(mascot.el, { x: 0, y: 0, scale: 1, rotation: 0, yPercent: 112 });
-
-    var tl = M.timeline({
-      willChange: mascot.el,
-      revert: function () { slot.classList.remove('is-clipped'); }
+    M.set(mascot.el, {
+      x: 0, y: 0, rotation: 0, yPercent: 118, scale: 0.78,
+      transformOrigin: FEET
     });
-    tl.to(mascot.el, { yPercent: 0, duration: M.dur(0.55), ease: 'power3.out' })
-      .add(function () { slot.classList.remove('is-clipped'); })
-      /* A small settle once it is clear of the clip: the bird lands, rather
-         than stopping. */
-      .to(mascot.el, { scale: 1.04, duration: M.dur(0.12), ease: 'power2.out' })
-      .to(mascot.el, { scale: 1, duration: M.dur(0.18), ease: 'power2.inOut' });
+
+    var tl = M.timeline({ willChange: mascot.el, willChangeValue: 'transform' });
+    tl
+      /* up and out, overshooting its mark -- the top of the leap */
+      .to(mascot.el, {
+        yPercent: -14, scale: 1.04,
+        duration: M.dur(0.34), ease: 'power2.out'
+      })
+      /* and down onto the header */
+      .to(mascot.el, {
+        yPercent: 0,
+        duration: M.dur(0.24), ease: 'power2.in'
+      })
+      /* the landing takes the weight */
+      .to(mascot.el, {
+        scaleX: 1.12, scaleY: 0.86,
+        duration: M.dur(0.09), ease: 'power2.out'
+      })
+      .to(mascot.el, {
+        scaleX: 1, scaleY: 1,
+        duration: M.dur(0.26), ease: 'back.out(2.6)'
+      });
     return tl;
   }
 
-  /* And back down the way it came. */
+  /* And back the same way: a crouch, a spring, and a dive behind the board.
+     It leaves nothing to tidy up -- the bird ends below the board line,
+     where the clip means it is simply not drawn, so there is no state for a
+     later beat to get wrong. */
   function sinkFromHeader(mascot, slot) {
-    var tl = M.timeline({
-      willChange: mascot.el,
-      revert: function () { slot.classList.remove('is-clipped'); }
-    });
-    tl.add(function () { slot.classList.add('is-clipped'); })
-      .to(mascot.el, { yPercent: 112, duration: M.dur(0.42), ease: 'power2.in' });
+    var tl = M.timeline({ willChange: mascot.el, willChangeValue: 'transform' });
+    M.set(mascot.el, { transformOrigin: FEET });
+    tl
+      .to(mascot.el, {
+        scaleX: 1.14, scaleY: 0.84,
+        duration: M.dur(0.12), ease: 'power2.out'
+      })
+      .to(mascot.el, {
+        yPercent: -12, scaleX: 0.95, scaleY: 1.07,
+        duration: M.dur(0.2), ease: 'power2.out'
+      })
+      .to(mascot.el, {
+        yPercent: 118, scaleX: 0.78, scaleY: 0.78,
+        duration: M.dur(0.3), ease: 'power2.in'
+      });
     return tl;
   }
 
@@ -170,9 +209,14 @@
      size from the first frame. A box at display:none measures as zero, so a
      line laid out into a hidden bubble reserves nothing, and the bubble would
      have to resize around the words a beat after opening. */
+  /* The origin is the beak, in the same px the stylesheet puts it at, so the
+     bubble grows out of the bird's head rather than out of its own middle.
+     A percentage would drift with the length of the line; --tail-x does not. */
+  var TAIL_ORIGIN = '38px 100%';
+
   function bubbleArm(bubble) {
     bubble.removeAttribute('hidden');
-    M.set(bubble, { opacity: 0, scale: 0.82, transformOrigin: '20% 100%' });
+    M.set(bubble, { opacity: 0, scale: 0.78, transformOrigin: TAIL_ORIGIN });
   }
 
   /* And opening. Scaled from its own tail rather than its centre, so it
@@ -180,7 +224,7 @@
   function bubbleIn(bubble) {
     var tl = M.timeline({ willChange: bubble, willChangeValue: 'transform, opacity' });
     tl.to(bubble, {
-      opacity: 1, scale: 1, transformOrigin: '20% 100%',
+      opacity: 1, scale: 1, transformOrigin: TAIL_ORIGIN,
       duration: M.dur(0.34), ease: 'back.out(1.4)'
     });
     return tl;
@@ -194,7 +238,7 @@
       }
     });
     tl.to(bubble, {
-      opacity: 0, scale: 0.9, transformOrigin: '20% 100%',
+      opacity: 0, scale: 0.9, transformOrigin: TAIL_ORIGIN,
       duration: M.dur(0.24), ease: 'power2.in'
     });
     return tl;

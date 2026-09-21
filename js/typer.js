@@ -160,30 +160,40 @@
     var txt   = wrap.querySelector('.type .txt');
     var gen = 0;
 
-    function say(text, over) {
+    /* Lay the line out and hand back the function that says it.
+       The two halves are separable because the caller sometimes needs to do
+       something BETWEEN them: the board's prompt row is centred as a pair,
+       so the mascot beside it can only be moved into its final place once
+       the row knows how wide the finished line will make it. Reserving the
+       width first lets the bird arrive where it belongs instead of landing
+       in the middle of an empty row and being shoved sideways a beat later.
+         Ghost before live, always, for the same reason. */
+    function reserve(text, over) {
       var g = ++gen;
       var mine = function () { return g === gen; };
       var perChar = (over && over.perChar) || o.perChar || TYPE_MS;
       var words;
 
-      /* Ghost BEFORE live, always. Anything on screen positioned relative to
-         this line -- the mascot beside a centred heading, the icon at the
-         left end of the prompt row -- has to be measured after the ghost has
-         taken the width, or it lands in the middle of an empty row and gets
-         shoved sideways a beat later. */
       morphBox(o.box, ghost.textContent.length > 0, function () {
         wordSpans(ghost, text);
         words = wordSpans(txt, text);
       });
 
-      return revealWords(words, performance.now(), perChar, mine)
-        .then(function (end) {
-          if (!mine()) return;
-          var left = end - performance.now();
-          return (left > 0 ? sleep(left) : Promise.resolve())
-            .then(wordsSettle);
-        });
+      /* Pacing starts when this is CALLED, not when the line was laid out --
+         so a caller may hold a reserved line for as long as it likes. */
+      return function reveal() {
+        return revealWords(words, performance.now(), perChar, mine)
+          .then(function (end) {
+            if (!mine()) return;
+            var left = end - performance.now();
+            return (left > 0 ? sleep(left) : Promise.resolve())
+              .then(wordsSettle);
+          });
+      };
     }
+
+    function say(text, over) { return reserve(text, over)(); }
+    say.reserve = reserve;
 
     /* Empty the box -- both halves of it. A stale ghost holds a stale width,
        which is the one way this effect can still shift a layout. */

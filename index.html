@@ -25,6 +25,13 @@
            entrance rises back out of the board's own surface. -->
       <div class="slot slot--hero" id="slotHero">
         <div class="bubble" id="bubble" hidden>
+          <!-- The bubble's furniture, all of it decoration: the gloss
+               catchlight at the top left, and the two excitement marks that
+               flank it. Elements rather than pseudo-elements because there
+               are four of them and ::before/::after is two. -->
+          <i class="bubble__gloss" aria-hidden="true"></i>
+          <i class="bubble__mark bubble__mark--l" aria-hidden="true"></i>
+          <i class="bubble__mark bubble__mark--r" aria-hidden="true"></i>
           <span class="type-wrap" id="bubbleType">
             <span class="type-ghost"></span>
             <span class="type" aria-live="polite"><span class="txt"></span></span>
@@ -54,7 +61,16 @@
             <!-- Fill first in document order so the rim always draws on top of
                  it, whichever of the two is revealed first. -->
             <circle class="figure__disc" id="disc" cx="210" cy="210" r="158" />
-            <circle class="figure__rim"  id="rim"  cx="210" cy="210" r="158" />
+            <!-- The rim is a path, not a <circle>, for one reason: a stroke
+                 unrolls from wherever its path starts, and a circle's starts
+                 at three o'clock. This one starts at twelve and runs
+                 clockwise -- the way a hand draws one -- as two semicircular
+                 arcs, so no rotation is needed to get it there. (Rotating a
+                 <circle> in CSS instead is a trap: GSAP re-bakes an SVG
+                 element's transform origin the first time it touches it, and
+                 the rotation comes back about the wrong point.) -->
+            <path class="figure__rim" id="rim"
+                  d="M210 52 A158 158 0 0 1 210 368 A158 158 0 0 1 210 52" />
 
             <g class="figure__centre" id="centre" hidden>
               <circle class="centre__glow" cx="210" cy="210" r="30" />

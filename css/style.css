@@ -73,6 +73,17 @@
   --board-highlight: #FFFFFF;
   --board-border: #FFFFFF;
 
+  /* ---- derived: the speech bubble ---------------------------------------
+     The bubble is the board's own surface, lifted off the page and given a
+     tail: same panel colour, same white rim, same ink. It is the mascot
+     talking, not a second theme arriving. */
+  /* The DECORATION lavender rather than the board's own near-white: the
+     bubble carries a white rim and a white catchlight, and both vanish on a
+     surface that is already almost white. */
+  --bubble-bg: var(--board-decoration);
+  --bubble-rim: var(--board-highlight);
+  --bubble-ink: var(--text-primary);
+
   /* The page behind the board, in the palette's own lavender. */
   --page-bg: var(--lavender-fill);
   --page-bg-deep: var(--lavender-border);
@@ -104,7 +115,7 @@
      The three board bands are deliberately separate levels: the header is
      above the footer, and both are above the stage, so the mascot standing on
      the header overlaps the figure behind it without being clipped by it. */
-  --z-hero: 1;        /* the mascot centre stage -- UNDER the board          */
+  --z-hero: 1;        /* the mascot out on the field -- UNDER the board      */
   --z-board: 2;
   --z-stage: 1;       /* inside the board: the figure                        */
   --z-footer: 2;
@@ -229,16 +240,18 @@ body {
    below it moves when a line arrives. */
 .prompt {
   display: flex;
+  /* The bird is bottom-aligned because the band's bottom edge is the line it
+     rises up through; the line it is saying centres itself in the band
+     independently (see .prompt__line). */
   align-items: flex-end;
-  gap: clamp(6px, 1.2%, 18px);
+  justify-content: center;
   height: 100%;
-  padding-left: clamp(8px, 2%, 28px);
+  padding-inline: clamp(8px, 2%, 28px);
 }
 
 /* The mascot's header slot. Taller than the band it sits in, so the bird
-   stands ON the header rather than inside it -- and it clips its own contents
-   while .is-clipped is set, which is what turns the entrance into the bird
-   rising up out of the board's surface. */
+   stands ON the header rather than inside it, and cut off at the board line
+   so that "behind the board" is a place the bird can actually go. */
 .prompt__mascot {
   position: relative;
   flex: 0 0 auto;
@@ -250,11 +263,23 @@ body {
   aspect-ratio: 1;
   pointer-events: none;
 }
-.prompt__mascot.is-clipped { overflow: hidden; }
+/* The board line, made literal. The slot's BOTTOM edge is the seam between
+   the header band and the stage, and this cuts the bird off at it -- so
+   anything below that line is behind the board and simply is not drawn.
+     It is a polygon rather than `overflow: hidden` because the top has to
+   stay open: the bird's jump overshoots well above its resting place on the
+   way out of the board, and a box that clipped all four sides would lop the
+   top off the leap. And it is permanent rather than a class the beats turn
+   on and off, because there is never a moment when the bird should be
+   visible below the board line. */
+.prompt__mascot {
+  clip-path: polygon(-60% -400%, 160% -400%, 160% 100%, -60% 100%);
+}
 
 .prompt__line {
   margin: 0;
-  padding-bottom: clamp(2px, 1.4%, 16px);
+  /* Centred in the band rather than standing on its floor. */
+  align-self: center;
   min-width: 0;
   font-family: var(--font-display);
   font-weight: 700;
@@ -283,19 +308,21 @@ body {
 .figure__disc {
   fill: color-mix(in srgb, var(--blue-fill) 26%, #FFFFFF);
   opacity: 0;                       /* the fill lands after the rim is drawn */
-  transform-origin: 210px 210px;
 }
 .figure__rim {
   fill: none;
   stroke: var(--blue-border);
   stroke-width: 6;
   stroke-linecap: round;
-  /* The rim is drawn as a stroke that unrolls, and a stroke unrolls from
-     wherever its path starts -- 3 o'clock for an SVG circle. Rotated back a
-     quarter turn so it starts at the top and runs clockwise, which is the way
-     a hand draws one. */
-  transform: rotate(-90deg);
-  transform-origin: 210px 210px;
+  /* Where the stroke starts is decided by the path itself (see index.html),
+     not by a rotation here -- so there is no transform on this element for
+     GSAP to inherit and re-bake about the wrong origin.
+     The resting state is UNDRAWN, and it is opacity that says so rather than
+     a dash pattern. motion.js's drawPath hands the dash pattern back the
+     moment the stroke finishes -- which is right, a finished stroke is a
+     plain solid one -- so a dash-based resting state would be wiped by the
+     first draw and the rim would start the next run already complete. */
+  opacity: 0;
 }
 
 /* ---- The centre dot -----------------------------------------------------
@@ -376,19 +403,23 @@ body {
 
 /* ---- The mascot and its slots -------------------------------------------
    One bird for the whole lesson. It is re-parented between slots and the move
-   is played as a Flip, so welcome screen -> centre stage -> board header
-   reads as one continuous character rather than three. */
+   is played as a Flip, so welcome screen -> its mark on the field -> board
+   header reads as one continuous character rather than three. */
 .slot {
   position: absolute;
   pointer-events: none;
 }
 .slot--hero {
   z-index: var(--z-hero);          /* under the board, on purpose */
-  left: 50%;
-  top: 56%;
-  height: 48%;
+  /* Lower left rather than centre stage: it is close to where the bird is
+     already standing on the title screen, so the walk between the two is a
+     step rather than a flight, and it leaves the middle of the frame clear
+     for the board that is about to open over it. */
+  left: 27%;
+  bottom: 9%;
+  height: 44%;
   aspect-ratio: 1;
-  transform: translate(-50%, -50%);
+  transform: translateX(-50%);
 }
 .slot--welcome {
   left: clamp(8px, 4%, 70px);
@@ -410,51 +441,112 @@ body {
 
 /* ---- The hero speech bubble ---------------------------------------------
    Parked on the mascot's slot rather than in the board, so beat 1 can happen
-   before the board exists. */
-/* Centred with auto margins between a left:0/right:0 pair rather than with
-   translateX(-50%): the entrance tweens `transform`, and a centring transform
-   here would be the first thing it overwrote. This way the bubble can also be
-   wider than the slot it hangs off and still sit centred on it. */
-.bubble {
-  position: absolute;
-  left: 0;
-  right: 0;
-  bottom: 86%;
-  width: max-content;
-  max-width: min(72vw, 900px);
-  margin-inline: auto;
+   before the board exists.
 
-  padding: clamp(10px, 1.9vh, 22px) clamp(18px, 3vh, 34px);
-  border: 3px solid var(--board-highlight);
-  border-radius: clamp(14px, 2.4vh, 26px);
-  background: linear-gradient(180deg, var(--board-highlight) 0%, var(--board-bg) 100%);
+   It is anchored BY ITS TAIL, not by its own centre: --tail-x is how far the
+   beak sits from the bubble's left edge, and the bubble is pushed left by
+   exactly that much plus half the beak, which leaves the beak over the
+   middle of the slot -- over the bird's head -- whatever the line inside
+   turns out to measure. A bubble centred on the slot instead would walk its
+   tail off the bird's head the moment a longer sentence arrived.
+   -------------------------------------------------------------------------- */
+.bubble {
+  --tail-x: clamp(22px, 3.4vh, 38px);
+  --tail-size: clamp(16px, 2.4vh, 24px);
+
+  position: absolute;
+  left: calc(50% - var(--tail-x) - var(--tail-size) / 2);
+  /* Clear of the bird's head with the beak reaching down to it -- the sprite
+     cell carries transparent margin above the head, so this is higher than
+     the head looks. */
+  bottom: 88%;
+  width: max-content;
+  max-width: min(62vw, 820px);
+
+  padding: clamp(12px, 2.3vh, 26px) clamp(20px, 3.4vh, 40px);
+  border-radius: clamp(18px, 3.2vh, 34px);
+  background: var(--bubble-bg);
+  /* No hard outline: the edge is a rim a shade lighter than the fill, and
+     the bubble is lifted off the sky by a warm halo rather than by a shadow
+     -- a grey drop shadow under a pink bubble is the one thing that makes it
+     look pasted on. */
+  /* The same halo the board sits in, at a smaller scale -- so the bubble
+     reads as a piece of the board that has floated up to speak. */
   box-shadow:
-    0 0 18px 4px var(--glow-board-soft),
-    0 10px 26px var(--shadow-deep);
+    inset 0 0 0 3px var(--bubble-rim),
+    0 0 0 4px color-mix(in srgb, var(--board-decoration) 70%, transparent),
+    0 0 12px 0 var(--glow-board),
+    0 0 30px 8px var(--glow-board-soft),
+    0 12px 26px var(--shadow-deep);
 
   font-family: var(--font-display);
-  font-weight: 700;
-  font-size: clamp(20px, 4.2vh, 44px);
-  line-height: 1.2;
-  color: var(--text-primary);
+  font-weight: 800;
+  font-size: clamp(20px, 4.4vh, 46px);
+  line-height: 1.16;
+  letter-spacing: .2px;
+  color: var(--bubble-ink);
   pointer-events: none;
 }
 .bubble[hidden] { display: none; }
-/* The tail. A rotated square, so two of its sides carry the bubble's own
-   border; it sits half under the bubble, which hides the other two. */
+
+/* The beak. A rotated square, so two of its sides carry the bubble's own rim
+   and the other two are hidden under the bubble; the outer corner is rounded
+   off so the point reads as drawn rather than as clipped. */
 .bubble::after {
   content: "";
   position: absolute;
-  left: 20%;
-  bottom: -11px;
-  width: 20px;
-  height: 20px;
-  background: var(--board-bg);
-  border-right: 3px solid var(--board-highlight);
-  border-bottom: 3px solid var(--board-highlight);
-  border-bottom-right-radius: 4px;
+  left: var(--tail-x);
+  bottom: calc(var(--tail-size) / -2 + 2px);
+  width: var(--tail-size);
+  height: var(--tail-size);
+  background: var(--bubble-bg);
+  box-shadow: inset -3px -3px 0 0 var(--bubble-rim);
+  border-bottom-right-radius: 5px;
   transform: rotate(45deg);
 }
+
+/* The catchlight, top left inside. */
+.bubble__gloss {
+  position: absolute;
+  top: 16%;
+  left: 7%;
+  width: clamp(16px, 2.6vh, 28px);
+  height: clamp(7px, 1.1vh, 13px);
+  border-radius: 999px;
+  background: var(--board-highlight);
+  transform: rotate(-24deg);
+}
+
+/* The two excitement marks flanking the bubble -- the little chevrons that
+   say the line is being said, not just displayed. Each is one box with its
+   two strokes as pseudo-elements, hinged at the point of the chevron. */
+.bubble__mark {
+  position: absolute;
+  /* Centred on the bubble by margin rather than by a translate, so the
+     right-hand one can spend its own transform on being a mirror image. */
+  top: 50%;
+  margin-top: -.34em;
+  width: .52em;
+  height: .68em;
+}
+.bubble__mark::before,
+.bubble__mark::after {
+  content: "";
+  position: absolute;
+  right: 0;
+  width: 100%;
+  height: .1em;
+  min-height: 3px;
+  border-radius: 999px;
+  /* Darker than the sky rather than lighter: the backdrop here is a pale
+     lavender dusk, and a white mark on it disappears. */
+  background: color-mix(in srgb, var(--lavender-border) 52%, transparent);
+}
+.bubble__mark::before { top: 0;    transform: rotate(34deg);  transform-origin: right center; }
+.bubble__mark::after  { bottom: 0; transform: rotate(-34deg); transform-origin: right center; }
+
+.bubble__mark--l { right: calc(100% + .34em); }
+.bubble__mark--r { left: calc(100% + .34em); transform: scaleX(-1); }
 
 /* ---- Welcome ------------------------------------------------------------ */
 .welcome {
