@@ -1,0 +1,541 @@
+/* ==========================================================================
+   Identify Different Parts of a Circle -- base layer
+   Screen shell: full-bleed background art + a 16:9 board floating on it.
+   ========================================================================== */
+
+/* ---- Fonts (bundled, offline only -- no CDN) ---------------------------- */
+/* Baloo 2 is the game's one typeface. Poppins stays registered purely as the
+   fallback for the frame or two before the variable font has decoded. */
+@font-face {
+  font-family: "Baloo 2";
+  src: url("../assets/fonts/baloo_2/baloo2-variablefont_wght.ttf") format("truetype-variations");
+  font-weight: 400 800;
+  font-display: swap;
+}
+@font-face {
+  font-family: "Poppins";
+  src: url("../assets/fonts/poppins/poppins-regular.ttf") format("truetype");
+  font-weight: 400;
+  font-display: swap;
+}
+@font-face {
+  font-family: "Poppins";
+  src: url("../assets/fonts/poppins/poppins-semibold.ttf") format("truetype");
+  font-weight: 600;
+  font-display: swap;
+}
+@font-face {
+  font-family: "Poppins";
+  src: url("../assets/fonts/poppins/poppins-bold.ttf") format("truetype");
+  font-weight: 700;
+  font-display: swap;
+}
+
+/* ==========================================================================
+   Tokens
+   The palette block is the game's shared colour set -- every later scene
+   picks its shapes out of these five fill/border pairs, so a circle in this
+   section and a triangle three sections later are visibly the same kit.
+   Everything below the palette is DERIVED from it: no scene, and no rule in
+   any other file, writes a raw hex value.
+   ========================================================================== */
+:root {
+  /* ---- palette ---------------------------------------------------------- */
+  /* Common text */
+  --text-primary: #2B2C89;
+  --text-secondary: #55569A;
+
+  /* Board */
+  --board-bg: #F7F3FD;
+  --board-decoration: #E9E1FC;
+
+  /* Sky Blue */
+  --blue-fill: #88D9FA;
+  --blue-border: #2699D7;
+
+  /* Mint */
+  --mint-fill: #6FDBC5;
+  --mint-border: #34A296;
+
+  /* Lavender */
+  --lavender-fill: #9691FD;
+  --lavender-border: #544ED1;
+
+  /* Coral */
+  --coral-fill: #FE9F9C;
+  --coral-border: #D56765;
+
+  /* Yellow */
+  --yellow-fill: #FEE18E;
+  --yellow-border: #CEA43D;
+
+  /* ---- derived: surfaces ------------------------------------------------ */
+  --board-highlight: #FFFFFF;
+  --board-border: #FFFFFF;
+
+  /* The page behind the board, in the palette's own lavender. */
+  --page-bg: var(--lavender-fill);
+  --page-bg-deep: var(--lavender-border);
+
+  /* ---- derived: raised controls ----------------------------------------
+     --horizon is the wall a 3D control stands on: the same hue as the
+     surface, dropped far enough to read as a side rather than as a shadow. */
+  --horizon: color-mix(in srgb, var(--lavender-fill) 34%, var(--board-decoration));
+  --button-bg: var(--board-decoration);
+  --button-text: var(--text-primary);
+
+  /* ---- derived: glow and shadow ----------------------------------------- */
+  --glow-board: color-mix(in srgb, #FFFFFF 55%, transparent);
+  --glow-board-soft: color-mix(in srgb, var(--lavender-fill) 40%, transparent);
+  --glow-board-dim: color-mix(in srgb, var(--lavender-border) 28%, transparent);
+  --shadow-soft: color-mix(in srgb, var(--text-primary) 18%, transparent);
+  --shadow-deep: color-mix(in srgb, var(--text-primary) 30%, transparent);
+
+  /* ---- derived: the ink names the rest of the game already uses --------- */
+  --ink: var(--text-primary);
+  --ink-soft: var(--text-secondary);
+
+  --font-display: "Baloo 2", "Poppins", system-ui, sans-serif;
+  --font-body: "Baloo 2", "Poppins", system-ui, sans-serif;
+
+  /* ---- stacking ---------------------------------------------------------
+     One ladder for the whole frame, so "behind the board" and "on the header"
+     are the same idea expressed twice rather than two piles of magic numbers.
+     The three board bands are deliberately separate levels: the header is
+     above the footer, and both are above the stage, so the mascot standing on
+     the header overlaps the figure behind it without being clipped by it. */
+  --z-hero: 1;        /* the mascot centre stage -- UNDER the board          */
+  --z-board: 2;
+  --z-stage: 1;       /* inside the board: the figure                        */
+  --z-footer: 2;
+  --z-header: 3;      /* inside the board: the prompt row and its mascot     */
+  --z-next: 6;        /* over the board, under the welcome screen            */
+  --z-welcome: 9;
+
+  /* One 16:9 box that always fits: capped by a max width, by the viewport
+     width, and -- via 160vh (= 90vh x 16/9) -- by the viewport height. */
+  --board-w: min(1500px, 96vw, 160vh);
+
+  /* The three board bands, as fractions of the board's own height. Fixed
+     rather than content-sized: the header has to hold its height on the beats
+     where it is empty, or the figure below it would shift when text arrives. */
+  --row-top: 19%;
+  --row-bottom: 11%;
+}
+
+/* ---- Reset -------------------------------------------------------------- */
+*,
+*::before,
+*::after { box-sizing: border-box; }
+
+html, body {
+  height: 100%;
+  margin: 0;
+  padding: 0;
+}
+
+body {
+  min-height: 100dvh;
+  overflow: hidden;
+  font-family: var(--font-body);
+  color: var(--ink);
+  -webkit-font-smoothing: antialiased;
+  -webkit-tap-highlight-color: transparent;
+
+  /* Artwork stretched to the full viewport, over a token gradient that carries
+     the first frame and any decode failure. */
+  background:
+    url("../assets/image/bg.png") center / 100% 100% no-repeat,
+    linear-gradient(180deg, var(--page-bg) 0%, var(--page-bg-deep) 100%);
+  background-color: var(--page-bg);
+}
+
+/* ---- Shell -------------------------------------------------------------- */
+#app {
+  position: relative;
+  width: 100%;
+  height: 100dvh;
+  display: grid;
+  place-items: center;
+}
+
+/* The staging box. Everything in the lesson is positioned against it, so a
+   control placed in its bottom-right corner stays there whether or not the
+   board is on screen. */
+.frame {
+  position: relative;
+  width: var(--board-w);
+  aspect-ratio: 16 / 9;
+}
+
+/* ---- Board -------------------------------------------------------------- */
+.board {
+  position: absolute;
+  inset: 0;
+  z-index: var(--z-board);
+
+  display: grid;
+  grid-template-rows: var(--row-top) minmax(0, 1fr) var(--row-bottom);
+  padding: clamp(10px, 2.2vh, 22px) clamp(18px, 3.2%, 44px);
+  border-radius: clamp(18px, 3.4vh, 34px);
+  border: 3px solid var(--board-border);
+  /* same pairing as the body: artwork over a token gradient that carries the
+     first frame and any decode failure */
+  background:
+    url("../assets/image/board.png") center / 100% 100% no-repeat,
+    radial-gradient(72% 58% at 50% 42%, var(--board-highlight) 0%, var(--board-bg) 70%);
+  background-color: var(--board-bg);
+  /* The halo the board sits in. Every layer is blurred: a spread with no blur
+     paints a solid ring, and a solid ring has a visible edge. Opacity falls and
+     blur grows with each step out, so the glow fades rather than stopping. */
+  box-shadow:
+    0 0 12px 0 var(--glow-board),
+    0 0 32px 8px var(--glow-board-soft),
+    0 0 68px 22px var(--glow-board-dim),
+    0 18px 44px var(--shadow-deep);
+
+  /* Laid out from the first frame but invisible until the scene reveals it.
+     visibility, not display: the board has to be measurable from the start so
+     the figure inside it can be sized before it is ever shown. */
+  opacity: 0;
+  visibility: hidden;
+}
+.board.show { opacity: 1; visibility: visible; }
+
+/* The three bands. Each gets its own level on the --z ladder. */
+.board__top {
+  position: relative;
+  z-index: var(--z-header);
+  min-height: 0;
+  display: grid;
+  align-items: end;
+}
+.board__bottom {
+  position: relative;
+  z-index: var(--z-footer);
+  min-height: 0;
+}
+.board__stage {
+  position: relative;
+  z-index: var(--z-stage);
+  min-height: 0;
+  display: grid;
+  place-items: center;
+}
+
+/* ---- The prompt row (header) -------------------------------------------
+   Mascot, then the line it is saying. The row is laid out from the first
+   frame and holds its height whether or not there is text in it, so nothing
+   below it moves when a line arrives. */
+.prompt {
+  display: flex;
+  align-items: flex-end;
+  gap: clamp(6px, 1.2%, 18px);
+  height: 100%;
+  padding-left: clamp(8px, 2%, 28px);
+}
+
+/* The mascot's header slot. Taller than the band it sits in, so the bird
+   stands ON the header rather than inside it -- and it clips its own contents
+   while .is-clipped is set, which is what turns the entrance into the bird
+   rising up out of the board's surface. */
+.prompt__mascot {
+  position: relative;
+  flex: 0 0 auto;
+  align-self: flex-end;
+  /* A shade taller than the band, so the bird stands ON the header rather
+     than inside it -- but only by as much as the board's own padding can
+     absorb, or its head would break the rounded top border. */
+  height: 110%;
+  aspect-ratio: 1;
+  pointer-events: none;
+}
+.prompt__mascot.is-clipped { overflow: hidden; }
+
+.prompt__line {
+  margin: 0;
+  padding-bottom: clamp(2px, 1.4%, 16px);
+  min-width: 0;
+  font-family: var(--font-display);
+  font-weight: 700;
+  font-size: clamp(17px, 3.3vh, 32px);
+  line-height: 1.22;
+  color: var(--text-primary);
+}
+
+/* ---- The figure ---------------------------------------------------------
+   Laid over the stage rather than sized inside it. `height: 100%` on an
+   <svg> in a centred grid item does not resolve against the grid area in
+   every engine -- the box falls back to the stage's WIDTH and the circle
+   comes out as tall as the board is wide. Filling an absolute box and
+   letting preserveAspectRatio letterbox the viewBox is the version that has
+   one answer everywhere: the circle is sized by the shorter side, which on a
+   16:9 stage is always the height, and centred on the longer one. */
+.figure {
+  position: absolute;
+  inset: 0;
+  display: block;
+  width: 100%;
+  height: 100%;
+  overflow: visible;
+}
+
+.figure__disc {
+  fill: color-mix(in srgb, var(--blue-fill) 26%, #FFFFFF);
+  opacity: 0;                       /* the fill lands after the rim is drawn */
+  transform-origin: 210px 210px;
+}
+.figure__rim {
+  fill: none;
+  stroke: var(--blue-border);
+  stroke-width: 6;
+  stroke-linecap: round;
+  /* The rim is drawn as a stroke that unrolls, and a stroke unrolls from
+     wherever its path starts -- 3 o'clock for an SVG circle. Rotated back a
+     quarter turn so it starts at the top and runs clockwise, which is the way
+     a hand draws one. */
+  transform: rotate(-90deg);
+  transform-origin: 210px 210px;
+}
+
+/* ---- The centre dot -----------------------------------------------------
+   The [hidden] rule is spelled out: the UA stylesheet's own `[hidden]`
+   declaration is written for HTML elements, and an SVG <g> carrying the
+   attribute is not reliably hidden by it. */
+.figure__centre[hidden] { display: none; }
+.centre__dot  { fill: var(--blue-border); }
+.centre__glow {
+  fill: color-mix(in srgb, var(--blue-fill) 70%, transparent);
+  opacity: 0;
+  transform-origin: 210px 210px;
+}
+.centre__hit {
+  fill: transparent;
+  cursor: pointer;
+  outline: none;
+}
+.centre__hit:focus-visible {
+  stroke: var(--lavender-border);
+  stroke-width: 3;
+  stroke-dasharray: 5 5;
+}
+/* Once it has been named, the dot is answered: it stops asking to be tapped. */
+.figure__centre.is-found .centre__hit { cursor: default; pointer-events: none; }
+
+/* ---- Next ---------------------------------------------------------------
+   Anchored to the frame's bottom-right corner, which IS the board's
+   bottom-right corner, whether or not the board is there yet. */
+.next-btn {
+  --edge: 5px;
+  --sink: 0px;
+
+  position: absolute;
+  right: clamp(14px, 2.6%, 40px);
+  bottom: clamp(12px, 2.4%, 34px);
+  z-index: var(--z-next);
+
+  display: grid;
+  place-items: center;
+  width: clamp(44px, 7.2vh, 74px);
+  aspect-ratio: 1;
+  padding: 0;
+  border: 3px solid var(--board-highlight);
+  border-radius: 999px;
+  background: linear-gradient(180deg,
+              color-mix(in srgb, var(--coral-fill) 55%, #FFFFFF) 0%,
+              var(--coral-fill) 58%,
+              color-mix(in srgb, var(--coral-fill) 72%, var(--coral-border)) 100%);
+  color: var(--board-highlight);
+  cursor: pointer;
+  translate: 0 var(--sink);
+  box-shadow:
+    0 var(--edge) 0 var(--coral-border),
+    0 0 14px 2px color-mix(in srgb, var(--coral-fill) 45%, transparent),
+    0 calc(var(--edge) + 1px) 2px var(--shadow-soft),
+    0 calc(var(--edge) + 5px) calc(var(--edge) * 2 + 12px) var(--shadow-deep);
+
+  opacity: 0;
+  transition: filter .18s ease;
+}
+.next-btn[hidden] { display: none; }
+.next-btn:hover,
+.next-btn:focus-visible { filter: brightness(1.06); outline: none; }
+.next-btn:focus-visible { border-color: var(--lavender-border); }
+/* Same reason as .start-btn.is-3d: the press writes --edge every frame and
+   box-shadow is spelled off it. */
+.next-btn.is-3d { transition: filter .18s ease; }
+.next-btn svg {
+  width: 52%;
+  height: 52%;
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 2.6;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+
+/* ---- The mascot and its slots -------------------------------------------
+   One bird for the whole lesson. It is re-parented between slots and the move
+   is played as a Flip, so welcome screen -> centre stage -> board header
+   reads as one continuous character rather than three. */
+.slot {
+  position: absolute;
+  pointer-events: none;
+}
+.slot--hero {
+  z-index: var(--z-hero);          /* under the board, on purpose */
+  left: 50%;
+  top: 56%;
+  height: 48%;
+  aspect-ratio: 1;
+  transform: translate(-50%, -50%);
+}
+.slot--welcome {
+  left: clamp(8px, 4%, 70px);
+  bottom: 0;
+  height: clamp(120px, 30vh, 260px);
+  aspect-ratio: 1;
+}
+
+.mascot {
+  width: 100%;
+  height: 100%;
+  background-repeat: no-repeat;
+  /* The sheets are a strict uniform grid with the pivot at each cell's exact
+     centre, so a percentage background-size slices them cleanly and every
+     frame of every animation registers on the same spot. */
+  background-position: 0 0;
+}
+.mascot[hidden] { display: none; }
+
+/* ---- The hero speech bubble ---------------------------------------------
+   Parked on the mascot's slot rather than in the board, so beat 1 can happen
+   before the board exists. */
+/* Centred with auto margins between a left:0/right:0 pair rather than with
+   translateX(-50%): the entrance tweens `transform`, and a centring transform
+   here would be the first thing it overwrote. This way the bubble can also be
+   wider than the slot it hangs off and still sit centred on it. */
+.bubble {
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 86%;
+  width: max-content;
+  max-width: min(72vw, 900px);
+  margin-inline: auto;
+
+  padding: clamp(10px, 1.9vh, 22px) clamp(18px, 3vh, 34px);
+  border: 3px solid var(--board-highlight);
+  border-radius: clamp(14px, 2.4vh, 26px);
+  background: linear-gradient(180deg, var(--board-highlight) 0%, var(--board-bg) 100%);
+  box-shadow:
+    0 0 18px 4px var(--glow-board-soft),
+    0 10px 26px var(--shadow-deep);
+
+  font-family: var(--font-display);
+  font-weight: 700;
+  font-size: clamp(20px, 4.2vh, 44px);
+  line-height: 1.2;
+  color: var(--text-primary);
+  pointer-events: none;
+}
+.bubble[hidden] { display: none; }
+/* The tail. A rotated square, so two of its sides carry the bubble's own
+   border; it sits half under the bubble, which hides the other two. */
+.bubble::after {
+  content: "";
+  position: absolute;
+  left: 20%;
+  bottom: -11px;
+  width: 20px;
+  height: 20px;
+  background: var(--board-bg);
+  border-right: 3px solid var(--board-highlight);
+  border-bottom: 3px solid var(--board-highlight);
+  border-bottom-right-radius: 4px;
+  transform: rotate(45deg);
+}
+
+/* ---- Welcome ------------------------------------------------------------ */
+.welcome {
+  position: absolute;
+  inset: 0;
+  z-index: var(--z-welcome);
+  display: grid;
+  grid-template-rows: 1fr auto auto 1fr;
+  justify-items: center;
+  align-content: center;
+  gap: clamp(14px, 3.4vh, 40px);
+  padding: 0 clamp(16px, 5vw, 80px);
+}
+.welcome[hidden] { display: none; }
+
+.welcome__title {
+  grid-row: 2;
+  margin: 0;
+  font-family: var(--font-display);
+  font-weight: 800;
+  font-size: clamp(24px, 6vh, 62px);
+  line-height: 1.15;
+  letter-spacing: .5px;
+  text-align: center;
+  color: var(--board-highlight);
+  text-shadow:
+    0 2px 0 color-mix(in srgb, var(--lavender-border) 55%, transparent),
+    0 6px 26px var(--shadow-deep);
+}
+
+.start-btn {
+  grid-row: 3;
+
+  --edge: 5px;
+  --sink: 0px;
+  translate: 0 var(--sink);
+
+  align-self: center;
+  justify-self: center;
+  font-family: inherit;
+  font-weight: 700;
+  font-size: clamp(30px, 5vh, 40px);
+  letter-spacing: 1px;
+  color: var(--button-text);
+  padding: clamp(8px, 1.8vh, 18px) clamp(28px, 5vw, 55px);
+  border: 4px solid var(--board-highlight);
+  border-radius: 999px;
+  background: linear-gradient(180deg, var(--board-highlight) 0%, var(--button-bg) 55%, var(--board-decoration) 100%);
+  box-shadow:
+    0 var(--edge) 0 var(--horizon),
+    0 0 14px 2px var(--glow-board-soft),
+    0 0 36px 12px var(--glow-board-dim),
+    0 calc(var(--edge) + 1px) 2px var(--shadow-soft),
+    0 calc(var(--edge) + 5px) calc(var(--edge) * 2 + 16px) var(--shadow-deep);
+  cursor: pointer;
+
+  opacity: 0;
+  transform: translateY(16px) scale(.9);
+  transition: opacity .42s ease,
+              transform .42s cubic-bezier(.2, .9, .3, 1.4),
+              box-shadow .18s ease,
+              filter .18s ease;
+}
+.start-btn[hidden] { display: none; }
+.start-btn.in {
+  opacity: 1;
+  transform: none;
+  animation: start-pulse 2.1s ease-in-out .5s infinite;
+}
+.start-btn.in:hover,
+.start-btn.in:focus-visible {
+  animation-play-state: paused;
+  filter: brightness(1.04);
+  outline: none;
+}
+/* The press writes --edge every frame, and box-shadow is spelled off it, so a
+   transition on box-shadow would smear the wall as it collapses -- is-3d drops
+   that one line and leaves the rest of the transition alone. The lift and the
+   give that used to live on :hover and :active are the press's job now. */
+.start-btn.is-3d {
+  transition: opacity .42s ease,
+              transform .42s cubic-bezier(.2, .9, .3, 1.4),
+              filter .18s ease;
+}

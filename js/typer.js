@@ -1,0 +1,207 @@
+/* ==========================================================================
+ * typer.js -- "words ease in"
+ * --------------------------------------------------------------------------
+ * A typewriter in PACING only. It lands a word at a time, and each word fades
+ * up and unblurs where it already sits. Nothing reflows while a line arrives,
+ * and the line always finishes on time even on slow frames.
+ *
+ * The three ideas that make it look smooth:
+ *
+ *   1. LAYOUT FIRST, REVEAL SECOND. The whole line is written into the DOM up
+ *      front, one <span class="wd"> per word, all at opacity 0. Revealing only
+ *      adds a class. Because every word already occupies its final box, no
+ *      word ever pushes another sideways as it appears -- which is exactly
+ *      what makes a character-by-character typewriter on a centred line look
+ *      so jittery.
+ *
+ *   2. A HIDDEN GHOST RESERVES THE WIDTH. A visibility:hidden copy of the line
+ *      sits in normal flow and gives the wrapper its final width and height;
+ *      the live line is absolutely positioned on top of it. So a centred or
+ *      wrapping line never shifts, and the box never grows as the text
+ *      arrives. The ghost is built with the SAME span-per-word structure as
+ *      the live line, not as a plain text node: a plain run can differ by a
+ *      hair in width and wrap one word earlier than the live line does.
+ *
+ *   3. PACED AGAINST A WALL CLOCK, not a chain of timeouts. Each word is due
+ *      at start + charsBefore * perChar, and before each word we sleep only
+ *      the REMAINING time to its due moment. A dropped frame or a slow paint
+ *      costs nothing; drift never accumulates. Pacing stays per character
+ *      even though reveal is per word, so a long word naturally holds the
+ *      line a little longer.
+ *
+ * Cancellation is Flow's: every sleep here is taken out through Flow.wait, so
+ * a scene change unwinds a half-typed line along with the rest of the chain,
+ * and Skip makes the line land whole and instantly with no special case here.
+ * The `gen` guard is the second line of defence -- it stops an orphaned line
+ * from writing into a box a newer line now owns.
+ *
+ * Load order: js/flow.js -> js/typer.js
+ * ========================================================================== */
+(function (global) {
+  'use strict';
+
+  var TYPE_MS  = 72;    /* ms per character -- the default speaking pace   */
+  var WORD_IN  = 200;   /* the tail: the last word finishing its fade      */
+  var MORPH_MS = 0.42;  /* seconds: a box easing from one line's size to   */
+                        /* the next's, when the caller names one           */
+
+  var mq = global.matchMedia
+    ? global.matchMedia('(prefers-reduced-motion: reduce)')
+    : null;
+  function reduced() { return !!(mq && mq.matches); }
+
+  function sleep(ms) {
+    return global.Flow ? global.Flow.wait(ms)
+                       : new Promise(function (r) { setTimeout(r, ms); });
+  }
+
+  /* ---- laying a line out ------------------------------------------------ */
+
+  /* Where a text is cut: after each word TOGETHER WITH the spaces that follow
+     it, so the spacing rides along with the word it belongs to. (This is why
+     .type is white-space: pre-wrap -- those trailing spaces must not
+     collapse.) */
+  function wordCuts(text) {
+    var cuts = [];
+    var re = /\S+\s*/g;
+    var m;
+    while ((m = re.exec(text)) !== null) cuts.push(m.index + m[0].length);
+    if (!cuts.length || cuts[cuts.length - 1] !== text.length) cuts.push(text.length);
+    return cuts;
+  }
+
+  /* Lay a line out whole: a span per word, each remembering its cut (its end
+     offset into the text) so the reveal can be paced per character. */
+  function wordSpans(root, text) {
+    root.textContent = '';
+    var words = [];
+    var from = 0;
+    wordCuts(text).forEach(function (cut) {
+      var sp = document.createElement('span');
+      sp.className = 'wd';
+      sp.textContent = text.slice(from, cut);
+      root.appendChild(sp);
+      words.push({ el: sp, cut: cut });
+      from = cut;
+    });
+    return words;
+  }
+
+  /* ---- revealing it ----------------------------------------------------- */
+
+  /* Show each word at the moment its FIRST character would have been typed.
+     `due` is a performance.now() stamp; `alive` lets a newer line take the box
+     over from this one. Resolves to the moment the line is done. */
+  function revealWords(words, due, perChar, alive) {
+    var from = 0;
+    var i = 0;
+
+    function step() {
+      if (i >= words.length) return Promise.resolve(due + from * perChar);
+      if (alive && !alive()) return Promise.resolve(due);
+
+      var w = words[i++];
+      var left = due + from * perChar - performance.now();
+      var ready = left > 0 ? sleep(left) : Promise.resolve();
+
+      return ready.then(function () {
+        if (alive && !alive()) return due;
+        w.el.classList.add('in');
+        from = w.cut;
+        return step();
+      });
+    }
+    return step();
+  }
+
+  function wordsSettle() { return sleep(reduced() ? 0 : WORD_IN); }
+
+  /* ---- the box a line lives in ------------------------------------------
+     A bubble sized by its own text changes shape between one line and the
+     next, and a bubble that snaps from "Hey there!" to a full sentence reads
+     as a glitch. Flip measures both boxes and eases between them while the
+     words -- already laid out, still invisible -- wait inside. scale:false on
+     purpose: a scaled bubble would stretch its border and its corner radius
+     along with it.
+
+     REPLACING a line only. The first line into an empty box is not a morph
+     -- there is no previous size to come from -- and running one anyway is
+     actively harmful: Flip restores whatever inline styles the element had
+     when it took over, so a Flip overlapping the bubble's own opening tween
+     puts the bubble back to closed the moment it finishes. `had` is what
+     keeps the two apart. */
+  function morphBox(box, had, change) {
+    var Flip = global.Flip;
+    if (!box || !Flip || !had || reduced() ||
+        (global.Flow && global.Flow.isFast()) ||
+        box.getBoundingClientRect().width <= 0) {
+      return change();
+    }
+    var state = Flip.getState(box);
+    var out = change();
+    Flip.from(state, {
+      duration: MORPH_MS,
+      ease: 'power2.inOut',
+      scale: false,
+      absolute: false
+    });
+    return out;
+  }
+
+  /* ---- the typewriter bound to a box ------------------------------------ */
+
+  /* Returns a function(text) that types into this one box. A line that
+     arrives while an earlier one is still typing takes the box over from it.
+     `await say(...)` resolves only once the final word has FINISHED fading,
+     so the caller can chain the next beat without the two overlapping. */
+  function create(wrap, opts) {
+    var o = opts || {};
+    var ghost = wrap.querySelector('.type-ghost');
+    var txt   = wrap.querySelector('.type .txt');
+    var gen = 0;
+
+    function say(text, over) {
+      var g = ++gen;
+      var mine = function () { return g === gen; };
+      var perChar = (over && over.perChar) || o.perChar || TYPE_MS;
+      var words;
+
+      /* Ghost BEFORE live, always. Anything on screen positioned relative to
+         this line -- the mascot beside a centred heading, the icon at the
+         left end of the prompt row -- has to be measured after the ghost has
+         taken the width, or it lands in the middle of an empty row and gets
+         shoved sideways a beat later. */
+      morphBox(o.box, ghost.textContent.length > 0, function () {
+        wordSpans(ghost, text);
+        words = wordSpans(txt, text);
+      });
+
+      return revealWords(words, performance.now(), perChar, mine)
+        .then(function (end) {
+          if (!mine()) return;
+          var left = end - performance.now();
+          return (left > 0 ? sleep(left) : Promise.resolve())
+            .then(wordsSettle);
+        });
+    }
+
+    /* Empty the box -- both halves of it. A stale ghost holds a stale width,
+       which is the one way this effect can still shift a layout. */
+    say.clear = function () {
+      gen++;
+      ghost.textContent = '';
+      txt.textContent = '';
+    };
+
+    return say;
+  }
+
+  global.Typer = {
+    TYPE_MS: TYPE_MS,
+    WORD_IN: WORD_IN,
+    create: create,
+    wordCuts: wordCuts,
+    wordSpans: wordSpans,
+    revealWords: revealWords
+  };
+})(window);

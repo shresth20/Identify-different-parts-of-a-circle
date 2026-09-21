@@ -1,0 +1,151 @@
+/* ==========================================================================
+   Motion layer. Transform/opacity/filter only -- never width, height, top or
+   left, with one deliberate exception: the speech bubble's box morph, which
+   is a Flip and so is measured rather than guessed.
+
+   The board's entrance is a GSAP tween in pages.js, not a keyframe: the class
+   alone must always leave the board visible, so a tween that never runs can
+   never strand it at opacity 0.
+   ========================================================================== */
+
+/* Compositor hint, added for the length of a move and dropped after. */
+.is-animating { will-change: transform, opacity; }
+
+/* While GSAP drives opacity frame by frame, a CSS transition on the same
+   property would re-transition every one of those writes and smear the move. */
+.board.is-animating { transition: none; }
+
+/* ==========================================================================
+   Words ease in -- the text reveal
+   --------------------------------------------------------------------------
+   A typewriter in PACING only. It lands a word at a time, and each word fades
+   up and unblurs exactly where it already sits. Three things make it smooth:
+
+     1. Layout first, reveal second. The whole line is written into the DOM up
+        front, one span per word, all at opacity 0. Revealing only adds a
+        class, so no word ever pushes another sideways as it appears.
+     2. A hidden ghost reserves the width. The ghost sits in normal flow and
+        gives the wrapper its final box; the live line is absolute on top of
+        it. A centred or wrapping line therefore never shifts.
+     3. Paced against a wall clock. Each word is due at
+        start + charsBefore * perChar, and typer.js sleeps only the remaining
+        time to that moment -- a dropped frame costs nothing and drift never
+        accumulates. Pacing stays per character even though reveal is per
+        word, so a long word holds the line a little longer.
+   ========================================================================== */
+
+.type-wrap  { position: relative; display: inline-block; }
+.type-ghost { visibility: hidden; }
+.type {
+  position: absolute;
+  inset: 0;
+  text-align: left;
+  /* Each word span carries its own trailing spaces (see wordCuts in
+     typer.js), and they must not collapse. */
+  white-space: pre-wrap;
+}
+/* A centred heading centres both of its rows. */
+.heading .type,
+.bubble  .type { text-align: center; }
+
+/* The reveal itself. `both` holds the end state after the animation has
+   finished, so a word never snaps back to opacity 0. */
+.wd { opacity: 0; }
+.wd.in { animation: wd-in .46s cubic-bezier(.2, .7, .3, 1) both; }
+@keyframes wd-in {
+  from { opacity: 0; filter: blur(4px); }
+  to   { opacity: 1; filter: blur(0); }
+}
+
+/* ==========================================================================
+   Scene motion
+   ========================================================================== */
+
+/* The Start button, breathing. It owns the glow layers only, and carries the
+   wall and the ambient through unchanged so they stay driven by --edge. */
+@keyframes start-pulse {
+  0%, 100% {
+    box-shadow: 0 var(--edge) 0 var(--horizon),
+                0 0 14px 2px var(--glow-board-soft),
+                0 0 36px 12px var(--glow-board-dim),
+                0 calc(var(--edge) + 1px) 2px var(--shadow-soft),
+                0 calc(var(--edge) + 5px) calc(var(--edge) * 2 + 16px) var(--shadow-deep);
+  }
+  50% {
+    box-shadow: 0 var(--edge) 0 var(--horizon),
+                0 0 26px 8px var(--glow-board),
+                0 0 62px 24px var(--glow-board-soft),
+                0 calc(var(--edge) + 1px) 2px var(--shadow-soft),
+                0 calc(var(--edge) + 5px) calc(var(--edge) * 2 + 16px) var(--shadow-deep);
+  }
+}
+
+/* The centre dot, asking to be tapped. Opacity and transform only, so the
+   whole loop runs off the main thread; the halo is a separate circle under
+   the dot, so the dot itself never softens. */
+.figure__centre.is-calling .centre__glow {
+  animation: dot-glow 1.5s ease-in-out infinite;
+}
+@keyframes dot-glow {
+  0%, 100% { opacity: .30; transform: scale(.72); }
+  50%      { opacity: .85; transform: scale(1.22); }
+}
+/* Answered: the halo settles to a quiet ring instead of stopping dead. */
+.figure__centre.is-found .centre__glow {
+  animation: none;
+  opacity: .42;
+  transform: scale(1);
+  transition: opacity .3s ease, transform .3s ease;
+}
+
+/* The ripple motion.js draws where a finger landed. Fixed to the viewport,
+   and removed from the tree when it has gone. */
+.mo-ripple {
+  position: fixed;
+  z-index: 999;
+  width: 84px;
+  height: 84px;
+  margin: -42px 0 0 -42px;
+  border-radius: 50%;
+  background: radial-gradient(circle,
+              color-mix(in srgb, var(--blue-fill) 70%, transparent) 0%,
+              transparent 68%);
+  pointer-events: none;
+}
+
+/* The band motion.js sweeps behind a highlighted term. */
+.mo-highlight {
+  position: absolute;
+  inset: -.08em -.22em;
+  z-index: -1;
+  border-radius: .3em;
+  background: color-mix(in srgb, var(--yellow-fill) 80%, transparent);
+  transform-origin: left center;
+  pointer-events: none;
+}
+
+/* ==========================================================================
+   Reduced motion
+   Words still arrive in order -- that is the reading aid, not the decoration
+   -- but near-instantly, and pages.js drops the tail pause to match.
+   ========================================================================== */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: .01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: .01ms !important;
+  }
+  .wd.in {
+    animation: wd-in .08s linear both !important;
+  }
+  /* The blanket rule above would run the halo's loop once, in a hundredth of
+     a second, and leave it back at opacity 0 -- an invisible halo. Stated
+     outright instead: the dot is marked, it just does not breathe. */
+  .figure__centre.is-calling .centre__glow {
+    animation: none !important;
+    opacity: .6;
+    transform: scale(1);
+  }
+}

@@ -1,0 +1,103 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+  <title>Identify Different Parts of a Circle</title>
+
+  <link rel="stylesheet" href="css/style.css" />
+  <link rel="stylesheet" href="css/animations.css" />
+  <link rel="stylesheet" href="css/responsive.css" />
+</head>
+<body>
+  <!-- One screen at a time lives inside #app. The background art is painted on
+       body, so a screen swap never re-decodes it. -->
+  <main id="app">
+
+    <!-- The 16:9 box the whole lesson is staged in. The board, the mascot and
+         the Next control are all positioned against THIS, not against the
+         board, so Next sits in the board's bottom-right corner from beat 1 --
+         before the board itself has arrived, and without moving when it does. -->
+    <div class="frame" id="frame">
+
+      <!-- The mascot's centre-stage slot. It sits BEHIND the board on purpose:
+           when the board arrives it covers the mascot, and the mascot's next
+           entrance rises back out of the board's own surface. -->
+      <div class="slot slot--hero" id="slotHero">
+        <div class="bubble" id="bubble" hidden>
+          <span class="type-wrap" id="bubbleType">
+            <span class="type-ghost"></span>
+            <span class="type" aria-live="polite"><span class="txt"></span></span>
+          </span>
+        </div>
+      </div>
+
+      <section class="board" id="board" aria-hidden="true">
+        <!-- Three bands, three stacking levels (see --z-* in style.css): the
+             header is above the footer, and both are above the stage, so the
+             mascot standing on the header overlaps the figure behind it. -->
+        <header class="board__top" id="boardTop">
+          <div class="prompt" id="prompt">
+            <div class="prompt__mascot" id="slotHeader"></div>
+            <p class="prompt__line">
+              <span class="type-wrap" id="promptType">
+                <span class="type-ghost"></span>
+                <span class="type" aria-live="polite"><span class="txt"></span></span>
+              </span>
+            </p>
+          </div>
+        </header>
+
+        <div class="board__stage" id="boardStage">
+          <svg class="figure" id="figure" viewBox="0 0 420 420"
+               role="img" aria-label="A circle">
+            <!-- Fill first in document order so the rim always draws on top of
+                 it, whichever of the two is revealed first. -->
+            <circle class="figure__disc" id="disc" cx="210" cy="210" r="158" />
+            <circle class="figure__rim"  id="rim"  cx="210" cy="210" r="158" />
+
+            <g class="figure__centre" id="centre" hidden>
+              <circle class="centre__glow" cx="210" cy="210" r="30" />
+              <circle class="centre__dot"  cx="210" cy="210" r="10" />
+              <!-- A finger-sized hit area over a 10px dot. -->
+              <circle class="centre__hit"  id="centreHit" cx="210" cy="210" r="34"
+                      role="button" tabindex="0"
+                      aria-label="Tap the dot at the centre of the circle" />
+            </g>
+          </svg>
+        </div>
+
+        <footer class="board__bottom" id="boardBottom"></footer>
+      </section>
+
+      <button class="next-btn" id="nextBtn" type="button" hidden aria-label="Next">
+        <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+          <path d="M4.5 12h12.2M11.4 6.2 17.6 12l-6.2 5.8" />
+        </svg>
+      </button>
+    </div>
+
+    <!-- Welcome, over everything until Start is pressed. -->
+    <section class="welcome" id="welcome">
+      <div class="slot slot--welcome" id="slotWelcome"></div>
+      <h1 class="welcome__title heading">
+        <span class="type-wrap" id="titleType">
+          <span class="type-ghost"></span>
+          <span class="type" aria-live="polite"><span class="txt"></span></span>
+        </span>
+      </h1>
+      <button class="start-btn" id="startBtn" type="button" hidden>Start</button>
+    </section>
+  </main>
+
+  <script src="libs/gsap.min.js"></script>
+  <script src="libs/Flip.min.js"></script>
+  <script src="js/motion.js"></script>
+  <script src="js/flow.js"></script>
+  <script src="js/typer.js"></script>
+  <script src="js/mascot.js"></script>
+  <script src="js/animations.js"></script>
+  <script src="js/pages.js"></script>
+  <script src="js/script.js"></script>
+</body>
+</html>
