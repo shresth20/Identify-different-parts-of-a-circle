@@ -95,6 +95,33 @@
     var cur = null;        /* { clip, cols, rows, frames, loop, t0, onEnd } */
     var shown = -1;        /* the frame index currently painted             */
     var state = null;      /* the STATES key we are holding, if any         */
+    var mirrors = [];      /* elements painted with the same frame (below)  */
+
+    /* ---- mirroring ------------------------------------------------------
+       A jump on and off the board is played by two elements at once -- the
+       bird itself and the hopper standing in for it behind the board (see
+       .hopper in style.css) -- and the two swap at the top of the arc. The
+       swap is only invisible if both are showing the SAME sprite frame on
+       the frame they swap on, so rather than run a second player, the hopper
+       is dressed from this one: every write this file makes to the bird's
+       background is made to the mirror in the same statement.
+       Deliberately not a CSS custom property: the player writes background
+       straight to the element's style, and one write to two elements is both
+       cheaper and impossible to get out of step. */
+    function dress(t) {
+      t.style.backgroundImage = el.style.backgroundImage;
+      t.style.backgroundSize = el.style.backgroundSize;
+      t.style.backgroundPosition = el.style.backgroundPosition;
+    }
+    function mirror(t) {
+      if (!t || mirrors.indexOf(t) >= 0) return;
+      mirrors.push(t);
+      dress(t);
+    }
+    function unmirror(t) {
+      var i = mirrors.indexOf(t);
+      if (i >= 0) mirrors.splice(i, 1);
+    }
 
     /* Paint one cell. Guarded on `shown` so a 60fps rAF only touches the DOM
        on the 20 frames a second that actually change. */
@@ -103,9 +130,11 @@
       shown = index;
       var col = index % cur.cols;
       var row = (index / cur.cols) | 0;
-      el.style.backgroundPosition =
+      var pos =
         (cur.cols > 1 ? (col * 100) / (cur.cols - 1) : 0) + '% ' +
         (cur.rows > 1 ? (row * 100) / (cur.rows - 1) : 0) + '%';
+      el.style.backgroundPosition = pos;
+      for (var i = 0; i < mirrors.length; i++) mirrors[i].style.backgroundPosition = pos;
     }
 
     function tick() {
@@ -149,6 +178,7 @@
       el.style.backgroundImage = 'url("' + url(clip) + '")';
       el.style.backgroundSize = (cur.cols * 100) + '% ' + (cur.rows * 100) + '%';
       paint(0);
+      mirrors.forEach(dress);        /* the new sheet, not just the new cell */
 
       if (v.loop) {
         raf = requestAnimationFrame(tick);
@@ -234,6 +264,8 @@
       stop: stop,
       moveTo: moveTo,
       placeIn: placeIn,
+      mirror: mirror,
+      unmirror: unmirror,
       current: function () { return state; }
     };
   }
