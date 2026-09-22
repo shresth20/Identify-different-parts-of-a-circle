@@ -30,8 +30,7 @@
      3. Paced against a wall clock. Each word is due at
         start + charsBefore * perChar, and typer.js sleeps only the remaining
         time to that moment -- a dropped frame costs nothing and drift never
-        accumulates. Pacing stays per character even though reveal is per
-        word, so a long word holds the line a little longer.
+        accumulates.
    ========================================================================== */
 
 .type-wrap  { position: relative; display: inline-block; }
@@ -90,7 +89,8 @@
   0%, 100% { opacity: .30; transform: scale(.72); }
   50%      { opacity: .85; transform: scale(1.22); }
 }
-/* Answered: the halo settles to a quiet ring instead of stopping dead. */
+/* Answered: the halo settles to a quiet ring instead of stopping dead. It
+   is then faded off by quietCentre in animations.js. */
 .figure__centre.is-found .centre__glow {
   animation: none;
   opacity: .42;
@@ -98,34 +98,13 @@
   transition: opacity .3s ease, transform .3s ease;
 }
 
-/* The radius, asking to be tapped -- and nothing here does the asking any
-   more. The segment is one flat stroke of the kit's yellow: the highlight
-   that used to run out along it and the still glow that sat under it are
-   both gone, so what the learner sees is the line itself and nothing laid
-   over it. The prompt above the board is what asks for the tap. */
-
-/* ==========================================================================
-   Level 4 -- the line the learner draws
-   ========================================================================== */
-
-/* The demonstration, and all of it: the two ends the line runs between
-   breathe -- the same halo the centre dot uses to say "this one", because it
-   is the same invitation, and here it is made twice because the answer is a
-   line and a line needs both of its ends.
-     Nothing is drawn between them. A ghost of the finished line, however
-   faint, is the answer sitting on the board while the learner is being asked
-   for it; the two lit ends say where to start and where to stop, and leave the
-   line itself to them. */
-.figure__chord.is-guiding .handle__glow {
-  animation: dot-glow 1.5s ease-in-out infinite;
+/* A name picked up by a tap, waiting for its box: it breathes so it is
+   plainly the one in hand. */
+.chip.is-picked { animation: chip-pick 1.3s ease-in-out infinite; }
+@keyframes chip-pick {
+  0%, 100% { transform: translateY(0); }
+  50%      { transform: translateY(-4px); }
 }
-/* Except while the line is actually being drawn: the learner has the end in
-   hand by then and does not need to be asked for it. */
-.figure__chord.is-drawing .handle__glow { animation: none; opacity: .5; }
-/* And the end that is actually in hand stops breathing and stays lit -- the
-   one piece of feedback that says a tap was taken, for a learner who tapped
-   rather than dragged and now has to be told which end to tap next. */
-.chord__handle.is-held .handle__glow { animation: none; opacity: .9; }
 
 /* The ripple motion.js draws where a finger landed. Fixed to the viewport,
    and removed from the tree when it has gone. */
@@ -177,10 +156,5 @@
     opacity: .6;
     transform: scale(1);
   }
-  /* And the same for the two ends of level 4's line, for the same reason:
-     they are the whole of what asks for it. */
-  .figure__chord.is-guiding .handle__glow {
-    animation: none !important;
-    opacity: .6;
-  }
+  .chip.is-picked { animation: none !important; }
 }

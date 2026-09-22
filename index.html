@@ -77,167 +77,112 @@
         </header>
 
         <div class="board__stage" id="boardStage">
-          <svg class="figure" id="figure" viewBox="0 0 420 420"
+          <!-- The whole section is drawn in ONE picture. The view box is wide
+               rather than square -- 1000 x 420 with the circle in the middle
+               -- because the last activity hangs five name boxes off the
+               circle, and they need the room either side of it. The stage is
+               wider still (about 2.5:1 at every board size), so the picture is
+               always letterboxed by its HEIGHT and the circle comes out the
+               same size a square picture would have given it. -->
+          <svg class="figure" id="figure" viewBox="0 0 1000 420"
                role="img" aria-label="A circle">
             <!-- Fill first in document order so the rim always draws on top of
                  it, whichever of the two is revealed first. -->
-            <circle class="figure__disc" id="disc" cx="210" cy="210" r="158" />
+            <circle class="figure__disc" id="disc" cx="500" cy="210" r="158" />
+
+            <!-- The highlight the rim is drawn with: the same path twice more,
+                 under it, in the fill's own coral at two wider weights. Both
+                 unroll with the rim and both fade when the circumference has
+                 been named. Two translucent strokes rather than one blurred
+                 one: a blur filter re-rasterises on every frame of the draw,
+                 and this runs on low-end tablets. -->
+            <path class="rim-glow rim-glow--wide"  id="rimGlowWide"
+                  d="M500 52 A158 158 0 0 1 500 368 A158 158 0 0 1 500 52" />
+            <path class="rim-glow rim-glow--tight" id="rimGlowTight"
+                  d="M500 52 A158 158 0 0 1 500 368 A158 158 0 0 1 500 52" />
             <!-- The rim is a path, not a <circle>, for one reason: a stroke
                  unrolls from wherever its path starts, and a circle's starts
                  at three o'clock. This one starts at twelve and runs
                  clockwise -- the way a hand draws one -- as two semicircular
-                 arcs, so no rotation is needed to get it there. (Rotating a
-                 <circle> in CSS instead is a trap: GSAP re-bakes an SVG
-                 element's transform origin the first time it touches it, and
-                 the rotation comes back about the wrong point.) -->
+                 arcs, so no rotation is needed to get it there. -->
             <path class="figure__rim" id="rim"
-                  d="M210 52 A158 158 0 0 1 210 368 A158 158 0 0 1 210 52" />
+                  d="M500 52 A158 158 0 0 1 500 368 A158 158 0 0 1 500 52" />
+            <!-- The pen. A dot that pops in at twelve o'clock and rides the
+                 tip of the stroke all the way round, so the circle is seen
+                 to be drawn FROM a point rather than to appear along a line.
+                 animations.js moves it from the rim's own geometry. -->
+            <circle class="rim-tip" id="rimTip" cx="500" cy="52" r="7" />
 
-            <!-- Level 2's fan: a point every 11.25 degrees round the rim, and
-                 the radius that reaches each one. Both groups are filled in by
-                 pages.js rather than written out here -- thirty-two of each --
-                 and they are built in ONE order, from twelve o'clock clockwise,
-                 so the dots land and the spokes sweep the way a hand would draw
-                 them. The spokes come first in document order so the centre dot
-                 below paints over the point they all converge on. -->
-            <g class="figure__spokes" id="spokes" hidden></g>
-            <g class="figure__dots" id="rimDots" hidden></g>
-
-            <!-- Level 3's radius, at thirty degrees above the horizontal so
-                 it crosses open board rather than running along the rim's own
-                 tangent. All four pieces sit in one group, so the whole object
-                 is shown, armed and cleared as one thing.
-                   The two paths are the SAME segment twice over: the one that
-                 is drawn, and a finger-wide invisible one to catch the tap.
-                 Two paths rather than one with a fat transparent stroke,
-                 because the line has to be thin to read as a line and wide to
-                 be tappable, and those are two different numbers. -->
-            <g class="figure__radius" id="radius" hidden>
-              <path class="radius__line"  id="radiusLine"  d="M210 210 L346.8 131" />
-              <circle class="radius__end" id="radiusEnd" cx="346.8" cy="131" r="6.4" />
-              <path class="radius__hit" id="radiusHit" d="M210 210 L346.8 131"
-                    role="button" tabindex="0"
-                    aria-label="Tap the line from the centre to the edge" />
-              <!-- The word rides the segment, so it is set in a group that
-                   carries the rotation and never moves. GSAP re-bakes an SVG
-                   element's transform the first time it touches one, about its
-                   own origin -- so the beat that pops the label in animates the
-                   <text> INSIDE this group, and the rotation on the group is
-                   left alone. -->
-              <g class="radius__label" transform="rotate(-30 278.4 170.5)">
-                <text class="figure-label radius__label-text" id="radiusLabelText"
-                      x="278.4" y="155.5" text-anchor="middle">Radius</text>
-              </g>
+            <!-- The radius, and the diameter it grows into. The line is TWO
+                 halves that both start at the centre: the right one is drawn
+                 first and taught as the radius, the left one grows out later
+                 to make the diameter -- and because they are two paths, each
+                 half can be lit and named on its own before the pair is
+                 recoloured as one line. The glows are the same halves again,
+                 wide and translucent, under them. -->
+            <g class="figure__dia" id="dia" hidden>
+              <path class="line-glow" id="glowRight" d="M500 210 L658 210" />
+              <path class="line-glow" id="glowLeft"  d="M500 210 L342 210" />
+              <path class="dia__half" id="halfRight" d="M500 210 L658 210" />
+              <path class="dia__half" id="halfLeft"  d="M500 210 L342 210" />
+              <circle class="end-dot" id="endRight" cx="658" cy="210" r="6.4" />
+              <circle class="end-dot" id="endLeft"  cx="342" cy="210" r="6.4" />
+              <text class="figure-label dia__r" id="rLabelRight"
+                    x="579" y="246" text-anchor="middle">Radius</text>
+              <text class="figure-label dia__r" id="rLabelLeft"
+                    x="421" y="246" text-anchor="middle">Radius</text>
+              <text class="figure-label dia__name" id="diaName"
+                    x="500" y="246" text-anchor="middle">Diameter</text>
             </g>
 
-            <!-- Level 3's closing beat: the other eleven radii, at thirty-degree
-                 steps round from the one the learner tapped, each with the point
-                 it lands on. Built by pages.js -- see buildRadii there -- for the
-                 same reason the fan is: twenty-two elements is not markup anyone
-                 should have to read. -->
-            <g class="figure__radii" id="radii" hidden></g>
+            <!-- The chords: the one that is taught and the three that follow
+                 it. Built by pages.js from the circle's own geometry. -->
+            <g class="figure__chords" id="chords" hidden></g>
 
-            <!-- Level 4's diameter, end to end across the circle.
-                   The line is TWO paths, not one, and that is the whole point of
-                 the level: the last beat colours each half as a radius and names
-                 it, and two halves of one path cannot be coloured apart. They
-                 meet at the centre with round caps, so until that beat they read
-                 as a single line.
-                   Also here: the rubber line that follows the pointer while
-                 the learner draws, the two ends they draw between -- which are
-                 the whole of the asking now, a halo breathing on each -- and the
-                 three words the last beat sets under it. -->
-            <g class="figure__chord" id="chord" hidden>
-              <path class="chord__preview" id="chordPreview" d="M52 210 L52 210" />
-              <path class="chord__half" id="diaLeft"  d="M52 210 L210 210" />
-              <path class="chord__half" id="diaRight" d="M210 210 L368 210" />
-
-              <g class="chord__handle" id="handleA">
-                <circle class="handle__glow" cx="52" cy="210" r="21" />
-                <circle class="handle__dot"  cx="52" cy="210" r="7.5" />
-                <circle class="handle__hit"  id="hitA" cx="52" cy="210" r="30"
-                        role="button" tabindex="0"
-                        aria-label="The left-hand end of the line" />
-              </g>
-              <g class="chord__handle" id="handleB">
-                <circle class="handle__glow" cx="368" cy="210" r="21" />
-                <circle class="handle__dot"  cx="368" cy="210" r="7.5" />
-                <circle class="handle__hit"  id="hitB" cx="368" cy="210" r="30"
-                        role="button" tabindex="0"
-                        aria-label="The right-hand end of the line" />
-              </g>
-
-
-              <text class="figure-label chord__r" id="diaRLeft"
-                    x="131" y="242" text-anchor="middle">Radius</text>
-              <text class="figure-label chord__r" id="diaRRight"
-                    x="289" y="242" text-anchor="middle">Radius</text>
-              <text class="figure-label chord__name" id="diaName"
-                    x="210" y="244" text-anchor="middle">Diameter</text>
-            </g>
+            <!-- The activity: the parts laid on the circle, the five boxes
+                 round it and the dashed leaders that tie each box to its
+                 part. Built by pages.js -- see buildQuiz there. Before the
+                 centre in document order so the centre dot paints over the
+                 lines that meet at it. -->
+            <g class="figure__quiz" id="quiz" hidden></g>
 
             <g class="figure__centre" id="centre" hidden>
-              <circle class="centre__glow" cx="210" cy="210" r="30" />
-              <!-- Trimmed from r=10: the rim around it is less than half the
-                   weight it used to be, and a dot drawn for the old rim reads
-                   as a blob against the new one. The glow and the hit area
-                   are deliberately NOT trimmed with it -- the halo is what
-                   makes the dot findable and the hit area is what makes it
-                   tappable, and neither is about how heavy the mark looks. -->
-              <circle class="centre__dot"  cx="210" cy="210" r="7" />
-              <!-- A finger-sized hit area over a 10px dot. -->
-              <circle class="centre__hit"  id="centreHit" cx="210" cy="210" r="34"
+              <circle class="centre__glow" cx="500" cy="210" r="30" />
+              <circle class="centre__dot"  cx="500" cy="210" r="7" />
+              <!-- A finger-sized hit area over a 14px dot. -->
+              <circle class="centre__hit"  id="centreHit" cx="500" cy="210" r="34"
                       role="button" tabindex="0"
                       aria-label="Tap the dot at the centre of the circle" />
             </g>
 
-            <!-- The arrow and the word that name the centre once it has been
-                 found. Drawn in the figure's own coordinates so it travels with
-                 the circle, and aimed at a point 40 units out from the dot --
-                 clear of the halo, which stays up at r=30 after the tap. The
-                 head is one polyline rather than two strokes: barb, tip, barb,
-                 so the round join at the tip is the pen's own. -->
-            <g class="figure__mark" id="centreMark" hidden>
-              <path class="mark__arrow" id="markArrow"
-                    d="M316 302 C290 292 264 272 238 238" />
-              <path class="mark__head" id="markHead"
-                    d="M240.5 252.8 L238 238 L251.6 244.2" />
-              <text class="figure-label mark__label" id="markLabel"
-                    x="324" y="324">Center</text>
-            </g>
-
-            <!-- And the same callout for the diameter, reaching up to the line
-                 from below and to the right of it. Its own group rather than a
-                 re-aimed copy of the one above: the two are on screen in
-                 different levels and are cleared independently. -->
-            <g class="figure__mark" id="diaMark" hidden>
-              <path class="mark__arrow" id="diaArrow"
-                    d="M348 300 C336 280 318 252 296 222" />
-              <path class="mark__head" id="diaHead"
-                    d="M298.2 236.8 L296 222 L309.5 228.5" />
-              <text class="figure-label mark__label" id="diaLabel"
-                    x="348" y="322" text-anchor="middle">Diameter</text>
+            <!-- The one callout: an arrow and the word at its tail. Every
+                 part is named with this same group -- pages.js aims it at
+                 the part in hand and writes the word -- because only one
+                 thing is ever being named at a time. The head is one
+                 polyline, barb-tip-barb, so the join at the tip is the pen's
+                 own. -->
+            <g class="figure__mark" id="mark" hidden>
+              <path class="mark__arrow" id="markArrow" d="" />
+              <path class="mark__head"  id="markHead"  d="" />
+              <text class="figure-label mark__label" id="markLabel" x="0" y="0"></text>
             </g>
           </svg>
         </div>
 
-        <!-- Level 2 splits the board down the middle: the circle steps into
-             the left half and the bird comes up on the right, and this is the
-             bird's mark over there. It hangs off the BOARD rather than off the
-             stage, one rung up the --z ladder, because the bubble it carries
-             reaches up into the header band and has to be painted over it. -->
-        <div class="slot slot--side" id="slotSide" aria-hidden="true"></div>
-
-        <footer class="board__bottom" id="boardBottom"></footer>
+        <!-- The footer holds the five names the learner drags onto the
+             boxes, and nothing else, and only in the last activity. -->
+        <footer class="board__bottom" id="boardBottom">
+          <div class="tray" id="tray" hidden aria-label="Names to drag"></div>
+        </footer>
       </section>
 
-      <!-- Not drawn, not focusable, and not a control. It exists so the line
-           the learner DRAWS has something to announce itself on: Flow.once is
-           the lesson's one way to wait for a person and it waits on an
-           element, so routing the stroke through one means the wait is
-           cancelled with the rest of the chain when a scene is retired, and
-           the drawing code needs no teardown path of its own. -->
-      <span id="drawGate" hidden></span>
+      <!-- Not drawn, not focusable, and not a control. It exists so a beat
+           that is finished by SEVERAL actions -- five names dropped into five
+           boxes -- has one element to announce itself on: Flow.once is the
+           lesson's one way to wait for a person and it waits on an element,
+           so routing the activity through one means the wait is cancelled
+           with the rest of the chain when a scene is retired. -->
+      <span id="gate" hidden></span>
 
       <button class="next-btn" id="nextBtn" type="button" hidden aria-label="Next">
         <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false">

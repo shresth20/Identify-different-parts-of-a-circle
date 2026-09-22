@@ -47,7 +47,14 @@
     talk_stop:   [ 5, 3, 2],
     happy_start: [ 7, 3, 3],
     happy:       [40, 7, 6],
-    happy_stop:  [ 7, 3, 3]
+    happy_stop:  [ 7, 3, 3],
+    /* the activity's three moods: a right answer, a wrong one, and the end */
+    celebrate_start: [ 8, 3, 3],
+    celebrating:     [50, 8, 7],
+    celebrate_stop:  [10, 4, 3],
+    confused_start:  [ 7, 3, 3],
+    confused:        [40, 7, 6],
+    confused_stop:   [ 7, 3, 3]
   };
 
   /* The rig ships transitions, not just loops: play the start once, hold the
@@ -57,6 +64,8 @@
     waving:  { start: 'wave_start',  loop: 'waving',  stop: 'wave_stop'  },
     talking: { start: 'talk_start',  loop: 'talking', stop: 'talk_stop'  },
     happy:   { start: 'happy_start', loop: 'happy',   stop: 'happy_stop' },
+    celebrating: { start: 'celebrate_start', loop: 'celebrating', stop: 'celebrate_stop' },
+    confused:    { start: 'confused_start',  loop: 'confused',    stop: 'confused_stop'  },
     idle:    { start: null,          loop: 'blinking', stop: null        }
   };
 

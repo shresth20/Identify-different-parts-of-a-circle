@@ -47,7 +47,10 @@
       global.Mascot.preload([
         'blinking', 'wave_start', 'waving', 'wave_stop',
         'talk_start', 'talking', 'talk_stop',
-        'happy_start', 'happy', 'happy_stop'
+        'happy_start', 'happy', 'happy_stop',
+        /* the activity's moods, a few minutes off but cheap to have ready */
+        'confused_start', 'confused', 'confused_stop',
+        'celebrate_start', 'celebrating', 'celebrate_stop'
       ])
     ];
 
