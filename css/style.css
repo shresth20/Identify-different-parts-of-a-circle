@@ -77,9 +77,6 @@
      The bubble is the board's own surface, lifted off the page and given a
      tail: same panel colour, same white rim, same ink. It is the mascot
      talking, not a second theme arriving. */
-  /* The DECORATION lavender rather than the board's own near-white: the
-     bubble carries a white rim, and a white rim vanishes on a surface that
-     is already almost white. */
   --bubble-bg: var(--board-decoration);
   --bubble-rim: var(--board-highlight);
   --bubble-ink: var(--text-primary);
@@ -118,11 +115,12 @@
      are the same idea expressed twice rather than two piles of magic numbers.
      The three board bands are deliberately separate levels: the header is
      above the footer, and both are above the stage, so the mascot standing on
-     the header overlaps the figure behind it without being clipped by it. */
+     the header overlaps the figure behind it without being clipped by it --
+     and a name dragged up out of the footer travels over the figure. */
   --z-hero: 1;        /* the mascot out on the field -- UNDER the board      */
   --z-board: 2;
   --z-stage: 1;       /* inside the board: the figure                        */
-  --z-footer: 2;
+  --z-footer: 2;      /* inside the board: the names to drag                 */
   --z-header: 3;      /* inside the board: the prompt row and its mascot     */
   --z-next: 6;        /* over the board, under the welcome screen            */
   --z-welcome: 9;
@@ -201,8 +199,7 @@ body {
     radial-gradient(72% 58% at 50% 42%, var(--board-highlight) 0%, var(--board-bg) 70%);
   background-color: var(--board-bg);
   /* The halo the board sits in. Every layer is blurred: a spread with no blur
-     paints a solid ring, and a solid ring has a visible edge. Opacity falls and
-     blur grows with each step out, so the glow fades rather than stopping. */
+     paints a solid ring, and a solid ring has a visible edge. */
   box-shadow:
     0 0 12px 0 var(--glow-board),
     0 0 32px 8px var(--glow-board-soft),
@@ -278,14 +275,16 @@ body {
   color: var(--text-primary);
 }
 
-/* ---- The figure ---------------------------------------------------------
+/* ==========================================================================
+   The figure
    Laid over the stage rather than sized inside it. `height: 100%` on an
    <svg> in a centred grid item does not resolve against the grid area in
    every engine -- the box falls back to the stage's WIDTH and the circle
    comes out as tall as the board is wide. Filling an absolute box and
    letting preserveAspectRatio letterbox the viewBox is the version that has
-   one answer everywhere: the circle is sized by the shorter side, which on a
-   16:9 stage is always the height, and centred on the longer one. */
+   one answer everywhere: the picture is sized by the shorter side, which on
+   this stage is always the height, and centred on the longer one.
+   ========================================================================== */
 .figure {
   position: absolute;
   inset: 0;
@@ -295,115 +294,14 @@ body {
   overflow: visible;
   /* The same lift the reference game gives every shape it draws: a short,
      soft shadow that sets the figure off the board without reading as a
-     second outline. On the <svg> rather than on the paths, so the rim, the
-     fill and the dot are shadowed as ONE object -- a filter per path would
-     shadow the dot onto the disc it is sitting on. */
+     second outline. On the <svg> rather than on the paths, so everything in
+     the picture is shadowed as ONE object. */
   filter: drop-shadow(0 3px 5px var(--shadow-soft));
 }
+/* The UA stylesheet's own `[hidden]` is written for HTML elements, and an
+   SVG <g> carrying the attribute is not reliably hidden by it. */
+.figure g[hidden] { display: none; }
 
-.figure__disc {
-  /* Coral, the palette's own. Mixed lighter than the lavender it replaces --
-     the lavender needed 42% to hold its own, because the board it sits on is
-     itself a pale lavender and a weaker wash of the same hue read as a hole
-     in the board rather than as a disc. Coral has no such problem: it is the
-     one warm pair in the kit, so it separates from this board by hue instead
-     of by strength and can go back to being the pale wash the figure was
-     drawn as. */
-  fill: color-mix(in srgb, var(--coral-fill) 34%, #FFFFFF);
-  opacity: 0;                       /* the fill lands after the rim is drawn */
-}
-.figure__rim {
-  fill: none;
-  stroke: var(--coral-border);
-  /* The reference game's line weight, matched as a weight rather than as a
-     ratio: every shape there is outlined at 2.4 user units on a viewBox that
-     lands at roughly 1:1 on screen, so its rectangle, square and triangle
-     all come out between 2.3 and 2.6 real pixels however big the shape
-     itself is. This viewBox scales at about the same rate, so 2.6 here puts
-     the circle's rim in that same band -- against the 6.1px it was drawn at
-     before, which was nearly three times the reference's line. */
-  stroke-width: 2.6;
-  stroke-linecap: round;
-  stroke-linejoin: round;
-  /* Where the stroke starts is decided by the path itself (see index.html),
-     not by a rotation here -- so there is no transform on this element for
-     GSAP to inherit and re-bake about the wrong origin.
-     The resting state is UNDRAWN, and it is opacity that says so rather than
-     a dash pattern. motion.js's drawPath hands the dash pattern back the
-     moment the stroke finishes -- which is right, a finished stroke is a
-     plain solid one -- so a dash-based resting state would be wiped by the
-     first draw and the rim would start the next run already complete. */
-  opacity: 0;
-}
-
-/* ---- The centre dot -----------------------------------------------------
-   The [hidden] rule is spelled out: the UA stylesheet's own `[hidden]`
-   declaration is written for HTML elements, and an SVG <g> carrying the
-   attribute is not reliably hidden by it. */
-.figure__centre[hidden] { display: none; }
-.centre__dot  { fill: var(--coral-border); }
-.centre__glow {
-  fill: color-mix(in srgb, var(--coral-fill) 70%, transparent);
-  opacity: 0;
-  transform-origin: 210px 210px;
-}
-.centre__hit {
-  fill: transparent;
-  cursor: pointer;
-  outline: none;
-}
-.centre__hit:focus-visible {
-  stroke: var(--lavender-border);
-  stroke-width: 3;
-  stroke-dasharray: 5 5;
-}
-/* Once it has been named, the dot is answered: it stops asking to be tapped.
-   .is-quiet is the same state reached from the other direction -- level 2
-   plants the same dot as a piece of the diagram, never as a target, so it is
-   never tappable there either. */
-.figure__centre.is-found .centre__hit,
-.figure__centre.is-quiet .centre__hit { cursor: default; pointer-events: none; }
-
-/* ---- The fan (level 2) --------------------------------------------------
-   Thirty-two points round the rim and the radius to each one, built by
-   pages.js. Both are drawn in the ink the board's own text is set in rather
-   than in the figure's coral: they are MEASUREMENTS laid over the circle, not
-   parts of the drawing, and that reads at a glance only if they are a
-   different colour from the shape they are measuring.
-   Each one rests invisible and is revealed by its own beat, exactly as the
-   rim and the disc are. -------------------------------------------------- */
-.figure__dots[hidden],
-.figure__spokes[hidden] { display: none; }
-
-.rim-dot {
-  fill: var(--text-primary);
-  opacity: 0;
-}
-.spoke {
-  fill: none;
-  stroke: var(--text-primary);
-  /* Deliberately lighter than the rim's 2.6: thirty-two of these converge on
-     one point, and at the rim's weight the middle of the circle would fill in
-     solid before the last dozen were drawn. */
-  stroke-width: 1.3;
-  stroke-linecap: round;
-  opacity: 0;
-}
-
-/* ---- The callout that names the centre ----------------------------------
-   Lavender rather than the figure's coral, for the same reason the fan is
-   ink: an annotation is not part of the shape. The label carries the board's
-   own surface colour as a stroke UNDER its fill (paint-order), so the word
-   stays legible where it crosses the disc without a plate behind it. */
-.figure__mark[hidden] { display: none; }
-.mark__arrow,
-.mark__head {
-  fill: none;
-  stroke: var(--lavender-border);
-  stroke-width: 3.2;
-  stroke-linecap: round;
-  stroke-linejoin: round;
-}
 /* Every word set ON the figure -- "Center", "Radius", and whatever the later
    sections name -- is the same piece of lettering, so it is one class. Only
    the colour is the part's own.
@@ -423,161 +321,325 @@ body {
   stroke-width: 6;
   stroke-linejoin: round;
 }
-.mark__label { fill: var(--lavender-border); }
 
-/* ---- The radius (level 3) ----------------------------------------------
-   The palette's yellow, because the figure is coral and the callout that
-   names the centre is lavender: three parts of the lesson, three of the kit's
-   pairs, and no two of them ever asking to be told apart by shade.
-   Flat: one stroke of one colour, with no highlight running over it and no
-   glow under it.
-   All three paths rest invisible -- the beats reveal them (see growRadius in
-   animations.js). ------------------------------------------------------- */
-.figure__radius[hidden] { display: none; }
-
-.radius__line {
+/* ---- The circle ---------------------------------------------------------
+   Coral, the palette's one warm pair: it separates from the pale lavender
+   board by hue rather than by strength, so the fill can be the pale wash the
+   figure was drawn as. Rim, fill, glow and pen all rest invisible; the beats
+   reveal them. */
+.figure__disc {
+  fill: color-mix(in srgb, var(--coral-fill) 34%, #FFFFFF);
+  opacity: 0;                       /* the fill lands after the rim is drawn */
+}
+.figure__rim {
   fill: none;
-  stroke: var(--yellow-border);
-  stroke-width: 7;
+  stroke: var(--coral-border);
+  /* The reference game's line weight, matched as a weight rather than as a
+     ratio: every shape there is outlined at about 2.5 real pixels however
+     big the shape itself is. */
+  stroke-width: 2.6;
   stroke-linecap: round;
+  stroke-linejoin: round;
+  /* The resting state is UNDRAWN, and it is opacity that says so rather than
+     a dash pattern: a finished stroke hands its dash pattern back, so a
+     dash-based resting state would be wiped by the first draw. */
   opacity: 0;
 }
-.radius__end {
-  fill: var(--text-primary);
-  opacity: 0;
-}
-/* Finger-wide and invisible. `pointer-events: stroke` hit-tests the stroke's
-   own band whatever it is painted in, which is what lets a transparent one
-   catch a tap at all -- and it is off until the beat that arms it, so a line
-   still being drawn can never be tapped. */
-.radius__hit {
+/* The highlight the rim is drawn with. Flat caps, not round: these are drawn
+   with the dash trick, and a round cap on a stroke this wide pokes out past
+   the start of the dash as a blob at twelve o'clock before a pixel of the
+   line has been drawn. */
+.rim-glow {
   fill: none;
-  stroke: transparent;
-  stroke-width: 34;
-  stroke-linecap: round;
-  cursor: pointer;
-  outline: none;
-  pointer-events: none;
+  stroke: var(--coral-fill);
+  stroke-linecap: butt;
+  opacity: 0;                       /* drawRim sets each one's own level */
 }
-.figure__radius.is-calling .radius__hit { pointer-events: stroke; }
-.figure__radius.is-found  .radius__hit { cursor: default; pointer-events: none; }
-.radius__hit:focus-visible {
-  stroke: var(--lavender-border);
-  stroke-width: 3;
-  stroke-dasharray: 5 5;
-}
-/* The word rests invisible like every other mark on the figure: the group it
-   is in is shown as soon as the point on the rim is plotted, a good few beats
-   before the segment has been tapped and earned its name. */
-.radius__label-text {
-  fill: var(--yellow-border);
-  font-size: 24px;
+.rim-glow--wide  { stroke-width: 30; }
+.rim-glow--tight { stroke-width: 13; }
+/* The pen that draws the rim: a dot in the rim's ink with a white edge, so
+   it reads as a point over the line it is leaving behind. */
+.rim-tip {
+  fill: var(--coral-border);
+  stroke: var(--board-highlight);
+  stroke-width: 2.4;
   opacity: 0;
 }
 
-/* The other eleven radii (level 3). Same ink and the same weight as the one
-   the learner tapped: the point of the beat is that they are all the same
-   thing, so not one of them may look like a different kind of mark. */
-.figure__radii[hidden] { display: none; }
-.radius-ray {
-  fill: none;
-  stroke: var(--yellow-border);
-  stroke-width: 7;
-  stroke-linecap: round;
+/* ---- The centre dot ----------------------------------------------------- */
+.centre__dot  { fill: var(--coral-border); }
+.centre__glow {
+  fill: color-mix(in srgb, var(--coral-fill) 70%, transparent);
   opacity: 0;
-}
-.radius-end {
-  fill: var(--text-primary);
-  opacity: 0;
-}
-
-/* ---- The diameter (level 4) ---------------------------------------------
-   The palette's lavender, which is the last of the five pairs this section
-   has not spent: coral is the circle, yellow is the radius, and the callouts
-   are lavender's darker half. A diameter drawn in any of those would read as
-   one of them. --------------------------------------------------------- */
-.figure__chord[hidden] { display: none; }
-
-/* The two halves of the line. Round caps meeting at the centre, so up until
-   the beat that colours them apart they are one line with no seam in it.
-   The colour is transitioned rather than tweened: it is the only property in
-   the figure GSAP does not drive, and a transition keeps it stated in the
-   palette's own names instead of as a hex value baked into a timeline. */
-.chord__half {
-  fill: none;
-  stroke: var(--lavender-fill);
-  stroke-width: 9;
-  stroke-linecap: round;
-  opacity: 0;
-  transition: stroke .34s ease;
-}
-.chord__half.is-radius { stroke: var(--yellow-border); }
-
-/* And the line that follows the pointer while they draw it. Dashed, so it
-   never gets mistaken for the finished thing. */
-.chord__preview {
-  fill: none;
-  stroke: var(--lavender-border);
-  stroke-width: 5;
-  stroke-linecap: round;
-  stroke-dasharray: 9 11;
-  opacity: 0;
-}
-.figure__chord.is-drawing .chord__preview { opacity: .65; }
-
-/* The two ends. The dot is what the learner aims at, the halo is what makes
-   it findable -- and, breathing, what asks for it -- and the hit circle is what
-   makes it draggable with a finger: three radii for three different jobs,
-   exactly as the centre dot has. */
-.handle__dot  { fill: var(--lavender-border); }
-.handle__glow {
-  fill: color-mix(in srgb, var(--lavender-fill) 66%, transparent);
-  opacity: 0;
-  /* Anchored on ITSELF, and that is not a detail: the halo's loop is a scale,
-     and an SVG element scales about the middle of the view box unless it is
-     told otherwise -- which for a halo sitting out at the rim means swinging
-     a third of the way across the circle every pulse, well clear of the dot
-     it is supposed to be marking. The centre dot's halo states the same thing
-     as a pair of coordinates because there is only one of it; there are two
-     of these, at two different places, so they say it in their own box. */
+  /* Anchored on ITSELF: the halo's loop is a scale, and an SVG element
+     scales about the picture's own origin unless told otherwise. Stated as
+     its own box rather than as a pair of coordinates, and kept out of every
+     GSAP transform write in pages.js -- GSAP bakes an SVG element's origin
+     into an inline `transform-origin: 0 0` the first time it touches one,
+     and an inline value would outrank this rule for good. */
   transform-box: fill-box;
   transform-origin: center;
 }
-.handle__hit {
+.centre__hit {
   fill: transparent;
-  cursor: grab;
+  cursor: pointer;
   outline: none;
-  /* The pointer handlers are bound for the length of one beat, but the cursor
-     is CSS -- so it is off until the beat that arms it, or a dead end would
-     still look grabbable. */
-  pointer-events: none;
-  /* A drag across a touch screen must not scroll the page under it. */
-  touch-action: none;
 }
-.figure__chord.is-guiding .handle__hit { pointer-events: auto; }
-.figure__chord.is-drawing .handle__hit { cursor: grabbing; }
-.handle__hit:focus-visible {
+.centre__hit:focus-visible {
   stroke: var(--lavender-border);
   stroke-width: 3;
   stroke-dasharray: 5 5;
 }
-/* Drawn: the ends stop asking and become what they were all along -- the two
-   points on the circle the line runs between. */
-.figure__chord.is-drawn .handle__dot { fill: var(--text-primary); }
-.figure__chord.is-drawn .handle__glow { opacity: 0; }
-.figure__chord.is-drawn .handle__hit { cursor: default; pointer-events: none; }
+/* Once it has been named, the dot is answered: it stops asking to be tapped.
+   .is-quiet is the same state reached from the other direction -- the dot
+   planted as a piece of the diagram, never as a target. */
+.figure__centre.is-found .centre__hit,
+.figure__centre.is-quiet .centre__hit { cursor: default; pointer-events: none; }
 
-/* The three words set under the line. All rest invisible: the last beat
-   brings the two halves' names up, then trades them for the whole one's. */
-.chord__r {
-  fill: var(--yellow-border);
-  font-size: 21px;
+/* ---- The callout --------------------------------------------------------
+   Lavender rather than the figure's coral: an annotation is not part of the
+   shape. */
+.mark__arrow,
+.mark__head {
+  fill: none;
+  stroke: var(--lavender-border);
+  stroke-width: 3.2;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+.mark__label { fill: var(--lavender-border); }
+
+/* ---- Points on the circle -----------------------------------------------
+   Every end of every line is the same mark, in the board's own ink rather
+   than in the line's colour: the points are where a line MEETS the circle,
+   and that reads only if they are not a piece of the line. */
+.end-dot {
+  fill: var(--text-primary);
   opacity: 0;
 }
-.chord__name {
+
+/* ---- The radius, and the diameter it becomes ----------------------------
+   The palette's yellow for the radius, because the figure is coral and the
+   callouts are lavender's darker half. The diameter takes the lighter
+   lavender: the last pair this section has not spent.
+     The colour is transitioned rather than tweened: it is the one property
+   in the figure GSAP does not drive, and a transition keeps it stated in the
+   palette's own names instead of as a hex value baked into a timeline. */
+.dia__half {
+  fill: none;
+  stroke: var(--yellow-border);
+  stroke-width: 7;
+  stroke-linecap: round;
+  opacity: 0;
+  transition: stroke .45s ease, stroke-width .45s ease;
+}
+.dia__half.is-dia {
+  stroke: var(--lavender-fill);
+  stroke-width: 9;
+}
+/* The light that picks out one half at a time: the same segment, wide and
+   soft, under it. */
+.line-glow {
+  fill: none;
+  stroke: var(--yellow-fill);
+  stroke-width: 22;
+  stroke-linecap: round;
+  opacity: 0;
+}
+.dia__r {
+  fill: var(--yellow-border);
+  font-size: 22px;
+  opacity: 0;
+}
+.dia__name {
   fill: var(--lavender-border);
   font-size: 24px;
   opacity: 0;
+}
+
+/* ---- The chords ---------------------------------------------------------
+   Mint: a chord is neither a radius nor a diameter, and it must not look
+   like a cousin of either. */
+.chord-line {
+  fill: none;
+  stroke: var(--mint-border);
+  stroke-width: 7;
+  stroke-linecap: round;
+  opacity: 0;
+}
+
+/* ==========================================================================
+   The activity -- name the parts
+   Each part keeps the colour it was taught in, so the picture the learner
+   labels is the picture they were shown.
+   ========================================================================== */
+.q-part {
+  fill: none;
+  stroke-linecap: round;
+  opacity: 0;
+}
+.q-radius   { stroke: var(--yellow-border); stroke-width: 7; }
+.q-diameter { stroke: var(--lavender-fill); stroke-width: 9; }
+.q-chord    { stroke: var(--mint-border);   stroke-width: 7; }
+
+/* The point on each part its leader runs to, and the leader itself: dashed,
+   in the softer ink, so it is plainly a tie and not a sixth line on the
+   circle. The leader is shown through a mask that is drawn with the dash
+   trick -- see boxesIn in animations.js -- so the mask path is solid, white
+   and wider than the line it reveals. */
+.q-anchor {
+  fill: var(--text-primary);
+  opacity: 0;
+}
+.q-leader {
+  fill: none;
+  stroke: var(--text-secondary);
+  stroke-width: 2;
+  stroke-dasharray: 4 7;
+  stroke-linecap: round;
+  opacity: 0;
+}
+.q-leader-mask {
+  fill: none;
+  stroke: #FFFFFF;
+  stroke-width: 8;
+}
+
+/* A box. Dashed and empty while it waits; solid green with a tick once it
+   has its name; red for a beat when it is given the wrong one. The three are
+   classes because they are states the box stays in -- the movement that
+   goes with each is animations.js's. */
+.q-box {
+  opacity: 0;
+  outline: none;
+  cursor: default;
+  pointer-events: none;
+}
+.figure__quiz.is-live .q-box {
+  pointer-events: all;
+  cursor: pointer;
+}
+.figure__quiz.is-live .q-box.is-right {
+  pointer-events: none;
+  cursor: default;
+}
+.q-box__rect {
+  fill: var(--board-highlight);
+  stroke: var(--lavender-border);
+  stroke-width: 2.4;
+  stroke-dasharray: 8 6;
+  transition: stroke .25s ease, fill .25s ease, stroke-width .25s ease;
+}
+/* A name being carried over it. */
+.q-box.is-over .q-box__rect {
+  fill: color-mix(in srgb, var(--lavender-fill) 24%, #FFFFFF);
+  stroke-width: 3.2;
+}
+.q-box.is-right .q-box__rect {
+  fill: color-mix(in srgb, var(--mint-fill) 22%, #FFFFFF);
+  stroke: var(--mint-border);
+  stroke-width: 3.2;
+  stroke-dasharray: none;
+}
+.q-box.is-wrong .q-box__rect {
+  fill: color-mix(in srgb, var(--coral-fill) 26%, #FFFFFF);
+  stroke: var(--coral-border);
+  stroke-width: 3.2;
+  stroke-dasharray: none;
+}
+.q-box:focus-visible .q-box__rect {
+  stroke: var(--lavender-border);
+  stroke-width: 3.6;
+  stroke-dasharray: none;
+}
+.q-box__text {
+  fill: var(--text-primary);
+  font-size: 24px;
+  opacity: 0;
+}
+/* The tick beside a right answer. */
+.q-badge { opacity: 0; }
+.q-badge__ring { fill: var(--mint-border); }
+.q-badge__tick {
+  fill: none;
+  stroke: #FFFFFF;
+  stroke-width: 3;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+
+/* ---- The names to drag --------------------------------------------------
+   Five pills in the board's footer band. Each stands on a short wall, as the
+   game's other controls do, and lifts off it when picked up. */
+.tray {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  gap: clamp(6px, 1.2%, 16px);
+  padding: 0 1%;
+}
+.tray[hidden] { display: none; }
+
+.chip {
+  --edge: 4px;
+
+  position: relative;
+  appearance: none;
+  cursor: grab;
+  touch-action: none;
+  user-select: none;
+  -webkit-user-select: none;
+
+  padding: .26em .85em .32em;
+  border: 3px solid var(--board-highlight);
+  border-radius: 999px;
+  background: linear-gradient(180deg, var(--board-highlight) 0%, var(--button-bg) 62%, var(--board-decoration) 100%);
+  box-shadow:
+    0 var(--edge) 0 var(--horizon),
+    0 calc(var(--edge) + 3px) 10px var(--shadow-soft);
+
+  font-family: var(--font-display);
+  font-weight: 700;
+  /* Sized against BOTH sides of the screen: the five of them stand in one
+     row across the footer, so on a narrow board the width is what binds,
+     and on a short one the footer's height is. Whichever is smaller wins. */
+  font-size: clamp(11px, min(2.4vh, 1.6vw), 22px);
+  line-height: 1.1;
+  letter-spacing: .3px;
+  color: var(--text-primary);
+  white-space: nowrap;
+
+  transition: box-shadow .18s ease, border-color .18s ease, filter .18s ease;
+}
+.chip:hover { filter: brightness(1.03); }
+.chip:focus-visible {
+  outline: none;
+  border-color: var(--lavender-border);
+}
+/* In the hand: off the wall, a deeper shadow, and over everything else in
+   the footer. */
+.chip.is-lifted {
+  cursor: grabbing;
+  z-index: 5;
+  box-shadow:
+    0 var(--edge) 0 var(--horizon),
+    0 16px 28px var(--shadow-deep);
+}
+/* Picked up by a tap and waiting for its box. */
+.chip.is-picked {
+  border-color: var(--lavender-border);
+  box-shadow:
+    0 var(--edge) 0 var(--horizon),
+    0 0 0 4px color-mix(in srgb, var(--lavender-fill) 45%, transparent),
+    0 calc(var(--edge) + 3px) 10px var(--shadow-soft);
+}
+/* In its box: the space it took in the tray is kept, so the others do not
+   close up and shuffle under the learner's hand. */
+.chip.is-docked {
+  visibility: hidden;
+  pointer-events: none;
 }
 
 /* ---- Next ---------------------------------------------------------------
@@ -659,31 +721,6 @@ body {
   aspect-ratio: 1;
 }
 
-/* Level 2's mark, in the middle of the board's right half. The board is split
-   50-50 across its width there: the figure steps a quarter of the stage to
-   the left, which centres the circle in the left half, and this centres the
-   bird in the right one.
-   Pegged to the header's rung of the --z ladder rather than the stage's, so
-   the bubble the bird carries -- which reaches up past the stage and into the
-   header band -- is painted over that band rather than under it. */
-.slot--side {
-  z-index: var(--z-header);
-  /* Down in the right half's lower-left corner rather than the middle of it.
-     The line beside the bird is no longer a box with a tail pointing at the
-     bird's head (see .bubble--side): it is bare text, and bare text wants the
-     upper part of the half to itself. So the bird gets out from under it and
-     stands at the foot of the half, nearer the figure it is talking about. */
-  left: 66%;
-  bottom: 6%;
-  /* Smaller than the bird's other marks on purpose. On this screen the bird
-     is the one SPEAKING and the line above it is what the learner is meant to
-     read, so the bird gives the words the room: a third of the board's height
-     rather than the two fifths it takes when it is the only thing there. */
-  height: 32%;
-  aspect-ratio: 1;
-  transform: translateX(-50%);
-}
-
 .mascot {
   width: 100%;
   height: 100%;
@@ -711,11 +748,8 @@ body {
    board overflow:hidden would clip the figure with it.
    So the jump is split at the top of its arc and two elements share it. This
    one is fixed to the screen and painted UNDER the board -- the hero rung of
-   the --z ladder, the same rung the bird stands on out in the field -- so it
-   can wait just below the board's top edge genuinely out of sight, and it
-   does the half of each arc that happens back there. The in-board sprite
-   does the half over the board. They swap at the apex, where neither of them
-   overlaps the board and the two are therefore the same picture.
+   the --z ladder -- so it can wait just below the board's top edge genuinely
+   out of sight, and it does the half of each arc that happens back there.
    It carries no sprite of its own: mascot.js paints it with the very frame
    the bird is showing (see Mascot.mirror), so the cut has nothing to give
    away. pages.js owns its size and position. */
@@ -738,15 +772,13 @@ body {
    The drawing is one unit and fractions of it. --bub-u is the box's own type
    size, and the corner, the catch-light and the tail are all stated as
    shares of it rather than as lengths of their own -- so the whole bubble
-   scales with the line inside it and keeps its proportions at any size,
-   which is the only way a drawn shape like this survives a clamp().
+   scales with the line inside it and keeps its proportions at any size.
 
    It is anchored BY ITS TAIL, not by its own centre: the tail sits
    --bub-tail-x from the bubble's left edge, and the bubble is pushed left by
    exactly that much plus half the tail's width, which leaves the tail over
    the middle of the slot -- over the bird's head -- whatever the line inside
-   turns out to measure. A bubble centred on the slot instead would walk its
-   tail off the bird's head the moment a longer sentence arrived.
+   turns out to measure.
    -------------------------------------------------------------------------- */
 .bubble {
   --bub-u:       1em;
@@ -759,8 +791,7 @@ body {
   --bub-tail-x:  calc(var(--bub-u) * .78);
 
   /* The edge, named once and read twice: the box's border takes it, and so
-     does the stroke on the tail's two free sides. One name is what makes the
-     tail read as part of the box rather than as something stuck onto it. */
+     does the stroke on the tail's two free sides. */
   --note-edge: var(--bubble-rim);
 
   position: absolute;
@@ -777,8 +808,7 @@ body {
   border-radius: var(--bub-corner);
   background: var(--bubble-bg);
   /* No grey drop shadow: the bubble is lifted off the sky by the same halo
-     the board sits in, at a smaller scale, so it reads as a piece of the
-     board that has floated up to speak rather than as a sticker. */
+     the board sits in, at a smaller scale. */
   box-shadow:
     0 0 14px 2px var(--glow-board-soft),
     0 0 34px 10px var(--glow-board-dim),
@@ -794,55 +824,6 @@ body {
   pointer-events: none;
 }
 .bubble[hidden] { display: none; }
-
-/* The same bubble, hung the other way round. The bird stands in the board's
-   right half in level 2, so a box that grows rightwards out of its head would
-   walk straight off the board; this one is anchored by its tail to the
-   bubble's RIGHT edge and grows leftwards instead, over the empty half.
-   Same tail, same offset, mirrored -- so the tail still lands over the bird's
-   head whatever the line inside measures. Capped against the board's own
-   width rather than the viewport's, because the half it has to stay inside is
-   the board's half. And set smaller: this is the lesson's one long sentence,
-   and at the hero bubble's size it would fill the board. */
-.bubble--side {
-  /* No box on this screen. The half is empty around it and the bird is the
-     only other thing in it, so the words carry themselves: the panel, the
-     rim, the halo, the catch-light and the tail all come off and what is left
-     is the line, set on the board's own surface. The rules below undo the
-     drawing .bubble does; the ones after them place what remains. */
-  border: 0;
-  padding: 0;
-  background: none;
-  box-shadow: none;
-  border-radius: 0;
-
-  /* Anchored to the right half rather than to the bird. With the tail gone
-     there is no longer a point on the box that has to land on the bird's
-     head, and the bird has stepped away to the corner -- so the line is hung
-     off ITS OWN right edge, out past the slot, which centres it in the half
-     whatever it measures. Both numbers are shares of the board, because the
-     half they have to sit inside is the board's half. */
-  left: auto;
-  right: calc(var(--board-w) * -0.20);
-  /* Well above the bird, in the upper part of the half: this is the one
-     thing on this screen the learner is meant to read, and it reads best at
-     eye level rather than down beside the bird. Stated against the slot, as
-     the hero bubble's is, so it travels with the bird's mark. */
-  bottom: 135%;
-  /* A touch wider and a touch bigger than the boxed version. Without the
-     padding and the rim around it the same line reads smaller than it is,
-     and the box's width was set by what the panel could hold. */
-  max-width: calc(var(--board-w) * 0.36);
-  font-size: clamp(16px, 3.1vh, 32px);
-}
-/* The three pieces of the drawing that are elements rather than properties:
-   the tail under it, the catch-light on it, and the two emphasis strokes
-   either side. They go with the box. */
-.bubble--side .bubble-tail,
-.bubble--side .bubble-mark { display: none; }
-/* Two classes rather than one: the rule it is undoing is written further
-   down the file at the same weight, and at equal weight the later one wins. */
-.bubble.bubble--side::before { content: none; }
 
 /* The catch-light in the top-left corner, as painted in the reference art:
    one soft white stroke, tilted, that turns a flat panel into something with
@@ -865,10 +846,7 @@ body {
 .bubble .type-wrap { display: inline-block; vertical-align: top; }
 
 /* Two short strokes each side, converging on the bubble -- the little
-   emphasis marks that say the line is being SAID, not just displayed.
-   Drawn as SVG rather than as pseudo-elements: they are two strokes hinged
-   at a point, and a pseudo-element pair cannot round both ends of both
-   strokes without a third box to hang them on. */
+   emphasis marks that say the line is being SAID, not just displayed. */
 .bubble-mark {
   position: absolute;
   top: 50%;
@@ -973,8 +951,7 @@ body {
 }
 /* The press writes --edge every frame, and box-shadow is spelled off it, so a
    transition on box-shadow would smear the wall as it collapses -- is-3d drops
-   that one line and leaves the rest of the transition alone. The lift and the
-   give that used to live on :hover and :active are the press's job now. */
+   that one line and leaves the rest of the transition alone. */
 .start-btn.is-3d {
   transition: opacity .42s ease,
               transform .42s cubic-bezier(.2, .9, .3, 1.4),
