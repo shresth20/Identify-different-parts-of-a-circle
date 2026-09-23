@@ -1,0 +1,109 @@
+/* ==========================================================================
+   Section 3 -- segments
+   The third section's own marks: the wash that lights the inside of the
+   circle, the two regions a chord cuts it into, and the words that name
+   them. The points, the ghost, the band and the hand are section 2's own
+   marks put on a different circle, so they keep its classes (arcs.css);
+   only what is new to this section is here. Everything is picked out of
+   the palette in style.css.
+   ========================================================================== */
+:root {
+  /* The inside, lit: the circle's own coral, deeper than the wash the disc
+     rests at, so the same shape is seen to come forward rather than a new
+     colour to arrive. */
+  --seg-area:     color-mix(in srgb, var(--part-circle) 42%, #FFFFFF);
+  --seg-area-lit: color-mix(in srgb, var(--part-circle) 58%, #FFFFFF);
+
+  /* The two regions. Gold for the smaller, as the smaller arc was; sky
+     blue for the larger. Both pale, because they are AREAS -- a region
+     filled at full strength would swallow the points and the chord laid
+     on it -- and each with a deeper shade it is lit to while it is being
+     spoken of. The word that names a region is set in the region's own
+     hue at its border strength, where a fill this pale would not read. */
+  --seg-minor:     color-mix(in srgb, var(--yellow-fill) 70%, #FFFFFF);
+  --seg-minor-lit: var(--yellow-fill);
+  --seg-minor-ink: var(--yellow-border);
+  --seg-major:     color-mix(in srgb, var(--blue-fill) 50%, #FFFFFF);
+  --seg-major-lit: color-mix(in srgb, var(--blue-fill) 82%, #FFFFFF);
+  --seg-major-ink: var(--blue-border);
+
+  /* The activity's pair: two more of the palette, so the names have to be
+     given for the regions' sizes and not matched to the colours the lesson
+     taught them in. */
+  --seg-minor-quiz:     color-mix(in srgb, var(--mint-fill) 50%, #FFFFFF);
+  --seg-minor-quiz-lit: color-mix(in srgb, var(--mint-fill) 80%, #FFFFFF);
+  --seg-major-quiz:     color-mix(in srgb, var(--lavender-fill) 36%, #FFFFFF);
+  --seg-major-quiz-lit: color-mix(in srgb, var(--lavender-fill) 60%, #FFFFFF);
+}
+
+/* ---- The band and the glow ----------------------------------------------
+   The same two section 2 has, live under the same state: a point is being
+   picked. The glow's loop is arcs.css's keyframes; only the selector that
+   turns it on is this section's. */
+.figure__segs.is-picking .arc-band {
+  pointer-events: stroke;
+  cursor: pointer;
+}
+.seg-glow {
+  fill: none;
+  stroke: var(--part-circle);
+  stroke-width: 18;
+  opacity: 0;
+  filter: url(#segGlowBlur);
+  pointer-events: none;
+}
+.figure__segs.is-picking .seg-glow {
+  animation: arc-glow 1.7s ease-in-out infinite;
+}
+
+/* ---- The area -----------------------------------------------------------
+   Rests at nothing; areaIn (animations.js) grows it out from the centre.
+   Its lit shade is a class the beat puts on for a moment, and the fill is
+   transitioned rather than tweened, as every colour in the figure is. */
+.seg-area {
+  fill: var(--seg-area);
+  opacity: 0;
+  pointer-events: none;
+  transition: fill .4s ease;
+}
+.seg-area.is-lit { fill: var(--seg-area-lit); }
+
+/* ---- The regions --------------------------------------------------------
+   Filled shapes with no edge of their own: the rim and the chord are their
+   edges. Both rest invisible; segFill uncovers them from the chord out. */
+.seg-region {
+  opacity: 0;
+  pointer-events: none;
+  transition: fill .45s ease;
+}
+.seg-region--minor { fill: var(--seg-minor); }
+.seg-region--major { fill: var(--seg-major); }
+.seg-region--minor.is-lit { fill: var(--seg-minor-lit); }
+.seg-region--major.is-lit { fill: var(--seg-major-lit); }
+.figure__segs.is-quiz .seg-region--minor { fill: var(--seg-minor-quiz); }
+.figure__segs.is-quiz .seg-region--major { fill: var(--seg-major-quiz); }
+.figure__segs.is-quiz .seg-region--minor.is-lit { fill: var(--seg-minor-quiz-lit); }
+.figure__segs.is-quiz .seg-region--major.is-lit { fill: var(--seg-major-quiz-lit); }
+
+/* ---- Labels and callouts ------------------------------------------------
+   "Segment" set on a region, and the callouts that name the two at the
+   end. The arrows keep the callout's lavender; the WORD takes the ink of
+   the region it names, so the name and the region read as one thing. */
+.seg-label {
+  font-size: 24px;
+  opacity: 0;
+}
+.seg-label--minor,
+.seg-callout--minor .mark__label { fill: var(--seg-minor-ink); }
+.seg-label--major,
+.seg-callout--major .mark__label { fill: var(--seg-major-ink); }
+
+/* ---- Reduced motion -----------------------------------------------------
+   As arcs.css says of its own glow: the rim is lit, it just does not
+   breathe. */
+@media (prefers-reduced-motion: reduce) {
+  .figure__segs.is-picking .seg-glow {
+    animation: none !important;
+    opacity: .4;
+  }
+}

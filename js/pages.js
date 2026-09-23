@@ -753,11 +753,11 @@
        It starts talking on landing, not before: the hopper is showing
      whatever the bird is showing, and a bird chattering its way through the
      air is talking to the ceiling. */
-  function arriveSaying(text) {
+  function arriveSaying(text, mood) {
     speaking++;
     var reveal = sayPrompt.reserve(text);
     return mascotJumpIn().then(function () {
-      mascot.state('talking');
+      mascot.state(mood || 'talking');
       return reveal();
     });
   }
@@ -792,7 +792,10 @@
        Uniform, and that matters: the picture is letterboxed inside its box by
      its own viewBox, so what has to be interpolated is the scale of the
      PICTURE -- min(box/viewBox) on each axis -- and not the box's own width
-     and height, which change by different amounts and would squash it. */
+     and height, which change by different amounts and would squash it.
+       `cls` is which band to close: the header by default, or `is-bare`
+     for both (see style.css), which a section with nothing in the footer
+     either uses to give the picture the whole board. */
   var VB_W = 1000, VB_H = 420;
 
   function pictureAt(rect) {
@@ -803,10 +806,16 @@
     };
   }
 
-  function collapseHeader(on) {
+  function collapseHeader(on, cls) {
     var was = pictureAt(dom.figure.getBoundingClientRect());
-    dom.board.classList.toggle('is-headless', !!on);
+    /* The stylesheet transitions the board's rows for the footer's sake
+       (see .board in style.css). This move is played as a transform instead,
+       so the rows have to land at once: the transition is held off across
+       the toggle, and the measurement forces the layout while it is off. */
+    dom.board.style.transition = 'none';
+    dom.board.classList.toggle(cls || 'is-headless', !!on);
     var now = pictureAt(dom.figure.getBoundingClientRect());
+    dom.board.style.transition = '';
 
     if (!was.scale || !now.scale || M.reducedMotion()) return null;
 
@@ -916,6 +925,7 @@
   function armQuiz(q, names, opts) {
     var o = opts || {};
     var failed = false;         /* any box refused, this round */
+    var misses = 0;             /* how many times                */
     var live = true;
     var picked = null;          /* the chip in hand, in tap mode */
     var drag = null;            /* the press in progress, if any */
@@ -989,19 +999,23 @@
     }
     function wrong(box, chip) {
       failed = true;
+      misses++;
       pick(null);
-      if (o.wrong !== 'reveal') {
+      /* Refused: the box shakes its head and the name goes home to be tried
+         again -- for as long as the caller allows. `chances` is how many
+         wrong drops it takes, in reveal mode, before the lesson steps in. */
+      if (o.wrong !== 'reveal' || misses < (o.chances || 1)) {
         Beats.boxWrong(box);
         home(chip);
         return;
       }
-      /* One chance. The refused box shakes its head, and then the lesson
-         answers for the learner: the name in hand flies on to the box it
-         belongs in, and whatever is still in the tray follows it into the
-         boxes that are left -- so the board ends up right whichever way it
-         was answered, and the explanation that follows is about a right
-         board. Nothing is live in between: a second drop mid-flight would
-         be a second answer to a question already spent. */
+      /* The last chance spent. The refused box shakes its head, and then
+         the lesson answers for the learner: the name in hand flies on to the
+         box it belongs in, and whatever is still in the tray follows it into
+         the boxes that are left -- so the board ends up right whichever way
+         it was answered, and the explanation that follows is about a right
+         board. Nothing is live in between: a drop mid-flight would be an
+         answer to a question already spent. */
       live = false;
       chip.classList.remove('is-lifted');
       quiet(Flow.anim(Beats.boxWrong(box))
@@ -1714,7 +1728,7 @@
     dom.nextBtn.setAttribute('hidden', '');
     dom.bubble.setAttribute('hidden', '');
 
-    dom.board.classList.remove('show', 'is-animating', 'is-headless');
+    dom.board.classList.remove('show', 'is-animating', 'is-headless', 'is-bare');
     dom.board.setAttribute('aria-hidden', 'true');
 
     restoreBubble();

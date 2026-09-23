@@ -886,34 +886,39 @@
   /* A stroke swelling and settling, written into a timeline the caller
      owns. What lights an arc: the width is tweened rather than a glow laid
      under it, because an arc has no straight box for a filter region to be
-     measured against. */
-  function swell(tl, paths, at) {
-    tl.to(paths, { strokeWidth: ARC_W * 1.6, duration: M.dur(0.26), ease: 'power2.out' }, M.gap(at))
-      .to(paths, { strokeWidth: ARC_W, duration: M.dur(0.5), ease: M.POP }, M.gap(at + 0.26));
+     measured against. `w` is the weight it settles back to; swell is the
+     arcs' own. */
+  function swellTo(tl, paths, w, at) {
+    tl.to(paths, { strokeWidth: w * 1.6, duration: M.dur(0.26), ease: 'power2.out' }, M.gap(at))
+      .to(paths, { strokeWidth: w, duration: M.dur(0.5), ease: M.POP }, M.gap(at + 0.26));
   }
+  function swell(tl, paths, at) { swellTo(tl, paths, ARC_W, at); }
   function unswell(paths) { M.set(paths, { clearProps: 'strokeWidth' }); }
 
-  /* The circumference recoloured as two pieces. Both arcs unroll from the
-     FIRST point the learner placed, one each way round, and meet at the
-     second -- so the two colours are seen to be the one line, cut at those
-     two points. The same length of time for both whatever their lengths:
-     it is the meeting that says "divided". The coral rim under them then
-     goes, and the points pulse as the colours reach them.
-       o.minor / o.major are the two paths, both written to start at the
-     first point (see arcs.js); o.rim the rim under them; o.dots the two
-     points. */
-  var SWEEP = 1.05;
+  /* The circumference recoloured as two pieces, one after the other. Both
+     arcs unroll from the point the learner placed LAST (see arcs.js): the
+     smaller piece first, round to the first point; then the larger, the
+     other way round to the same point -- so the two colours are seen to be
+     the one line, cut at those two points. Each lands with the bead sound;
+     the points pulse as the second arrives, and the coral rim under them
+     goes.
+       o.minor / o.major are the two paths, o.rim the rim under them,
+     o.dots the two points. */
+  var SWEEP_MINOR = 0.8, SWEEP_MAJOR = 1.1, SWEEP_GAP = 0.22;
 
   function arcSweep(o) {
+    var second = SWEEP_MINOR + SWEEP_GAP;       /* when the larger piece sets off */
+    var end = second + SWEEP_MAJOR;
     M.set([o.minor, o.major], { opacity: 1 });
     var tl = M.timeline({ revert: function () { undash([o.minor, o.major]); } });
-    stroke(tl, o.minor, 0, SWEEP, 'power2.inOut');
-    stroke(tl, o.major, 0, SWEEP, 'power2.inOut');
-    tl.to(o.rim, { opacity: 0, duration: M.dur(0.3), ease: 'power2.out' }, M.gap(SWEEP - 0.15));
+    stroke(tl, o.minor, 0, SWEEP_MINOR, 'power2.inOut');
+    tl.call(pop, null, M.gap(SWEEP_MINOR));
+    stroke(tl, o.major, second, SWEEP_MAJOR, 'power2.inOut');
+    tl.to(o.rim, { opacity: 0, duration: M.dur(0.3), ease: 'power2.out' }, M.gap(end - 0.2));
     tl.to(o.dots, { scale: 1.4, transformOrigin: 'center center',
-                    duration: M.dur(0.16), ease: 'power2.out' }, M.gap(SWEEP - 0.06))
-      .to(o.dots, { scale: 1, duration: M.dur(0.34), ease: M.POP }, M.gap(SWEEP + 0.1));
-    tl.call(pop, null, M.gap(SWEEP));
+                    duration: M.dur(0.16), ease: 'power2.out' }, M.gap(end - 0.06))
+      .to(o.dots, { scale: 1, duration: M.dur(0.34), ease: M.POP }, M.gap(end + 0.1));
+    tl.call(pop, null, M.gap(end));
     return tl;
   }
 
@@ -992,18 +997,91 @@
     return tl;
   }
 
-  /* The nudges beside the points in the third scene: short arrows round
-     the outside of the rim, one per point, saying which way it goes. Drawn
-     as strokes one after the other; each is taken away on its own as its
-     point is moved. */
-  function hintsIn(paths) {
-    M.set(paths, { opacity: 1 });
-    var tl = M.timeline({ revert: function () { undash(paths); } });
-    paths.forEach(function (p, i) { stroke(tl, p, i * 0.14, 0.42, 'power2.out'); });
+  /* ---- the hand: a nudge that shows the gesture being asked for --------
+     A flat pointing hand (drawn by arcs.js), faint, doing what the learner
+     is being asked to do: pointing at a spot on the rim and pressing it, or
+     carrying a point along the rim. The beats here own only the MOTION;
+     where the hand is for a given moment is the caller's, through a `put`
+     it hands over, because only the caller knows the circle. `gap` is how
+     far the fingertip stands off the rim: at rest a little way out, at a
+     touch all but on it.
+       Both loops are endless, since nobody knows how long the learner will
+     take, so their timings are the clock's and not M.dur's -- a skipped
+     loop of zero length would spin -- and they are marked so Skip leaves
+     them be. The scene stops one with nudgeStop the moment the learner
+     moves. */
+  var NUDGE_ON = 0.92;
+  var NUDGE_REST = 16, NUDGE_TOUCH = 1.5;      /* picture units off the rim */
+  var NUDGE_SWELL = 1.22;                      /* the tap's pulse, about the fingertip */
+
+  /* Tap here. The hand fades in with its fingertip on the spot and pulses
+     -- swells about the fingertip and settles, twice -- while the ripple
+     round the finger spreads and fades each time, the way a tap on a
+     screen is drawn; then it goes, and comes again after a pause.
+     `put(scale)` places the hand at the spot at that size; `ripple(k,
+     alpha)` draws the ripple at k times its size and that opacity. */
+  function nudgeTap(hand, put, ripple) {
+    var p = { s: 1 };
+    var q = { k: 0.7, a: 0 };
+    function move() { put(p.s); }
+    function wave() { if (ripple) ripple(q.k, q.a); }
+    move(); wave();
+    var tl = M.timeline({
+      revert: function () {
+        M.set(hand, { clearProps: 'opacity' });
+        q.a = 0; wave();
+      }
+    });
+    if (M.reducedMotion()) {
+      M.set(hand, { opacity: NUDGE_ON });
+      q.k = 1; q.a = 0.8; wave();
+      return tl;
+    }
+    tl.__motionEndless = true;
+    tl.call(function () { p.s = 1; q.k = 0.7; q.a = 0; move(); wave(); }, null, 0);
+    tl.to(hand, { opacity: NUDGE_ON, duration: 0.3, ease: 'power2.out' }, 0);
+    [0.35, 1.05].forEach(function (at) {
+      tl.to(p, { s: NUDGE_SWELL, duration: 0.22, ease: 'power2.out', onUpdate: move }, at)
+        .to(p, { s: 1, duration: 0.36, ease: 'power2.inOut', onUpdate: move }, at + 0.22);
+      tl.fromTo(q, { k: 0.7, a: 0.9 },
+        { k: 1.15, a: 0, duration: 0.62, ease: 'power2.out', onUpdate: wave }, at);
+    });
+    tl.to(hand, { opacity: 0, duration: 0.3, ease: 'power2.in' }, 1.85);
+    tl.to({}, { duration: 0.7 });            /* the pause before it comes again */
+    tl.repeat(-1);
     return tl;
   }
-  function hintOut(path) {
-    return M.to(path, { opacity: 0, duration: M.dur(0.3), ease: 'power2.in', overwrite: 'auto' });
+
+  /* Carry it there. The hand fades in over the point, presses down onto
+     it, slides along the rim to its mark -- `put(t, gap)` places it, for t
+     from 0 (the point) to 1 (the mark) -- lifts, and fades; then again. */
+  function nudgeSlide(hand, put) {
+    var p = { t: 0, g: NUDGE_REST };
+    function move() { put(p.t, p.g, 1); }
+    move();
+    var tl = M.timeline({ revert: function () { M.set(hand, { clearProps: 'opacity' }); } });
+    if (M.reducedMotion()) {
+      p.t = 0.5; p.g = NUDGE_TOUCH; move();
+      M.set(hand, { opacity: NUDGE_ON });
+      return tl;
+    }
+    tl.__motionEndless = true;
+    tl.call(function () { p.t = 0; p.g = NUDGE_REST; move(); }, null, 0);
+    tl.to(hand, { opacity: NUDGE_ON, duration: 0.3, ease: 'power2.out' }, 0);
+    tl.to(p, { g: NUDGE_TOUCH, duration: 0.24, ease: 'power2.in', onUpdate: move }, 0.2);
+    tl.to(p, { t: 1, duration: 1.3, ease: 'power1.inOut', onUpdate: move }, 0.5);
+    tl.to(p, { g: NUDGE_REST, duration: 0.24, ease: 'power2.out', onUpdate: move }, 1.85);
+    tl.to(hand, { opacity: 0, duration: 0.3, ease: 'power2.in' }, 1.9);
+    tl.to({}, { duration: 0.65 });
+    tl.repeat(-1);
+    return tl;
+  }
+
+  /* And put away: the loop is stopped and the hand fades from wherever it
+     was. */
+  function nudgeStop(tl, hand) {
+    if (tl) tl.kill();
+    return M.to(hand, { opacity: 0, duration: M.dur(0.22), ease: 'power2.in', overwrite: 'auto' });
   }
 
   /* The turn: the two points, and the pieces between them, carried round
@@ -1062,6 +1140,225 @@
     tl.to(box.g, { scale: 1.06, transformOrigin: 'center center',
                    duration: M.dur(0.18), ease: 'power2.out' })
       .to(box.g, { scale: 1, duration: M.dur(0.4), ease: M.POP });
+    return tl;
+  }
+
+  /* ======================================================================
+   * Section 3 -- segments (the scenes are in segments.js)
+   * ----------------------------------------------------------------------
+   * The third section is about the AREA inside the circle rather than the
+   * line round it: the inside is lit as one, a chord is drawn across it,
+   * and the two regions the chord makes are coloured in and named. The
+   * beats for that are here, next to the arcs' beats they rhyme with.
+   * ====================================================================== */
+
+  /* The space inside, lit. The rim stands back to a shadow of itself and a
+     wash grows out from the centre until it reaches the rim: colour poured
+     into the shape, as fillDisc pours it, but SEEN to spread from the
+     middle -- the beat is about the inside, so the inside is what moves. */
+  var RIM_DIM = 0.35;
+
+  function areaIn(rim, area) {
+    M.set(area, { opacity: 0, scale: 0.22, transformOrigin: 'center center' });
+    var tl = M.timeline({ willChange: [rim, area], willChangeValue: 'transform, opacity' });
+    tl.to(rim, { opacity: RIM_DIM, duration: M.dur(0.55), ease: 'power2.inOut' }, 0);
+    tl.to(area, { opacity: 1, scale: 1, duration: M.dur(0.85), ease: 'power2.out' }, 0);
+    return tl;
+  }
+
+  /* The area lit once more as it is spoken of: a deeper wash for a beat --
+     a class, which the stylesheet transitions -- and then back. Nothing
+     moves: a disc scaled up would bulge past the rim it sits inside. */
+  function areaPulse(area) {
+    var tl = M.timeline({ revert: function () { area.classList.remove('is-lit'); } });
+    tl.call(function () { area.classList.add('is-lit'); }, null, 0);
+    tl.call(function () { area.classList.remove('is-lit'); }, null, M.gap(0.6));
+    return tl;
+  }
+
+  /* The rim taken to a level: back to full when the edge is asked for
+     again, because the next thing the learner does is tap it; down to a
+     shadow while the two regions are held apart, so the outline is not
+     seen to bind pieces that have come loose from each other. */
+  function rimTo(rim, alpha, seconds) {
+    var tl = M.timeline({ willChange: rim, willChangeValue: 'opacity' });
+    tl.to(rim, { opacity: alpha, duration: M.dur(seconds || 0.4), ease: 'power2.inOut' });
+    return tl;
+  }
+  function rimFull(rim) { return rimTo(rim, 1, 0.4); }
+
+  /* A region coloured in, from the chord outward. The region is shown
+     through a circle centred on the chord's middle -- a clip path, placed
+     by segments.js -- that is grown from nothing until it has taken the
+     whole region in: the colour is seen to spread from the cut into the
+     piece it belongs to, which is what says the chord MADE the piece.
+     `reach` is how far the circle has to grow to cover the region; it is
+     left wide open after, so a later scene finds the region whole. */
+  var CLIP_OPEN = 400;
+
+  function segFill(region, clip, reach, seconds) {
+    clip.setAttribute('r', 0);
+    M.set(region, { opacity: 1 });
+    var tl = M.timeline({ revert: function () { clip.setAttribute('r', CLIP_OPEN); } });
+    tl.to(clip, { attr: { r: reach }, duration: M.dur(seconds || 0.6), ease: 'power2.out' }, 0);
+    tl.call(pop, null, 0);
+    return tl;
+  }
+
+  /* Both regions, one after the other: the smaller first, then the larger,
+     the wash that lit the whole inside going as the second arrives, and
+     the two points pulsing as the picture is complete -- the same close
+     arcSweep gives the two pieces of the rim.
+       o.minor / o.major are the two regions, o.clips their clip circles
+     and o.reach how far each has to grow, o.area the wash under them,
+     o.dots the two points. */
+  var SEG_FILL = 0.6, SEG_GAP = 0.16;
+
+  function segReveal(o) {
+    var second = SEG_FILL + SEG_GAP;              /* when the larger sets off */
+    var end = second + SEG_FILL;
+    o.clips.forEach(function (c) { c.setAttribute('r', 0); });
+    M.set([o.minor, o.major].concat(o.dots), { opacity: 1 });
+    var tl = M.timeline({
+      revert: function () { o.clips.forEach(function (c) { c.setAttribute('r', CLIP_OPEN); }); }
+    });
+    tl.to(o.clips[0], { attr: { r: o.reach[0] }, duration: M.dur(SEG_FILL), ease: 'power2.out' }, 0);
+    tl.call(pop, null, 0);
+    tl.to(o.clips[1], { attr: { r: o.reach[1] }, duration: M.dur(SEG_FILL), ease: 'power2.out' }, M.gap(second));
+    tl.call(pop, null, M.gap(second));
+    if (o.area) tl.to(o.area, { opacity: 0, duration: M.dur(0.45), ease: 'power2.out' }, M.gap(second));
+    tl.to(o.dots, { scale: 1.4, transformOrigin: 'center center',
+                    duration: M.dur(0.16), ease: 'power2.out' }, M.gap(end - 0.06))
+      .to(o.dots, { scale: 1, duration: M.dur(0.34), ease: M.POP }, M.gap(end + 0.1));
+    tl.call(pop, null, M.gap(end));
+    return tl;
+  }
+
+  /* A line lit once: the swell the arcs use, about the line's own weight
+     -- the figure's --part-weight unless told otherwise. */
+  var PART_W = 4;
+
+  function linePulse(paths, w) {
+    var tl = M.timeline({ revert: function () { unswell(paths); } });
+    swellTo(tl, paths, w || PART_W, 0);
+    return tl;
+  }
+
+  /* The region the lesson is talking about, and the other stood back: `on`
+     comes up to full and takes a deeper fill (a class -- the stylesheet
+     transitions it), `off` drops to a quarter. A region is a filled shape,
+     not a stroke, so there is no width to swell; the colour deepening is
+     its swell. segUnfocus brings both back, plain. */
+  var SEG_DIM = 0.26;
+
+  function segFocus(on, off) {
+    var tl = M.timeline({ willChange: on.concat(off), willChangeValue: 'opacity' });
+    tl.call(function () {
+      on.forEach(function (p) { p.classList.add('is-lit'); });
+      off.forEach(function (p) { p.classList.remove('is-lit'); });
+    }, null, 0);
+    if (off.length) tl.to(off, { opacity: SEG_DIM, duration: M.dur(0.4), ease: 'power2.inOut' }, 0);
+    if (on.length) tl.to(on, { opacity: 1, duration: M.dur(0.3), ease: 'power2.out' }, 0);
+    return tl;
+  }
+  function segUnfocus(all) {
+    var tl = M.timeline({ willChange: all, willChangeValue: 'opacity' });
+    tl.call(function () { all.forEach(function (p) { p.classList.remove('is-lit'); }); }, null, 0);
+    tl.to(all, { opacity: 1, duration: M.dur(0.4), ease: 'power2.inOut' }, 0);
+    return tl;
+  }
+
+  /* ======================================================================
+   * Section 4 -- sectors (the scenes are in sectors.js)
+   * ----------------------------------------------------------------------
+   * The fourth section cuts the circle's area with two RADII rather than a
+   * chord, so the two regions are wedges that meet at the centre. Each is
+   * revealed by being swept out from one radius round to the other -- the
+   * region between the two radii, seen to be exactly that -- and a wedge
+   * that is picked out is drawn a little way out of the circle and set
+   * back, as a slice is lifted out of a pie. The beats are here, next to
+   * the segments' beats they rhyme with.
+   * ====================================================================== */
+
+  /* One wedge, swept out. `wedge(t)` hands back the path for the wedge at
+     t of its full sweep, 0 to 1: sectors.js knows the circle, this knows
+     only the clock. The path is rewritten each frame, as turnArcs rewrites
+     the arcs, and however the beat ends the wedge is left whole. */
+  function secFill(region, wedge, seconds) {
+    var pen = { t: 0 };
+    function draw() { region.setAttribute('d', wedge(pen.t)); }
+    draw();
+    M.set(region, { opacity: 1 });
+    var tl = M.timeline({ revert: function () { pen.t = 1; draw(); } });
+    tl.to(pen, { t: 1, duration: M.dur(seconds || 0.6), ease: 'power2.inOut', onUpdate: draw }, 0);
+    tl.call(pop, null, 0);
+    return tl;
+  }
+
+  /* Both wedges, one after the other: the smaller first, then the larger,
+     each swept from the point the learner placed LAST round to the first
+     -- the close arcSweep gives the two pieces of the rim -- and the two
+     points pulsing as the picture is complete.
+       o.minor / o.major are the two regions, o.wedge(which, t) the path
+     for either at t of its sweep, o.dots the two points. */
+  function secSweep(o) {
+    var second = SWEEP_MINOR + SWEEP_GAP;         /* when the larger sets off */
+    var end = second + SWEEP_MAJOR;
+    var pen = { a: 0, b: 0 };
+    function draw() {
+      o.minor.setAttribute('d', o.wedge('minor', pen.a));
+      o.major.setAttribute('d', o.wedge('major', pen.b));
+    }
+    draw();
+    M.set([o.minor, o.major].concat(o.dots), { opacity: 1 });
+    var tl = M.timeline({ revert: function () { pen.a = 1; pen.b = 1; draw(); } });
+    tl.to(pen, { a: 1, duration: M.dur(SWEEP_MINOR), ease: 'power2.inOut', onUpdate: draw }, 0);
+    tl.call(pop, null, 0);
+    tl.to(pen, { b: 1, duration: M.dur(SWEEP_MAJOR), ease: 'power2.inOut', onUpdate: draw }, M.gap(second));
+    tl.call(pop, null, M.gap(second));
+    tl.to(o.dots, { scale: 1.4, transformOrigin: 'center center',
+                    duration: M.dur(0.16), ease: 'power2.out' }, M.gap(end - 0.06))
+      .to(o.dots, { scale: 1, duration: M.dur(0.34), ease: M.POP }, M.gap(end + 0.1));
+    tl.call(pop, null, M.gap(end));
+    return tl;
+  }
+
+  /* The wedge the learner pressed, and it was the one asked for: it is
+     drawn out of the circle along its own middle -- `away` is that {x, y}
+     -- and settles back, lit. A slice lifted out of a pie and put back:
+     the region is shown to be one PIECE, with the two radii as its edges.
+     The lit shade stays; segFocus and segUnfocus take it from there. */
+  function secRight(region, away) {
+    sfx('correct');
+    var tl = M.timeline({
+      willChange: region, willChangeValue: 'transform',
+      revert: function () { M.set(region, { clearProps: 'transform' }); }
+    });
+    tl.call(function () { region.classList.add('is-lit'); }, null, 0);
+    tl.to(region, { x: away.x, y: away.y, duration: M.dur(0.22), ease: 'power2.out' }, 0)
+      .to(region, { x: 0, y: 0, duration: M.dur(0.5), ease: M.POP }, M.gap(0.34));
+    return tl;
+  }
+
+  /* And the wrong one: it turns red (a class -- the stylesheet transitions
+     the fill) and shakes its head, as a refused box does, and holds the
+     red for a beat before it is a plain region again. */
+  function secWrong(region) {
+    sfx('wrong');
+    region.classList.add('is-wrong');
+    var tl = M.timeline({
+      willChange: region, willChangeValue: 'transform',
+      revert: function () {
+        region.classList.remove('is-wrong');
+        M.set(region, { clearProps: 'transform' });
+      }
+    });
+    var each = M.dur(0.3) / SHAKE.length;
+    SHAKE.forEach(function (x, i) {
+      tl.to(region, { x: x, duration: each,
+                      ease: i === SHAKE.length - 1 ? 'power2.out' : 'none' });
+    });
+    tl.to({}, { duration: M.dur(0.5) });
     return tl;
   }
 
@@ -1128,12 +1425,28 @@
     labelIn: labelIn,
     labelsOut: labelsOut,
     dashedIn: dashedIn,
-    hintsIn: hintsIn,
-    hintOut: hintOut,
+    nudgeTap: nudgeTap,
+    nudgeSlide: nudgeSlide,
+    nudgeStop: nudgeStop,
     turnArcs: turnArcs,
     slideArcs: slideArcs,
     snapDot: snapDot,
     arcsEqual: arcsEqual,
-    boxPulse: boxPulse
+    boxPulse: boxPulse,
+    /* section 3 -- segments */
+    areaIn: areaIn,
+    areaPulse: areaPulse,
+    rimTo: rimTo,
+    rimFull: rimFull,
+    segFill: segFill,
+    segReveal: segReveal,
+    linePulse: linePulse,
+    segFocus: segFocus,
+    segUnfocus: segUnfocus,
+    /* section 4 -- sectors */
+    secFill: secFill,
+    secSweep: secSweep,
+    secRight: secRight,
+    secWrong: secWrong
   };
 })(window);

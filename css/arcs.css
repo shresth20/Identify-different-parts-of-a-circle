@@ -11,12 +11,17 @@
   /* The two pieces. Gold for the smaller, the palette's lavender for the
      larger: neither is the coral the circle is drawn in, so a recoloured
      rim reads as two NEW things and not as the circle changing its mind.
-     Each has a darker ink for the word that names it, because gold
-     lettering on the pale board does not read. */
+     The word that names a piece is set in the piece's own colour, so the
+     two read as one thing. */
   --part-arc-minor: #FFC542;
   --part-arc-major: #8A84FF;
-  --part-arc-minor-ink: #C58A0C;
-  --part-arc-major-ink: var(--lavender-border);
+  --part-arc-minor-ink: var(--part-arc-minor);
+  --part-arc-major-ink: var(--part-arc-major);
+  /* The activity's pair: two more colours from the palette, so the names
+     have to be given for the pieces' sizes and not matched to the colours
+     the lesson taught them in. */
+  --part-arc-minor-quiz: var(--mint-border);
+  --part-arc-major-quiz: var(--blue-border);
   /* The weight of a piece: heavier than the rim it replaces, so each
      piece reads as a length of something and not as an outline. Mirrored
      by ARC_W in animations.js, which every swell returns to. */
@@ -32,9 +37,9 @@
 /* ---- The band -----------------------------------------------------------
    A wide, unpainted stroke laid over the rim. It is not a target the
    learner has to hit -- a press anywhere near the rim is taken by arcs.js
-   from the picture itself -- but it is where the cursor changes, and what
-   the keyboard holds while it walks the ghost round. Live only while a
-   point is being picked. */
+   from the picture itself -- but it is where the cursor becomes a hand,
+   and what the keyboard holds while it walks the ghost round. Live only
+   while a point is being picked. */
 .arc-band {
   fill: none;
   stroke: transparent;
@@ -44,33 +49,49 @@
 }
 .figure__arcs.is-picking .arc-band {
   pointer-events: stroke;
-  cursor: crosshair;
+  cursor: pointer;
+}
+
+/* ---- The glow -----------------------------------------------------------
+   While a point is being picked the rim breathes: a wide coral stroke under
+   it, blurred to a haze, brightening and dimming. Opacity alone, so the
+   filtered circle is rasterised once and only composited after. It rests at
+   nothing and stops the moment the second point is down. */
+.arc-glow {
+  fill: none;
+  stroke: var(--part-circle);
+  stroke-width: 18;
+  opacity: 0;
+  filter: url(#arcGlowBlur);
+  pointer-events: none;
+}
+.figure__arcs.is-picking .arc-glow {
+  animation: arc-glow 1.7s ease-in-out infinite;
+}
+@keyframes arc-glow {
+  0%, 100% { opacity: .14; }
+  50%      { opacity: .55; }
 }
 .arc-band:focus-visible {
   stroke: color-mix(in srgb, var(--lavender-fill) 14%, transparent);
 }
 
 /* ---- The pieces ---------------------------------------------------------
-   Both rest invisible; arcSweep and growLine reveal them. The preview is
-   the piece the second point WOULD cut off, in the smaller piece's colour
-   and faint: it has no rest state to speak of, since it is drawn with an
-   empty path whenever it is not wanted. */
+   Both rest invisible; arcSweep and growLine reveal them. The colour is
+   transitioned rather than tweened, as the diameter's is in style.css: it
+   is the one property in the figure GSAP does not drive, and the activity
+   changes it with a class -- and takes the class off again after. */
 .arc-piece {
   fill: none;
   stroke-width: var(--arc-weight);
   stroke-linecap: round;
   opacity: 0;
+  transition: stroke .6s ease;
 }
 .arc-piece--minor { stroke: var(--part-arc-minor); }
 .arc-piece--major { stroke: var(--part-arc-major); }
-.arc-preview {
-  fill: none;
-  stroke: var(--part-arc-minor);
-  stroke-width: var(--arc-weight);
-  stroke-linecap: round;
-  opacity: .38;
-  pointer-events: none;
-}
+.figure__arcs.is-quiz .arc-piece--minor { stroke: var(--part-arc-minor-quiz); }
+.figure__arcs.is-quiz .arc-piece--major { stroke: var(--part-arc-major-quiz); }
 
 /* ---- The points ---------------------------------------------------------
    The board's own ink with a white edge, as the pen that draws the rim
@@ -132,23 +153,50 @@
   stroke-width: 10;
 }
 
-/* ---- The nudges ---------------------------------------------------------
-   Two short arrows round the outside of the rim, one beside each point,
-   saying which way it goes. Lavender, as every annotation is. */
-.arc-hint {
+/* ---- The hands ----------------------------------------------------------
+   A pointing hand drawn in line -- one stroke and no fill, as the tap icon
+   on a phone is drawn -- in the lavender every annotation in the lesson
+   wears, so it reads as part of the interface and not of the figure. It
+   stands upright with its fingertip on the spot, which is the group's
+   origin. Its opacity is the beat's (nudgeTap and nudgeSlide in
+   animations.js); it rests at nothing. The stroke is in the hand's own
+   units, so it scales with the hand. */
+.arc-nudge {
+  opacity: 0;
+  pointer-events: none;
+}
+.arc-nudge__hand {
   fill: none;
   stroke: var(--lavender-border);
-  stroke-width: 3;
+  stroke-width: 2.1;
   stroke-linecap: round;
   stroke-linejoin: round;
+}
+/* the thin ring round the fingertip: the nudge's beat sends it outward
+   and fades it with each tap, so it rests at nothing */
+.arc-nudge__ring {
+  fill: none;
+  stroke: var(--text-secondary);
+  stroke-width: 1.1;
   opacity: 0;
+}
+
+/* ---- Reduced motion -----------------------------------------------------
+   The blanket rule in animations.css would run the glow's loop once, in a
+   hundredth of a second, and leave it dark. Stated outright instead: the
+   rim is lit, it just does not breathe. */
+@media (prefers-reduced-motion: reduce) {
+  .figure__arcs.is-picking .arc-glow {
+    animation: none !important;
+    opacity: .4;
+  }
 }
 
 /* ---- Labels and callouts ------------------------------------------------
    "Arc" set beside a piece, and the callouts that name the two pieces at
-   the end. The arrows keep the callout's lavender; the WORD takes the ink
-   of the piece it names, as "Diameter = 2 x Radius" did for its lines --
-   so the name and the piece read as one thing. */
+   the end. The arrows keep the callout's lavender; the WORD takes the
+   colour of the piece it names, as "Diameter = 2 x Radius" did for its
+   lines -- so the name and the piece read as one thing. */
 .arc-label {
   font-size: 24px;
   opacity: 0;
@@ -178,22 +226,40 @@
 }
 .aside[hidden] { display: none; }
 
-/* The bird's spot: standing near the pane's left edge, on its floor, so
-   the bubble that hangs off its head has the width of the pane to open
-   into. */
+/* The bird's spot: standing near the pane's left edge, on its floor, and
+   well under half the size it is on the field -- here it is beside the
+   lesson, not the whole of it -- so the line above it has the room and the
+   circle stays the biggest thing on the board. */
 .slot--aside {
   left: 3cqw;
-  bottom: 2cqh;
-  height: 60cqh;
+  bottom: 4cqh;
+  height: 30cqh;
   aspect-ratio: 1;
 }
 
-/* The bubble in the pane: the hero bubble at the board's own type size,
-   and no wider than the pane. The cap is the pane's right edge less where
-   the bubble starts -- the slot's left, plus half the bird (the tail is
-   over the bird's head), less the tail's own offset into the bubble
-   (--bub-tail-x + --bub-tail-w / 2 = 1.16em, see .bubble in style.css). */
+/* The line in the pane. The same box as the hero bubble, so the typer and
+   the beats that open and close it are the ones the welcome uses -- but
+   with none of the bubble about it: no panel, no rim, no tail, no marks.
+   Plain type at the board's own size, set left, starting above the bird's
+   head and running to the pane's edge. What is said here is a line of the
+   lesson beside the figure, not a character talking. */
 .bubble--aside {
-  font-size: clamp(15px, 2.9vh, 29px);
-  max-width: calc(94cqw - 30cqh + 1.16em);
+  left: 0;
+  bottom: 98%;
+  max-width: 92cqw;
+  padding: 0;
+  border: 0;
+  border-radius: 0;
+  background: none;
+  box-shadow: none;
+  font-size: clamp(16px, 3.1vh, 30px);
+  line-height: 1.25;
+  text-align: left;
 }
+.bubble--aside::before,
+.bubble--aside .bubble-mark,
+.bubble--aside .bubble-tail { display: none; }
+/* Three classes deep: animations.css centres `.bubble .type` and is loaded
+   after this file, so the plainer selector would lose. */
+.bubble.bubble--aside .type,
+.bubble.bubble--aside .type-ghost { text-align: left; }

@@ -7,6 +7,8 @@
 
   <link rel="stylesheet" href="css/style.css" />
   <link rel="stylesheet" href="css/arcs.css" />
+  <link rel="stylesheet" href="css/segments.css" />
+  <link rel="stylesheet" href="css/sectors.css" />
   <link rel="stylesheet" href="css/animations.css" />
   <link rel="stylesheet" href="css/responsive.css" />
 </head>
@@ -198,11 +200,20 @@
                  as ONE thing, and section 1's beats hold the circle above by
                  name and must never find it moved. What depends on the two
                  points the learner picks is written by arcs.js; what is
-                 fixed is here. Last in the picture, so it paints over
-                 whatever the section before left -- though nothing of that
-                 is on the board by the time this is shown. -->
+                 fixed is here. After section 1's marks in the picture, so
+                 it paints over whatever the section before left -- though
+                 nothing of that is on the board by the time this is shown. -->
             <g class="figure__arcs" id="arcs" hidden>
-              <defs id="arcDefs"></defs>
+              <defs id="arcDefs">
+                <!-- The soft light behind the rim while a point is being
+                     picked: a wide coral stroke blurred away (see .arc-glow
+                     in arcs.css). A circle has a proper box, so the filter
+                     region can be measured against it. -->
+                <filter id="arcGlowBlur" x="-12%" y="-12%" width="124%" height="124%">
+                  <feGaussianBlur stdDeviation="5" />
+                </filter>
+              </defs>
+              <circle class="arc-glow" id="arcGlow" cx="500" cy="210" r="158" />
               <circle class="figure__disc" id="arcDisc" cx="500" cy="210" r="158" />
               <path class="figure__rim" id="arcRim"
                     d="M500 52 A158 158 0 0 1 500 368 A158 158 0 0 1 500 52" />
@@ -218,20 +229,17 @@
                    builds and dashedIn strokes, as the activity's leaders
                    are. -->
               <path class="arc-dia" id="arcDia" d="M342 210 L658 210" mask="url(#arcDiaMask)" />
-              <!-- The two pieces. Both are written to start at the FIRST
-                   point the learner placed and run to the second, one each
+              <!-- The two pieces. Both are written to start at the point
+                   the learner placed LAST and run to the first, one each
                    way round, so that when the circumference is recoloured
-                   the two colours set off from one point and meet at the
-                   other. The minor one is on top: where the two share an
-                   end, the smaller piece's round cap is the one seen. -->
+                   each colour sets off from the point just put down -- the
+                   smaller piece first, then the larger -- and both end at
+                   the other. The minor one is on top: where the two share
+                   an end, the smaller piece's round cap is the one seen. -->
               <path class="arc-piece arc-piece--major" id="arcMajor" d="" />
               <path class="arc-piece arc-piece--minor" id="arcMinor" d="" />
-              <!-- What the second point WOULD cut off: faint, from the first
-                   point to wherever the finger is. -->
-              <path class="arc-preview" id="arcPreview" d="" />
-              <!-- The nudges beside the points, the name boxes, and the
-                   callouts and labels -- all built by arcs.js. -->
-              <g class="arc-hints" id="arcHints" hidden></g>
+              <!-- The name boxes, and the callouts and labels -- built by
+                   arcs.js. -->
               <g class="arc-boxes" id="arcBoxes" hidden></g>
               <g class="arc-marks" id="arcMarks" hidden></g>
               <g class="figure__centre is-quiet" id="arcCentre" hidden>
@@ -253,6 +261,142 @@
                 <circle class="arc-dot__hit" cx="500" cy="52" r="30" tabindex="-1" role="button"
                         aria-label="A point on the circle. Drag it along the edge." />
               </g>
+              <!-- The hands: two pointing hands drawn in line, faint, that
+                   show the learner the gesture being asked for -- a tap on
+                   the rim, or a point slid along it. Built by arcs.js; last,
+                   so they are over the points they are about. -->
+              <g class="arc-nudges" id="arcNudges" hidden aria-hidden="true"></g>
+            </g>
+
+            <!-- ---- Section 3: segments (js/segments.js) -----------------
+                 Its own circle again, for the reason section 2 has one:
+                 what this section does to the circle -- lights the inside
+                 of it, cuts it with a chord, colours the two regions -- is
+                 done to this group, and the sections before hold their
+                 circles by name. What depends on the two points the
+                 learner picks is written by segments.js; what is fixed is
+                 here. The points, the ghost, the band and the hand are the
+                 same marks section 2 puts on its rim, so they wear its
+                 classes. -->
+            <g class="figure__segs" id="segs" hidden>
+              <defs id="segDefs">
+                <filter id="segGlowBlur" x="-12%" y="-12%" width="124%" height="124%">
+                  <feGaussianBlur stdDeviation="5" />
+                </filter>
+                <!-- The two regions are coloured in from the chord outward:
+                     each is shown through a circle centred on the chord's
+                     middle, which segments.js places and segFill (in
+                     animations.js) grows from nothing. At rest both stand
+                     wide open, so a region shown without the beat is
+                     whole. -->
+                <clipPath id="segClipMinor">
+                  <circle id="segClipMinorC" cx="500" cy="210" r="400" />
+                </clipPath>
+                <clipPath id="segClipMajor">
+                  <circle id="segClipMajorC" cx="500" cy="210" r="400" />
+                </clipPath>
+              </defs>
+              <circle class="seg-glow" id="segGlow" cx="500" cy="210" r="158" />
+              <circle class="figure__disc" id="segDisc" cx="500" cy="210" r="158" />
+              <!-- The area: the space inside the circle, lit as one thing
+                   while it is being named. It goes as the regions arrive. -->
+              <circle class="seg-area" id="segArea" cx="500" cy="210" r="158" />
+              <!-- The two regions the chord makes. The larger is under the
+                   smaller in document order, as the two arcs are: where
+                   the two meet along the chord, the smaller piece's edge
+                   is the one seen. Written by segments.js. -->
+              <path class="seg-region seg-region--major" id="segMajor" d=""
+                    clip-path="url(#segClipMajor)" />
+              <path class="seg-region seg-region--minor" id="segMinor" d=""
+                    clip-path="url(#segClipMinor)" />
+              <!-- The chord: the line section 1 taught, in its colour,
+                   written to run from the point the learner placed LAST. -->
+              <path class="chord-line" id="segChord" d="" />
+              <!-- The rim is over the regions so it covers the seam where
+                   each region's edge meets the circle. -->
+              <path class="figure__rim" id="segRim"
+                    d="M500 52 A158 158 0 0 1 500 368 A158 158 0 0 1 500 52" />
+              <circle class="rim-tip" id="segTip" cx="500" cy="52" r="7" />
+              <circle class="arc-band" id="segBand" cx="500" cy="210" r="158"
+                      tabindex="-1" role="button"
+                      aria-label="The edge of the circle. Tap it to place a point." />
+              <g class="arc-boxes" id="segBoxes" hidden></g>
+              <g class="arc-marks" id="segMarks" hidden></g>
+              <!-- Over the regions, so the dot paints on top of the colour. -->
+              <g class="figure__centre is-quiet" id="segCentre" hidden>
+                <circle class="centre__dot" cx="500" cy="210" r="7" />
+              </g>
+              <circle class="arc-ghost" id="segGhost" cx="500" cy="52" r="7" />
+              <g class="arc-point" id="segPointA">
+                <circle class="arc-dot" cx="500" cy="52" r="6.5" />
+                <circle class="arc-dot__hit" cx="500" cy="52" r="30" tabindex="-1" role="button"
+                        aria-label="A point on the circle." />
+              </g>
+              <g class="arc-point" id="segPointB">
+                <circle class="arc-dot" cx="500" cy="52" r="6.5" />
+                <circle class="arc-dot__hit" cx="500" cy="52" r="30" tabindex="-1" role="button"
+                        aria-label="A point on the circle." />
+              </g>
+              <g class="arc-nudges" id="segNudges" hidden aria-hidden="true"></g>
+            </g>
+
+            <!-- ---- Section 4: sectors (js/sectors.js) -------------------
+                 Its own circle once more, for the reason the two sections
+                 before have one. This one is cut by two RADII rather than
+                 a chord, so the two regions are wedges that meet at the
+                 centre; what depends on the two points the learner picks
+                 is written by sectors.js, and what is fixed is here. The
+                 points, the ghost, the band and the hand are section 2's
+                 marks on another circle, so they wear its classes. -->
+            <g class="figure__secs" id="secs" hidden>
+              <defs id="secDefs">
+                <filter id="secGlowBlur" x="-12%" y="-12%" width="124%" height="124%">
+                  <feGaussianBlur stdDeviation="5" />
+                </filter>
+              </defs>
+              <circle class="sec-glow" id="secGlow" cx="500" cy="210" r="158" />
+              <circle class="figure__disc" id="secDisc" cx="500" cy="210" r="158" />
+              <!-- The two wedges the radii make. The larger is under the
+                   smaller in document order, as the segments are. Written
+                   by sectors.js, and swept out from one radius to the
+                   other by secSweep in animations.js. Each is a control
+                   for the one beat in which it is asked for; the label
+                   names neither, or it would answer the question. -->
+              <path class="sec-region sec-region--major" id="secMajor" d=""
+                    tabindex="-1" role="button" aria-label="A region of the circle." />
+              <path class="sec-region sec-region--minor" id="secMinor" d=""
+                    tabindex="-1" role="button" aria-label="A region of the circle." />
+              <!-- The two radii: the line section 1 taught, in its colour,
+                   each from the centre out to one of the points. -->
+              <path class="sec-radius" id="secRadiusA" d="" />
+              <path class="sec-radius" id="secRadiusB" d="" />
+              <!-- The rim is over the regions so it covers the seam where
+                   each region's edge meets the circle. -->
+              <path class="figure__rim" id="secRim"
+                    d="M500 52 A158 158 0 0 1 500 368 A158 158 0 0 1 500 52" />
+              <circle class="rim-tip" id="secTip" cx="500" cy="52" r="7" />
+              <circle class="arc-band" id="secBand" cx="500" cy="210" r="158"
+                      tabindex="-1" role="button"
+                      aria-label="The edge of the circle. Tap it to place a point." />
+              <g class="arc-boxes" id="secBoxes" hidden></g>
+              <g class="arc-marks" id="secMarks" hidden></g>
+              <!-- Over the regions and the radii, so the dot paints on top
+                   of the point where the two lines meet. -->
+              <g class="figure__centre is-quiet" id="secCentre" hidden>
+                <circle class="centre__dot" cx="500" cy="210" r="7" />
+              </g>
+              <circle class="arc-ghost" id="secGhost" cx="500" cy="52" r="7" />
+              <g class="arc-point" id="secPointA">
+                <circle class="arc-dot" cx="500" cy="52" r="6.5" />
+                <circle class="arc-dot__hit" cx="500" cy="52" r="30" tabindex="-1" role="button"
+                        aria-label="A point on the circle." />
+              </g>
+              <g class="arc-point" id="secPointB">
+                <circle class="arc-dot" cx="500" cy="52" r="6.5" />
+                <circle class="arc-dot__hit" cx="500" cy="52" r="30" tabindex="-1" role="button"
+                        aria-label="A point on the circle." />
+              </g>
+              <g class="arc-nudges" id="secNudges" hidden aria-hidden="true"></g>
             </g>
           </svg>
 
@@ -338,6 +482,8 @@
   <script src="js/animations.js"></script>
   <script src="js/pages.js"></script>
   <script src="js/arcs.js"></script>
+  <script src="js/segments.js"></script>
+  <script src="js/sectors.js"></script>
   <script src="js/script.js"></script>
   <!-- TEMPORARY: the Back / Skip / Replay level bar. Delete this line
        and js/devnav.js to remove it; nothing else refers to it. -->

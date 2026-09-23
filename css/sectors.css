@@ -1,0 +1,135 @@
+/* ==========================================================================
+   Section 4 -- sectors
+   The fourth section's own marks: the two radii that cut the circle's area
+   from the centre, the two wedges they make, and the words that name them.
+   The points, the ghost, the band and the hand are section 2's own marks
+   put on a different circle, so they keep its classes (arcs.css); only
+   what is new to this section is here. Everything is picked out of the
+   palette in style.css.
+   ========================================================================== */
+:root {
+  /* The two regions. Mint for the smaller and sky blue for the larger --
+     not the gold the segments used, because the edges of a sector are
+     RADII, drawn in the lesson's orange, and an orange line on a gold
+     wedge would sink into it. Both pale, because they are areas, and each
+     with a deeper shade it is lit to while it is being spoken of -- or
+     while a finger is over it, in the beat where one is asked for. The
+     word that names a region is set in the region's own hue at its border
+     strength, where a fill this pale would not read. */
+  --sec-minor:     color-mix(in srgb, var(--mint-fill) 52%, #FFFFFF);
+  --sec-minor-lit: color-mix(in srgb, var(--mint-fill) 82%, #FFFFFF);
+  --sec-minor-ink: var(--mint-border);
+  --sec-major:     color-mix(in srgb, var(--blue-fill) 48%, #FFFFFF);
+  --sec-major-lit: color-mix(in srgb, var(--blue-fill) 80%, #FFFFFF);
+  --sec-major-ink: var(--blue-border);
+
+  /* The activity's pair: two more of the palette, so the names have to be
+     given for the regions' sizes and not matched to the colours the lesson
+     taught them in. */
+  --sec-minor-quiz:     color-mix(in srgb, var(--yellow-fill) 62%, #FFFFFF);
+  --sec-minor-quiz-lit: var(--yellow-fill);
+  --sec-major-quiz:     color-mix(in srgb, var(--lavender-fill) 34%, #FFFFFF);
+  --sec-major-quiz-lit: color-mix(in srgb, var(--lavender-fill) 58%, #FFFFFF);
+
+  /* A region tapped when the other was asked for: the answers' red, at the
+     strength of an area rather than of a border. */
+  --sec-wrong: color-mix(in srgb, var(--wrong-fill) 55%, #FFFFFF);
+}
+
+/* ---- The band and the glow ----------------------------------------------
+   The same two section 2 has, live under the same state: a point is being
+   picked. The glow's loop is arcs.css's keyframes; only the selector that
+   turns it on is this section's. */
+.figure__secs.is-picking .arc-band {
+  pointer-events: stroke;
+  cursor: pointer;
+}
+.sec-glow {
+  fill: none;
+  stroke: var(--part-circle);
+  stroke-width: 18;
+  opacity: 0;
+  filter: url(#secGlowBlur);
+  pointer-events: none;
+}
+.figure__secs.is-picking .sec-glow {
+  animation: arc-glow 1.7s ease-in-out infinite;
+}
+
+/* ---- The radii ----------------------------------------------------------
+   The line section 1 taught, in its colour and at its weight. Never a
+   target: a tap on one, in the beat where a region is asked for, goes to
+   the region under it. */
+.sec-radius {
+  fill: none;
+  stroke: var(--part-radius);
+  stroke-width: var(--part-weight);
+  stroke-linecap: round;
+  opacity: 0;
+  pointer-events: none;
+}
+/* Nor is anything else laid over the regions in that beat: the rim, the
+   pen, the centre dot, and the words and arrows -- a label at opacity 0
+   still has glyphs for a tap to land on -- all let it through to the
+   wedge beneath. */
+.figure__secs .figure__rim,
+.figure__secs .rim-tip,
+.figure__secs .centre__dot,
+.figure__secs .arc-marks { pointer-events: none; }
+
+/* ---- The regions --------------------------------------------------------
+   Filled shapes with no edge of their own: the rim and the two radii are
+   their edges. Both rest invisible; secSweep uncovers them from one radius
+   round to the other. Live only while one is being asked for. */
+.sec-region {
+  opacity: 0;
+  pointer-events: none;
+  outline: none;
+  transition: fill .45s ease;
+}
+.sec-region--minor { fill: var(--sec-minor); }
+.sec-region--major { fill: var(--sec-major); }
+.sec-region--minor.is-lit,
+.figure__secs.is-asking .sec-region--minor:hover { fill: var(--sec-minor-lit); }
+.sec-region--major.is-lit,
+.figure__secs.is-asking .sec-region--major:hover { fill: var(--sec-major-lit); }
+.figure__secs.is-quiz .sec-region--minor { fill: var(--sec-minor-quiz); }
+.figure__secs.is-quiz .sec-region--major { fill: var(--sec-major-quiz); }
+.figure__secs.is-quiz .sec-region--minor.is-lit { fill: var(--sec-minor-quiz-lit); }
+.figure__secs.is-quiz .sec-region--major.is-lit { fill: var(--sec-major-quiz-lit); }
+/* Refused. Three classes deep, so it outranks the lit shade whichever
+   colours the section is wearing. */
+.figure__secs .sec-region.is-wrong { fill: var(--sec-wrong); }
+
+.figure__secs.is-asking .sec-region {
+  pointer-events: all;
+  cursor: pointer;
+}
+.sec-region:focus-visible {
+  stroke: var(--lavender-border);
+  stroke-width: 3;
+  stroke-dasharray: 5 5;
+}
+
+/* ---- Labels and callouts ------------------------------------------------
+   "Sector" set on a region, and the callouts that name the two. The arrows
+   keep the callout's lavender; the WORD takes the ink of the region it
+   names, so the name and the region read as one thing. */
+.sec-label {
+  font-size: 24px;
+  opacity: 0;
+}
+.sec-label--minor,
+.sec-callout--minor .mark__label { fill: var(--sec-minor-ink); }
+.sec-label--major,
+.sec-callout--major .mark__label { fill: var(--sec-major-ink); }
+
+/* ---- Reduced motion -----------------------------------------------------
+   As arcs.css says of its own glow: the rim is lit, it just does not
+   breathe. */
+@media (prefers-reduced-motion: reduce) {
+  .figure__secs.is-picking .sec-glow {
+    animation: none !important;
+    opacity: .4;
+  }
+}

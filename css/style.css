@@ -243,6 +243,20 @@ body {
    re-measured against the space it now has. The move itself is a transform
    on the figure; see collapseHeader in pages.js. */
 .board.is-headless { --row-top: 0%; }
+/* Both bands closed: nothing in the header and nothing in the footer, and
+   the picture has the whole board -- which puts the circle at its centre.
+   The summary that ends section 2 is drawn this way. */
+.board.is-bare { --row-top: 0%; --row-bottom: 0%; }
+/* The bottom band, closed while nothing is in it. The footer holds only the
+   names and the answers, each hidden until its scene reaches for it, so for
+   most of the lesson the band is a tenth of the board spent on nothing. This
+   one follows what is in it rather than being closed by a beat: the row is
+   taken away whenever both trays are hidden, and given back the moment one
+   of them is shown, with the rows themselves transitioned so the picture
+   above eases between the two sizes. (The header is moved differently --
+   see collapseHeader in pages.js, which steps around this transition.) */
+.board:not(:has(.board__bottom > :not([hidden]))) { --row-bottom: 0%; }
+.board { transition: grid-template-rows .45s ease; }
 
 /* The three bands. Each gets its own level on the --z ladder. */
 .board__top {

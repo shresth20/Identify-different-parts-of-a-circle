@@ -163,11 +163,34 @@
     };
   }
 
+  /* A GSAP animation is thenable, but it keeps ONE resolver: a second
+     then() on the same animation before it has finished takes the slot from
+     the first, and the first is never told. Two callers always wait on the
+     same animation here -- this file, to hand back what it wrote, and Flow,
+     to pace the scene -- so the hand-back was being lost under the wait, and
+     a stroke's dash pattern with it. Tracking registers with GSAP once, and
+     fans out to everyone who asks after. Nothing thenable is handed to
+     GSAP's resolver, or the promise built on it would adopt the animation
+     and wait on it a second time. */
   function track(anim, revert) {
     anim.__motionRevert = revert || null;
     live.add(anim);
-    /* a GSAP animation is thenable: this settles when it reaches its end */
-    anim.then(function () { release(anim); }, function () { release(anim); });
+
+    var done = false;
+    var waiters = [];
+    function settle() {
+      done = true;
+      release(anim);
+      var list = waiters;
+      waiters = [];
+      list.forEach(function (resolve) { resolve(); });
+    }
+    anim.then(settle, settle);
+    anim.then = function (onFulfilled, onRejected) {
+      return new Promise(function (resolve) {
+        if (done) resolve(); else waiters.push(resolve);
+      }).then(onFulfilled, onRejected);
+    };
     return anim;
   }
   function release(anim) {
