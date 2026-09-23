@@ -1,0 +1,199 @@
+/* ==========================================================================
+   Section 2 -- arcs
+   The second section's own marks: the two pieces of the circumference, the
+   points that cut it, the ghost that rides the rim under the finger, the
+   dashed diameter, the nudges, the labels -- and the right half of the
+   board the bird speaks from. Everything is picked out of the palette in
+   style.css. The two part colours declared here belong to this section
+   alone, which is why they are here and not there.
+   ========================================================================== */
+:root {
+  /* The two pieces. Gold for the smaller, the palette's lavender for the
+     larger: neither is the coral the circle is drawn in, so a recoloured
+     rim reads as two NEW things and not as the circle changing its mind.
+     Each has a darker ink for the word that names it, because gold
+     lettering on the pale board does not read. */
+  --part-arc-minor: #FFC542;
+  --part-arc-major: #8A84FF;
+  --part-arc-minor-ink: #C58A0C;
+  --part-arc-major-ink: var(--lavender-border);
+  /* The weight of a piece: heavier than the rim it replaces, so each
+     piece reads as a length of something and not as an outline. Mirrored
+     by ARC_W in animations.js, which every swell returns to. */
+  --arc-weight: 7;
+}
+
+/* The figure is pressed and dragged on in this section -- points placed on
+   the rim, points slid along it -- and a browser that takes a finger on it
+   for a scroll cancels the pointer mid-gesture. The page never scrolls, so
+   nothing is lost. */
+.figure { touch-action: none; }
+
+/* ---- The band -----------------------------------------------------------
+   A wide, unpainted stroke laid over the rim. It is not a target the
+   learner has to hit -- a press anywhere near the rim is taken by arcs.js
+   from the picture itself -- but it is where the cursor changes, and what
+   the keyboard holds while it walks the ghost round. Live only while a
+   point is being picked. */
+.arc-band {
+  fill: none;
+  stroke: transparent;
+  stroke-width: 92;
+  pointer-events: none;
+  outline: none;
+}
+.figure__arcs.is-picking .arc-band {
+  pointer-events: stroke;
+  cursor: crosshair;
+}
+.arc-band:focus-visible {
+  stroke: color-mix(in srgb, var(--lavender-fill) 14%, transparent);
+}
+
+/* ---- The pieces ---------------------------------------------------------
+   Both rest invisible; arcSweep and growLine reveal them. The preview is
+   the piece the second point WOULD cut off, in the smaller piece's colour
+   and faint: it has no rest state to speak of, since it is drawn with an
+   empty path whenever it is not wanted. */
+.arc-piece {
+  fill: none;
+  stroke-width: var(--arc-weight);
+  stroke-linecap: round;
+  opacity: 0;
+}
+.arc-piece--minor { stroke: var(--part-arc-minor); }
+.arc-piece--major { stroke: var(--part-arc-major); }
+.arc-preview {
+  fill: none;
+  stroke: var(--part-arc-minor);
+  stroke-width: var(--arc-weight);
+  stroke-linecap: round;
+  opacity: .38;
+  pointer-events: none;
+}
+
+/* ---- The points ---------------------------------------------------------
+   The board's own ink with a white edge, as the pen that draws the rim
+   has: they sit ON a coloured stroke, and a plain dot the size of the
+   stroke would sink into it. The ghost is the same mark, translucent. */
+.arc-ghost {
+  fill: color-mix(in srgb, var(--text-primary) 72%, transparent);
+  stroke: var(--board-highlight);
+  stroke-width: 2.4;
+  opacity: 0;
+  pointer-events: none;
+}
+.arc-dot {
+  fill: var(--text-primary);
+  stroke: var(--board-highlight);
+  stroke-width: 2.2;
+  opacity: 0;
+  transition: stroke-width .15s ease;
+}
+/* A finger-sized hit area over a 13px dot, live only in the scene where
+   the points are dragged -- and spent once a point has found its mark. */
+.arc-dot__hit {
+  fill: transparent;
+  pointer-events: none;
+  outline: none;
+}
+.figure__arcs.is-sliding .arc-dot__hit {
+  pointer-events: all;
+  cursor: grab;
+}
+.figure__arcs.is-sliding .arc-point.is-held .arc-dot__hit { cursor: grabbing; }
+.figure__arcs.is-sliding .arc-point.is-set .arc-dot__hit {
+  pointer-events: none;
+  cursor: default;
+}
+.arc-point.is-held .arc-dot { stroke-width: 3.2; }
+.arc-dot__hit:focus-visible {
+  stroke: var(--lavender-border);
+  stroke-width: 3;
+  stroke-dasharray: 5 5;
+}
+
+/* ---- The diameter, dashed -----------------------------------------------
+   The softer ink and a dash: a line the learner is measuring against, not
+   a part of the circle being taught. Shown through a mask that is drawn
+   with the dash trick (see dashedIn in animations.js), so the mask path is
+   solid, white and wider than the line it reveals. */
+.arc-dia {
+  fill: none;
+  stroke: var(--text-secondary);
+  stroke-width: 2.4;
+  stroke-dasharray: 7 8;
+  stroke-linecap: butt;
+  opacity: 0;
+}
+.arc-dia-mask {
+  fill: none;
+  stroke: #FFFFFF;
+  stroke-width: 10;
+}
+
+/* ---- The nudges ---------------------------------------------------------
+   Two short arrows round the outside of the rim, one beside each point,
+   saying which way it goes. Lavender, as every annotation is. */
+.arc-hint {
+  fill: none;
+  stroke: var(--lavender-border);
+  stroke-width: 3;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+  opacity: 0;
+}
+
+/* ---- Labels and callouts ------------------------------------------------
+   "Arc" set beside a piece, and the callouts that name the two pieces at
+   the end. The arrows keep the callout's lavender; the WORD takes the ink
+   of the piece it names, as "Diameter = 2 x Radius" did for its lines --
+   so the name and the piece read as one thing. */
+.arc-label {
+  font-size: 24px;
+  opacity: 0;
+}
+.arc-label--minor,
+.arc-callout--minor .mark__label { fill: var(--part-arc-minor-ink); }
+.arc-label--major,
+.arc-callout--major .mark__label { fill: var(--part-arc-major-ink); }
+
+/* ==========================================================================
+   The aside -- the right half of the board
+   For the one beat where the circle stands to the left and the bird lands
+   beside it to name what it sees. A container, so the bird and its bubble
+   are measured against THIS half of the stage (cqw / cqh) and not against
+   the viewport: the stage is a different height with the header open and
+   closed, and on every screen size, and the pair has to fit it every time.
+   ========================================================================== */
+.aside {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  left: 50%;
+  width: 50%;
+  z-index: 2;                        /* over the figure, which has no level */
+  pointer-events: none;
+  container-type: size;
+}
+.aside[hidden] { display: none; }
+
+/* The bird's spot: standing near the pane's left edge, on its floor, so
+   the bubble that hangs off its head has the width of the pane to open
+   into. */
+.slot--aside {
+  left: 3cqw;
+  bottom: 2cqh;
+  height: 60cqh;
+  aspect-ratio: 1;
+}
+
+/* The bubble in the pane: the hero bubble at the board's own type size,
+   and no wider than the pane. The cap is the pane's right edge less where
+   the bubble starts -- the slot's left, plus half the bird (the tail is
+   over the bird's head), less the tail's own offset into the bubble
+   (--bub-tail-x + --bub-tail-w / 2 = 1.16em, see .bubble in style.css). */
+.bubble--aside {
+  font-size: clamp(15px, 2.9vh, 29px);
+  max-width: calc(94cqw - 30cqh + 1.16em);
+}

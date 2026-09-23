@@ -9,8 +9,11 @@
  * Section 1 is one continuous flow on one board. The bird comes up onto the
  * header once and stays there for the whole of the teaching, changing its
  * line as each part of the circle is drawn and named; the Next control marks
- * the three places the learner takes over the pace. Those three places are
- * also the scene boundaries below, which is what the level bar leans on.
+ * the places the learner takes over the pace: once after each part is
+ * named -- circumference, centre, radius, diameter, chord -- so its label
+ * can be studied for as long as it takes, and once at the end of each scene.
+ * Only the end-of-scene ones are the scene boundaries below, which is what
+ * the level bar leans on.
  *
  * Load order: motion.js -> flow.js -> typer.js -> mascot.js -> animations.js
  *             -> pages.js
@@ -37,19 +40,27 @@
     centre:         'This is the center.',
     radius:         'This is the radius.',
     radius2:        'It goes from the center to the edge.',
-    longer:         'Let’s make the line longer.',
+    longer:         'Let’s copy the radius to the other side.',
     oneRadius:      'This side is a radius…',
-    twoRadius:      '…and this side is a radius too.',
+    twoRadius:      '…and the copy is a radius too. Same length!',
     diameter:       'Together they make a diameter!',
     diameter2:      'A diameter goes right through the center.',
+    diameter3:      'So a diameter is two times the radius!',
 
     notCentre: 'This line does not go through the center.',
     chord:     'This is a chord.',
     chords:    'All of these lines are chords.',
 
+    /* the yes/no question that closes the chord scene */
+    lookNew:  'Now look at this line.',
+    isChord:  'Is this a chord?',
+    ackRight: 'Correct!',
+    ackWrong: 'Not quite!',
+    longest:  'A diameter is the longest chord of a circle.',
+
+    /* The activity says nothing while it is being done: the bird is off the
+       board by then, and the boxes answer for themselves in green and red. */
     drag:  'Drag each name to the correct box.',
-    right: function (name) { return 'Correct! That is the ' + name.toLowerCase() + '.'; },
-    wrong: 'Oops! Not this box. Try again.',
     done:  'Great job! You know all the parts of a circle!'
   };
 
@@ -59,6 +70,9 @@
      like a hang. SHORT is the gap between two marks of one drawing. */
   var BEAT  = 560;
   var SHORT = 280;
+  /* How long the instruction stands before the bird takes it away and leaves
+     the learner to the activity. */
+  var HOLD_ASK = 2000;
 
   /* ---- the figure's own coordinates -------------------------------------
      The three numbers the circle in index.html is drawn with. Everything this
@@ -92,6 +106,13 @@
     [onRim(-55), onRim(-125)]
   ];
 
+  /* And the one the scene ends by asking about: a chord that DOES go
+     through the centre, which makes it a diameter. Tilted rather than level,
+     so it is plainly a new line and not the horizontal diameter from the
+     scene before, and so that it crosses the centre dot at an angle where
+     the crossing can be seen. */
+  var LONG_CHORD = [onRim(25), onRim(205)];
+
   /* Where the one callout is aimed for each part it names: the arrow runs
      from `from` through `bend` to `tip`, and the word sits at `label`. Every
      one comes in from the right, clear of the circle, and every tip stops a
@@ -124,7 +145,16 @@
      two on the right -- each tied by a dashed leader to a point on the part
      it is for. The centre's leader has no point of its own: it stops just
      short of the dot, which is the point. */
-  var BOX_W = 250, BOX_H = 48, BOX_R = 14;
+  /* A box is the same object as a name in the tray, waiting to be filled:
+     the same proportions and the same fully rounded ends, so a name that
+     lands in one looks like it was always that shape. */
+  var BOX_W = 210, BOX_H = 42;
+  var BOX_R = BOX_H / 2;
+  /* How far the dashed line runs level out of a box before it turns for the
+     part it names. The leg that touches the box is straight and the corner
+     is sharp, so the eye is handed along the line rather than asked to
+     follow a diagonal into a rounded edge. */
+  var LEAD_STUB = 48;
   var RADIUS_END = onRim(40);
   var QUIZ_PARTS = {
     radius:   { cls: 'q-radius',
@@ -147,8 +177,10 @@
   var dom = null;
   var mascot = null;
   var chords = [];              /* [{ line, ends }] -- see buildChords */
+  var longChord = null;         /* the one through the centre  */
   var quiz = { parts: {}, boxes: [] };
   var chips = [];
+  var choiceBtns = [];          /* the two answers, while a question is up */
   var sayTitle, sayBubble, sayPrompt;
 
   function $(id) { return document.getElementById(id); }
@@ -171,8 +203,6 @@
 
       figure:    $('figure'),
       disc:      $('disc'),
-      glowWide:  $('rimGlowWide'),
-      glowTight: $('rimGlowTight'),
       rim:       $('rim'),
       rimTip:    $('rimTip'),
 
@@ -181,14 +211,18 @@
       glowLeft:    $('glowLeft'),
       halfRight:   $('halfRight'),
       halfLeft:    $('halfLeft'),
+      halfGhost:   $('halfGhost'),
       endRight:    $('endRight'),
       endLeft:     $('endLeft'),
       rLabelRight: $('rLabelRight'),
       rLabelLeft:  $('rLabelLeft'),
       diaName:     $('diaName'),
+      diaRule:     $('diaRule'),
+      diaPlate:    $('diaPlate'),
 
       chords:   $('chords'),
       quiz:     $('quiz'),
+      choices:  $('choices'),
 
       centre:    $('centre'),
       glow:      document.querySelector('.centre__glow'),
@@ -226,7 +260,7 @@
       var line = el('path', { 'class': 'chord-line', d: seg(pair[0], pair[1]) });
       group.appendChild(line);
       var ends = pair.map(function (p) {
-        var dot = el('circle', { 'class': 'end-dot', cx: p.x, cy: p.y, r: 6.4 });
+        var dot = el('circle', { 'class': 'end-dot', cx: p.x, cy: p.y, r: 4.4 });
         group.appendChild(dot);
         return dot;
       });
@@ -234,9 +268,25 @@
     });
   }
 
+  /* The chord that goes through the centre, built into the same group as
+     the other four so it is faded and cleared with them -- but kept out of
+     the `chords` list, because the beat that draws "all of these lines"
+     must not draw this one. */
+  function buildLongChord(group) {
+    var line = el('path', { 'class': 'long-chord',
+                            d: seg(LONG_CHORD[0], LONG_CHORD[1]) });
+    group.appendChild(line);
+    var ends = LONG_CHORD.map(function (p) {
+      var dot = el('circle', { 'class': 'end-dot', cx: p.x, cy: p.y, r: 4.4 });
+      group.appendChild(dot);
+      return dot;
+    });
+    return { line: line, ends: ends };
+  }
+
   /* The activity's picture: the three lines, then the five boxes with their
      leaders. Each leader is a dashed path shown through a mask of its own --
-     see boxesIn in animations.js for why -- and the mask has to be given the
+     see boxIn in animations.js for why -- and the mask has to be given the
      whole picture as its region: left to its default it would be sized off
      the line's own box, and a level line's box has no height. */
   function buildQuiz(group) {
@@ -249,7 +299,7 @@
       var line = el('path', { 'class': 'q-part ' + s.cls, d: seg(s.from, s.to) });
       group.appendChild(line);
       var ends = s.ends.map(function (p) {
-        var dot = el('circle', { 'class': 'end-dot', cx: p.x, cy: p.y, r: 6.4 });
+        var dot = el('circle', { 'class': 'end-dot', cx: p.x, cy: p.y, r: 4.4 });
         group.appendChild(dot);
         return dot;
       });
@@ -257,61 +307,77 @@
     });
 
     var boxes = QUIZ_BOXES.map(function (b, i) {
-      var left = b.x < CX;
-      var cy = b.y + BOX_H / 2;
-      var edge = { x: left ? b.x + BOX_W : b.x, y: cy };
-      var target = b.anchor;
-      if (!target) {
-        var dx = CX - edge.x, dy = CY - edge.y;
-        var L = Math.sqrt(dx * dx + dy * dy) || 1;
-        target = { x: CX - dx / L * CENTRE_GAP, y: CY - dy / L * CENTRE_GAP };
-      }
-      var d = seg(edge, target);
-
-      var maskId = 'leaderMask' + i;
-      var mask = el('mask', { id: maskId, maskUnits: 'userSpaceOnUse',
-                              x: 0, y: 0, width: 1000, height: 420 });
-      var maskPath = el('path', { 'class': 'q-leader-mask', d: d });
-      mask.appendChild(maskPath);
-      defs.appendChild(mask);
-
-      var leader = el('path', { 'class': 'q-leader', d: d, mask: 'url(#' + maskId + ')' });
-      group.appendChild(leader);
-
-      var anchor = null;
-      if (b.anchor) {
-        anchor = el('circle', { 'class': 'q-anchor', cx: b.anchor.x, cy: b.anchor.y, r: 4.6 });
-        group.appendChild(anchor);
-      }
-
-      var g = el('g', { 'class': 'q-box', 'data-name': b.name, tabindex: 0, role: 'button' });
-      var rect = el('rect', { 'class': 'q-box__rect', x: b.x, y: b.y,
-                              width: BOX_W, height: BOX_H, rx: BOX_R });
-      var badge = el('g', { 'class': 'q-badge' });
-      badge.appendChild(el('circle', { 'class': 'q-badge__ring', cx: b.x + 26, cy: cy, r: 11 }));
-      badge.appendChild(el('path', { 'class': 'q-badge__tick',
-        d: 'M' + (b.x + 20) + ' ' + cy + ' L' + (b.x + 24.5) + ' ' + (cy + 4.5) +
-           ' L' + (b.x + 32) + ' ' + (cy - 4.5) }));
-      var text = el('text', { 'class': 'figure-label q-box__text',
-                              x: b.x + BOX_W / 2 + 10, y: cy + 8, 'text-anchor': 'middle' });
-      g.appendChild(rect);
-      g.appendChild(badge);
-      g.appendChild(text);
-      group.appendChild(g);
-
-      var box = { name: b.name, g: g, rect: rect, badge: badge, text: text,
-                  leader: leader, mask: maskPath, anchor: anchor, filled: false };
-      emptyBox(box);
-      return box;
+      return buildBox(group, defs, b, 'leaderMask' + i);
     });
 
     return { parts: parts, boxes: boxes };
   }
 
+  /* One box, with the dashed leader that ties it to the part it is for:
+     the pill, the tick that lands in it when it is answered, and the word
+     that is set inside. `b` is { name, x, y, anchor }: where the box sits
+     and the point on the circle its leader runs to (or null, for the
+     centre). Its own function so a later section can hang boxes of the
+     same make off its own figure -- see arcs.js. */
+  function buildBox(group, defs, b, maskId) {
+    var left = b.x < CX;
+    var cy = b.y + BOX_H / 2;
+    var edge = { x: left ? b.x + BOX_W : b.x, y: cy };
+    var turn = { x: edge.x + (left ? LEAD_STUB : -LEAD_STUB), y: cy };
+    var target = b.anchor;
+    if (!target) {
+      /* The centre's line has no point of its own to stop on: it is aimed
+         at the dot and stopped just short of it, which is what makes the
+         dot the thing it is pointing at. Aimed from the CORNER, not from
+         the box, or the last leg would not be the one that is drawn. */
+      var dx = CX - turn.x, dy = CY - turn.y;
+      var L = Math.sqrt(dx * dx + dy * dy) || 1;
+      target = { x: CX - dx / L * CENTRE_GAP, y: CY - dy / L * CENTRE_GAP };
+    }
+    var d = 'M' + round2(edge.x) + ' ' + round2(edge.y) +
+            ' L' + round2(turn.x) + ' ' + round2(turn.y) +
+            ' L' + round2(target.x) + ' ' + round2(target.y);
+
+    var mask = el('mask', { id: maskId, maskUnits: 'userSpaceOnUse',
+                            x: 0, y: 0, width: 1000, height: 420 });
+    var maskPath = el('path', { 'class': 'q-leader-mask', d: d });
+    mask.appendChild(maskPath);
+    defs.appendChild(mask);
+
+    var leader = el('path', { 'class': 'q-leader', d: d, mask: 'url(#' + maskId + ')' });
+    group.appendChild(leader);
+
+    var g = el('g', { 'class': 'q-box', 'data-name': b.name, tabindex: 0, role: 'button' });
+    var rect = el('rect', { 'class': 'q-box__rect', x: b.x, y: b.y,
+                            width: BOX_W, height: BOX_H, rx: BOX_R });
+    var badge = el('g', { 'class': 'q-badge' });
+    badge.appendChild(el('circle', { 'class': 'q-badge__ring', cx: b.x + 24, cy: cy, r: 10 }));
+    badge.appendChild(el('path', { 'class': 'q-badge__tick',
+      d: 'M' + (b.x + 18.5) + ' ' + cy + ' L' + (b.x + 22.5) + ' ' + (cy + 4) +
+         ' L' + (b.x + 29.5) + ' ' + (cy - 4) }));
+    var text = el('text', { 'class': 'figure-label q-box__text',
+                            x: b.x + BOX_W / 2 + 9, y: cy + 7.5, 'text-anchor': 'middle' });
+    g.appendChild(rect);
+    g.appendChild(badge);
+    g.appendChild(text);
+    group.appendChild(g);
+
+    var box = { name: b.name, g: g, rect: rect, badge: badge, text: text,
+                leader: leader, mask: maskPath, filled: false };
+    emptyBox(box);
+    return box;
+  }
+
+  /* A box back to the state it is built in: empty, unanswered, and not yet
+     on the board at all. `is-shown` and `is-quiet` are how the activity's
+     three levels of attention are held -- off the board, on it, and standing
+     back -- so they come off here with everything else. */
   function emptyBox(box) {
     box.filled = false;
     box.text.textContent = '';
-    box.g.classList.remove('is-right', 'is-wrong', 'is-over');
+    [box.g, box.leader].forEach(function (e) {
+      e.classList.remove('is-right', 'is-wrong', 'is-over', 'is-shown', 'is-quiet');
+    });
     box.g.setAttribute('aria-label', 'Empty box. Drop a name here.');
   }
 
@@ -327,6 +393,20 @@
       b.dataset.name = name;
       b.setAttribute('aria-label', name + '. Drag it to a box, or press to pick it up.');
       tray.appendChild(b);
+      return b;
+    });
+  }
+
+  /* The answers to a yes/no question, as buttons in the same band the names
+     use. Real buttons, so Enter and Space work without a line of code. */
+  function buildChoices(host, labels) {
+    host.textContent = '';
+    return labels.map(function (text) {
+      var b = document.createElement('button');
+      b.type = 'button';
+      b.className = 'choice';
+      b.textContent = text;
+      host.appendChild(b);
       return b;
     });
   }
@@ -377,8 +457,11 @@
      Every mark that can be on the circle at once, in one list: what a scene
      hands back when it is over, and what a replay has to undo. */
   function figureParts() {
-    return [dom.rim, dom.disc, dom.glowWide, dom.glowTight, dom.rimTip,
-            dom.dia, dom.chords, dom.quiz, dom.centre, dom.mark];
+    var own = [dom.rim, dom.disc, dom.rimTip,
+               dom.dia, dom.chords, dom.quiz, dom.centre, dom.mark];
+    return sections.reduce(function (all, s) {
+      return s.parts ? all.concat(s.parts()) : all;
+    }, own);
   }
 
   /* Back to an empty stage. Every group hidden, every state class off, every
@@ -394,6 +477,7 @@
     dom.quiz.classList.remove('is-live');
     [dom.halfLeft, dom.halfRight].forEach(function (h) { h.classList.remove('is-dia'); });
     quiz.boxes.forEach(emptyBox);
+    sections.forEach(function (s) { if (s.reset) s.reset(); });
 
     clearInline([dom.figure].concat(
       Array.prototype.slice.call(dom.figure.querySelectorAll('*'))));
@@ -417,10 +501,15 @@
     });
   }
 
-  function resetTray() {
+  /* The band under the circle, emptied: both the names and the answers,
+     because a replay can catch either of them standing there. */
+  function resetFooter() {
     dom.tray.setAttribute('hidden', '');
     dom.tray.textContent = '';
     chips = [];
+    dom.choices.setAttribute('hidden', '');
+    dom.choices.textContent = '';
+    choiceBtns = [];
   }
 
   /* The ripple goes where the finger landed. A keyboard activation has no
@@ -684,13 +773,54 @@
 
   /* ---- the circle, drawn --------------------------------------------------
      Outline first, colour second, with a pause between them: two acts, not
-     one. `glow` lights the outline as it is drawn -- the first time, when the
-     circumference is about to be named. */
-  function drawCircle(glow) {
-    return Flow.anim(Beats.drawRim(dom.rim, [dom.glowWide, dom.glowTight],
-                                   dom.rimTip, { glow: glow }))
+     one. */
+  function drawCircle() {
+    return Flow.anim(Beats.drawRim(dom.rim, dom.rimTip))
       .then(function () { return Flow.wait(160); })
       .then(function () { return Flow.anim(Beats.fillDisc(dom.disc)); });
+  }
+
+  /* ---- the board's top band, taken away and given back -------------------
+     With the bird gone and the line cleared there is nothing in the header,
+     and an empty band is a fifth of the board's height spent on nothing. So
+     the row is closed and the stage below takes the room: a real layout
+     change, which is what makes it responsive -- the picture is re-measured
+     against the space it now has, at whatever size the board happens to be.
+       The MOVE, though, is a transform and nothing else. The figure's box is
+     measured before and after, and the difference is played as one uniform
+     scale about its own centre, so no frame of it costs a layout.
+       Uniform, and that matters: the picture is letterboxed inside its box by
+     its own viewBox, so what has to be interpolated is the scale of the
+     PICTURE -- min(box/viewBox) on each axis -- and not the box's own width
+     and height, which change by different amounts and would squash it. */
+  var VB_W = 1000, VB_H = 420;
+
+  function pictureAt(rect) {
+    return {
+      scale: Math.min(rect.width / VB_W, rect.height / VB_H),
+      x: rect.left + rect.width / 2,
+      y: rect.top + rect.height / 2
+    };
+  }
+
+  function collapseHeader(on) {
+    var was = pictureAt(dom.figure.getBoundingClientRect());
+    dom.board.classList.toggle('is-headless', !!on);
+    var now = pictureAt(dom.figure.getBoundingClientRect());
+
+    if (!was.scale || !now.scale || M.reducedMotion()) return null;
+
+    M.set(dom.figure, {
+      scale: was.scale / now.scale,
+      x: was.x - now.x,
+      y: was.y - now.y,
+      transformOrigin: 'center center'
+    });
+    var tl = M.timeline({ willChange: dom.figure, willChangeValue: 'transform' });
+    tl.to(dom.figure, {
+      scale: 1, x: 0, y: 0, duration: M.dur(0.66), ease: 'power2.inOut'
+    });
+    return tl;
   }
 
   /* ---- a scene, over ------------------------------------------------------
@@ -702,16 +832,68 @@
     var shut = Flow.anim(Beats.bubbleOut(dom.bubble));
     var line = Flow.anim(Beats.lineOut(dom.promptLine));
     var figure = Flow.anim(Beats.clearFigure(figureParts()));
-    var tray = dom.tray.hasAttribute('hidden')
-      ? Promise.resolve()
-      : Flow.anim(Beats.trayOut(dom.tray, chips));
 
-    return Promise.all([gone, shut, line, figure, tray]).then(function () {
+    /* Whichever of the two rows is standing in the footer goes with it --
+       ordinarily neither, since a scene takes its own away when it is done
+       with it, but the level bar can leave either one up. */
+    var footer = [];
+    if (!dom.tray.hasAttribute('hidden')) {
+      footer.push(Flow.anim(Beats.trayOut(dom.tray, chips)));
+    }
+    if (!dom.choices.hasAttribute('hidden')) {
+      footer.push(Flow.anim(Beats.trayOut(dom.choices, choiceBtns)));
+    }
+
+    /* And whatever a later section keeps outside the figure -- see the
+       `wipe` hook in addSection. */
+    var extra = sections.reduce(function (all, s) {
+      return s.wipe ? all.concat(s.wipe()) : all;
+    }, []);
+
+    return Promise.all([gone, shut, line, figure].concat(footer, extra)).then(function () {
       clearPrompt();
       restoreBubble();
       resetFigure();
-      resetTray();
+      resetFooter();
     });
+  }
+
+  /* ---- waiting on an answer ----------------------------------------------
+     Two buttons, one answer. Neither button can be the thing the scene
+     waits on -- the wait has to be one promise, not one per option -- so
+     whichever is pressed fires a click at the hidden element the lesson
+     keeps for exactly this (see #gate in index.html) and the scene waits on
+     THAT: an ordinary Flow.once, cancelled with the rest of the chain when
+     a scene is retired, with the listeners coming off whichever way it
+     ends.
+       Hands back the index of the button that was pressed. */
+  function askChoice(buttons) {
+    var picked = -1;
+    var live = true;
+
+    function onPick(ev) {
+      if (!live) return;
+      live = false;
+      var btn = ev.currentTarget;
+      picked = buttons.indexOf(btn);
+      ripple(ev, btn);
+      dom.gate.dispatchEvent(new MouseEvent('click'));
+    }
+    function off() {
+      live = false;
+      buttons.forEach(function (b) {
+        b.removeEventListener('click', onPick);
+        /* Spent: the question has an answer, and neither option is a
+           control any more -- including for a keyboard. */
+        b.classList.add('is-done');
+      });
+    }
+
+    buttons.forEach(function (b) { b.addEventListener('click', onPick); });
+
+    return Flow.once(dom.gate).then(
+      function () { off(); return picked; },
+      function (err) { off(); throw err; });
   }
 
   /* ---- the activity's interaction -----------------------------------------
@@ -731,13 +913,15 @@
   var TAP_SLOP = 8;      /* px: a press that travelled less than this was a tap */
   var DROP_SLACK = 10;   /* px: how far outside a box still counts as on it     */
 
-  function armQuiz(q, names) {
+  function armQuiz(q, names, opts) {
+    var o = opts || {};
+    var failed = false;         /* any box refused, this round */
     var live = true;
     var picked = null;          /* the chip in hand, in tap mode */
     var drag = null;            /* the press in progress, if any */
     var placed = 0;
 
-    q.g = dom.quiz;
+    q.g = o.group || dom.quiz;
     q.g.classList.add('is-live');
 
     function boxAt(x, y) {
@@ -750,8 +934,15 @@
       }
       return null;
     }
+    /* The box under the hand, and only that one, comes up out of the quiet
+       level the whole set rests at -- with the line that ties it to the
+       circle, because what the learner is checking is which part this box
+       is for. */
     function hover(box) {
-      q.boxes.forEach(function (b) { b.g.classList.toggle('is-over', b === box); });
+      q.boxes.forEach(function (b) {
+        var on = (b === box);
+        [b.g, b.leader].forEach(function (e) { e.classList.toggle('is-over', on); });
+      });
     }
     function pick(chip) {
       if (picked) picked.classList.remove('is-picked');
@@ -770,6 +961,11 @@
       return wrong(box, chip);
     }
     function right(box, chip) {
+      dock(box, chip);
+      if (placed >= q.boxes.length) finish();
+    }
+    /* A name into its box: the flight, the word set inside, the tick. */
+    function dock(box, chip) {
       box.filled = true;
       placed++;
       pick(null);
@@ -784,19 +980,53 @@
       box.text.textContent = box.name;
       box.g.setAttribute('aria-label', box.name + '. Correct.');
       Beats.boxRight(box);
-
-      if (placed >= q.boxes.length) return finish();
-      quiet(speak(LINES.right(box.name), 'happy'));
+    }
+    function boxFor(name) {
+      for (var i = 0; i < q.boxes.length; i++) {
+        if (q.boxes[i].name === name) return q.boxes[i];
+      }
+      return null;
     }
     function wrong(box, chip) {
-      Beats.boxWrong(box);
-      home(chip);
+      failed = true;
       pick(null);
-      quiet(speak(LINES.wrong, 'confused'));
+      if (o.wrong !== 'reveal') {
+        Beats.boxWrong(box);
+        home(chip);
+        return;
+      }
+      /* One chance. The refused box shakes its head, and then the lesson
+         answers for the learner: the name in hand flies on to the box it
+         belongs in, and whatever is still in the tray follows it into the
+         boxes that are left -- so the board ends up right whichever way it
+         was answered, and the explanation that follows is about a right
+         board. Nothing is live in between: a second drop mid-flight would
+         be a second answer to a question already spent. */
+      live = false;
+      chip.classList.remove('is-lifted');
+      quiet(Flow.anim(Beats.boxWrong(box))
+        .then(function () {
+          var rest = names.filter(function (c) {
+            return !c.classList.contains('is-docked');
+          });
+          /* the one in hand first, then the others, each a beat apart */
+          rest.sort(function (x, y) { return x === chip ? -1 : y === chip ? 1 : 0; });
+          return rest.reduce(function (chain, c) {
+            return chain.then(function () {
+              var target = boxFor(c.dataset.name);
+              if (target && !target.filled) dock(target, c);
+              return Flow.wait(420);
+            });
+          }, Promise.resolve());
+        })
+        .then(done));
     }
     function finish() {
       if (!live) return;
       live = false;
+      done();
+    }
+    function done() {
       dom.gate.dispatchEvent(new MouseEvent('click'));
     }
 
@@ -871,6 +1101,17 @@
       var box = boxOf(ev);
       if (box) attempt(box, picked);
     }
+    /* A plain hover, with nothing in the hand. During a drag the chip holds
+       the pointer, so neither of these fires and the drag's own reckoning
+       of which box it is over is the only one running. */
+    function onBoxEnter(ev) {
+      if (!live || drag) return;
+      hover(boxOf(ev));
+    }
+    function onBoxLeave() {
+      if (!live || drag) return;
+      hover(null);
+    }
 
     function off() {
       live = false;
@@ -881,6 +1122,8 @@
       q.boxes.forEach(function (b) {
         b.g.removeEventListener('pointerup', onBoxUp);
         b.g.removeEventListener('keydown', onBoxKey);
+        b.g.removeEventListener('pointerenter', onBoxEnter);
+        b.g.removeEventListener('pointerleave', onBoxLeave);
       });
       document.removeEventListener('pointermove', onMove);
       document.removeEventListener('pointerup', onUp);
@@ -898,13 +1141,16 @@
     q.boxes.forEach(function (b) {
       b.g.addEventListener('pointerup', onBoxUp);
       b.g.addEventListener('keydown', onBoxKey);
+      b.g.addEventListener('pointerenter', onBoxEnter);
+      b.g.addEventListener('pointerleave', onBoxLeave);
     });
     document.addEventListener('pointermove', onMove);
     document.addEventListener('pointerup', onUp);
     document.addEventListener('pointercancel', onCancel);
 
+    /* Hands back how it went: right only if no box was ever refused. */
     return Flow.once(dom.gate).then(
-      function (ev) { off(); return ev; },
+      function () { off(); return { right: !failed }; },
       function (err) { off(); throw err; });
   }
 
@@ -1001,9 +1247,9 @@
       })
 
       /* ---- 1. The circumference ------------------------------------------
-         Drawn from a point, lit as it goes, and named while it is still lit:
-         the arrow reaches in to the rim as the bird says what it is. */
-      .then(function () { return drawCircle(true); })
+         Drawn from a point, and named as soon as it closes: the arrow
+         reaches in to the rim as the bird says what it is. */
+      .then(drawCircle)
       .then(function () { return Flow.wait(SHORT); })
       .then(function () {
         return Promise.all([speak(LINES.circumference),
@@ -1012,13 +1258,14 @@
       .then(function () { return Flow.wait(BEAT); })
       .then(function () { return speak(LINES.circumference2); })
       .then(function () { return Flow.wait(BEAT); })
-      /* The light comes off the rim and the name goes with it: the eye is
-         being handed on to the middle of the circle. */
+      /* Stop here. The name stays on the rim until the learner presses
+         Next: the first label of the lesson is the one to be looked at for
+         as long as it takes, not read on a timer. */
+      .then(function () { return handOver(dom.nextBtn); })
+      /* The name comes off the rim: the eye is being handed on to the
+         middle of the circle. */
       .then(function () {
-        return Promise.all([
-          Flow.anim(Beats.unglowRim([dom.glowWide, dom.glowTight])),
-          Flow.anim(Beats.calloutOut(dom.mark, markParts()))
-        ]);
+        return Flow.anim(Beats.calloutOut(dom.mark, markParts()));
       })
 
       /* ---- 2. The centre --------------------------------------------------
@@ -1040,6 +1287,8 @@
                             Flow.anim(aimCallout(CALLOUTS.centre))]);
       })
       .then(function () { return Flow.wait(BEAT); })
+      /* Stop: the centre stays found and named until Next is pressed. */
+      .then(function () { return handOver(dom.nextBtn); })
       .then(function () {
         return Promise.all([
           Flow.anim(Beats.calloutOut(dom.mark, markParts())),
@@ -1065,18 +1314,28 @@
       .then(function () { return Flow.wait(BEAT); })
       .then(function () { return speak(LINES.radius2); })
       .then(function () { return Flow.wait(BEAT); })
+      /* Stop: the radius keeps its name until Next is pressed. */
+      .then(function () { return handOver(dom.nextBtn); })
       .then(function () { return Flow.anim(Beats.calloutOut(dom.mark, markParts())); })
 
       /* ---- 4. The diameter ------------------------------------------------
-         The same line grows out the other side of the centre. Each half is
-         then lit and named on its own -- one radius, and another -- and the
-         pair becomes one line with one name. */
+         The radius is COPIED to the other side of the centre rather than a
+         second line being drawn there: a faint copy is lifted off it,
+         carried across by exactly one radius and set down, and the left
+         half comes up solid under it. The learner sees the same length
+         moved, so there is nothing to wonder about the left side. Each half
+         is then lit and named on its own -- one radius, and its copy -- and
+         the pair becomes one line with one name. */
       .then(function () {
         var said = speak(LINES.longer);
-        var grown = Flow.wait(SHORT)
-          .then(function () { return Flow.anim(Beats.growLine(dom.halfLeft, 0.7)); })
-          .then(function () { return Flow.anim(Beats.plotDot(dom.endLeft)); });
-        return Promise.all([said, grown]);
+        var copied = Flow.wait(SHORT)
+          .then(function () {
+            return Flow.anim(Beats.copyRadius({
+              ghost: dom.halfGhost, shift: -RR,
+              half: dom.halfLeft, end: dom.endLeft
+            }));
+          });
+        return Promise.all([said, copied]);
       })
       .then(function () { return Flow.wait(SHORT); })
       .then(function () {
@@ -1101,6 +1360,13 @@
       })
       .then(function () { return Flow.wait(BEAT); })
       .then(function () { return speak(LINES.diameter2); })
+      .then(function () { return Flow.wait(BEAT); })
+      /* The rule the merge has just acted out, written under the circle in
+         the lines' own colours as it is said. */
+      .then(function () {
+        return Promise.all([speak(LINES.diameter3),
+                            Flow.anim(Beats.showRule(dom.diaRule, dom.diaPlate))]);
+      })
       .then(function () { return Flow.wait(SHORT); })
       .then(function () { return handOver(dom.nextBtn); });
   }
@@ -1144,14 +1410,90 @@
                             Flow.anim(aimCallout(CALLOUTS.chord))]);
       })
       .then(function () { return Flow.wait(BEAT); })
+      /* Stop: one chord, named, until Next is pressed. The rest are drawn
+         only after the learner has had a good look at this one. */
+      .then(function () { return handOver(dom.nextBtn); })
 
-      /* And there are as many of them as you like. The name stays on the
-         first one while the others are drawn under the sentence. */
+      /* And there are as many of them as you like. The word stays while the
+         others are drawn under the sentence, but the arrow goes: pointed at
+         the first chord, it would say that one alone is the chord. */
       .then(function () {
         return Promise.all([speak(LINES.chords),
+                            Flow.anim(Beats.arrowOut([dom.markArrow, dom.markHead])),
                             Flow.anim(Beats.drawChords(chords.slice(1)))]);
       })
       .then(function () { return Flow.wait(BEAT); })
+      .then(function () { return handOver(dom.nextBtn); })
+
+      /* ---- The one that goes through the centre --------------------------
+         Everything comes off the circle -- all four chords and the name on
+         the first of them -- and the circle is left standing with its
+         centre dot. One line is then drawn across it, through that dot, in
+         the lavender the lesson taught the diameter in. It is a diameter,
+         and the question is whether it is a chord as well. */
+      .then(function () {
+        return Promise.all([
+          Flow.anim(Beats.clearFigure([dom.chords])),
+          Flow.anim(Beats.calloutOut(dom.mark, markParts()))
+        ]);
+      })
+      .then(function () {
+        /* The group's own fade has to be handed back before anything new is
+           drawn INSIDE it, or the new line is drawn into a group that is
+           still at zero. The four chords underneath go back to their own
+           resting state, which is invisible, so nothing of them returns. */
+        clearInline([dom.chords].concat(
+          Array.prototype.slice.call(dom.chords.querySelectorAll('*'))));
+        return Flow.wait(BEAT);
+      })
+      .then(function () { return Flow.anim(Beats.plotDot(longChord.ends[0])); })
+      .then(function () { return Flow.wait(120); })
+      .then(function () { return Flow.anim(Beats.plotDot(longChord.ends[1])); })
+      .then(function () { return Flow.wait(160); })
+      .then(function () { return Flow.anim(Beats.growLine(longChord.line, 0.7)); })
+      .then(function () { return Flow.wait(SHORT); })
+      .then(function () { return speak(LINES.lookNew); })
+      .then(function () { return Flow.wait(SHORT); })
+
+      /* ---- Asked, and answered -------------------------------------------
+         The question goes up first and the two answers arrive under it, so
+         there is nothing to press before there is something to think
+         about. */
+      .then(function () { return speak(LINES.isChord); })
+      .then(function () {
+        choiceBtns = buildChoices(dom.choices, ['Yes', 'No']);
+        return Flow.anim(Beats.trayIn(dom.choices, choiceBtns));
+      })
+      .then(function () { return askChoice(choiceBtns); })
+
+      /* Right or wrong, the lesson is the same one -- so only the word in
+         front of it changes. A wrong answer is shaken and then the right
+         one is lit beside it, because being told "no" without being shown
+         "this one" teaches nothing. */
+      .then(function (picked) {
+        var right = picked === 0;               /* 'Yes' is the answer */
+        var marked = right
+          ? Flow.anim(Beats.choiceRight(choiceBtns[0]))
+          : Flow.anim(Beats.choiceWrong(choiceBtns[1])).then(function () {
+              return Flow.anim(Beats.choiceRight(choiceBtns[0]));
+            });
+        var said = speak(right ? LINES.ackRight : LINES.ackWrong,
+                         right ? 'happy' : 'confused');
+        return Promise.all([marked, said]);
+      })
+      .then(function () { return Flow.wait(BEAT); })
+      .then(function () { return speak(LINES.longest); })
+      .then(function () { return Flow.wait(BEAT); })
+      /* The answers have been read; they go before Next arrives, so the
+         last thing on the board is the line they were about. Taken out of
+         the footer's layout as well as faded: the row is stretched across
+         the whole band, and a spent one left lying there is a sheet of
+         glass over the band the next scene fills. */
+      .then(function () {
+        return Flow.anim(Beats.trayOut(dom.choices, choiceBtns));
+      })
+      .then(function () { dom.choices.setAttribute('hidden', ''); })
+      .then(function () { return Flow.wait(SHORT); })
       .then(function () { return handOver(dom.nextBtn); });
   }
 
@@ -1160,28 +1502,82 @@
    * laid on it one by one, five empty boxes round it, and five names to
    * drag into them.
    * ====================================================================== */
+  function boxOf(name) {
+    for (var i = 0; i < quiz.boxes.length; i++) {
+      if (quiz.boxes[i].name === name) return quiz.boxes[i];
+    }
+    return null;
+  }
+
+  /* The five parts of the circle, each with the box that will name it, in
+     the order the lesson taught them. One entry is one pair: what draws the
+     part, and which marks on the board that part is made of. */
+  function quizSteps() {
+    return [
+      { name: 'Circumference',
+        marks: [dom.rim, dom.disc],
+        draw: function () {
+          return Flow.anim(Beats.drawRim(dom.rim, dom.rimTip))
+            .then(function () { return Flow.wait(140); })
+            .then(function () { return Flow.anim(Beats.fillDisc(dom.disc)); });
+        } },
+      { name: 'Center',
+        marks: [dom.centre],
+        draw: function () {
+          return Flow.anim(Beats.plantCentre(dom.centre, dom.dot, { call: false }));
+        } },
+      { name: 'Radius',   part: 'radius' },
+      { name: 'Diameter', part: 'diameter' },
+      { name: 'Chord',    part: 'chord' }
+    ].map(function (s) {
+      if (!s.part) return s;
+      var p = quiz.parts[s.part];
+      s.marks = [p.line].concat(p.ends);
+      s.draw = function () { return Flow.anim(Beats.plotPart(p)); };
+      return s;
+    });
+  }
+
+  /* One pair, introduced. The part is drawn, the box that will name it
+     arrives on the end of a line reaching back to it, and then the three of
+     them step back together -- so the next pair arrives on a board that is
+     quiet again and the learner is never watching two things at once. */
+  function introPair(step) {
+    var box = boxOf(step.name);
+    return step.draw()
+      .then(function () { return Flow.wait(240); })
+      .then(function () { return Flow.anim(Beats.boxIn(box)); })
+      .then(function () { return Flow.wait(320); })
+      .then(function () { return Flow.anim(Beats.dimPair(box, step.marks)); })
+      .then(function () { return Flow.wait(160); });
+  }
+
   function sceneQuiz() {
+    var marks = [];
+
     return wipeBoard()
       .then(function () { return Flow.wait(BEAT); })
-      .then(function () { return drawCircle(false); })
-      .then(function () { return Flow.wait(SHORT); })
 
-      /* The parts, in the order they were taught. */
+      /* ---- The picture, built a pair at a time ---------------------------- */
       .then(function () {
         dom.quiz.removeAttribute('hidden');
-        return Flow.anim(Beats.plantCentre(dom.centre, dom.dot, { call: false }));
+        var steps = quizSteps();
+        marks = steps.reduce(function (all, s) { return all.concat(s.marks); }, []);
+        return steps.reduce(function (chain, s) {
+          return chain.then(function () { return introPair(s); });
+        }, Promise.resolve());
       })
-      .then(function () { return Flow.wait(200); })
-      .then(function () { return Flow.anim(Beats.plotPart(quiz.parts.radius)); })
-      .then(function () { return Flow.wait(200); })
-      .then(function () { return Flow.anim(Beats.plotPart(quiz.parts.diameter)); })
-      .then(function () { return Flow.wait(200); })
-      .then(function () { return Flow.anim(Beats.plotPart(quiz.parts.chord)); })
+
+      /* ---- And the whole of it, back ---------------------------------------
+         Every part comes up to full together: the circle the learner is
+         about to label is read as one drawing again. The boxes and the lines
+         tying them to it stay standing back, because they are the question
+         and not the picture -- each one comes up on its own, under the hand,
+         once the learner reaches for it. */
+      .then(function () { return Flow.anim(Beats.showParts(marks)); })
       .then(function () { return Flow.wait(SHORT); })
 
-      /* The boxes, each tied to its part; then the names to fill them. */
-      .then(function () { return Flow.anim(Beats.boxesIn(quiz.boxes)); })
-      .then(function () { return Flow.wait(SHORT); })
+      /* ---- The names, and the one instruction ----------------------------- */
       .then(function () {
         chips = buildChips(dom.tray, shuffle(quiz.boxes.map(function (b) { return b.name; })));
         return Flow.anim(Beats.trayIn(dom.tray, chips));
@@ -1189,16 +1585,37 @@
       .then(function () { return arriveSaying(LINES.drag); })
       .then(function () {
         mascot.settle();
-        return armQuiz(quiz, chips);
+        /* The line stands for a moment after it is finished, and then the
+           bird takes it and itself away: the board is the learner's now, and
+           a character watching over an activity is one more thing to read. */
+        return Flow.wait(HOLD_ASK);
       })
+      .then(function () {
+        var gone = mascotJumpOut();
+        var line = Flow.anim(Beats.lineOut(dom.promptLine));
+        return Promise.all([gone, line]);
+      })
+      .then(function () {
+        clearPrompt();
+        return Flow.anim(collapseHeader(true));
+      })
+      .then(function () { return armQuiz(quiz, chips); })
 
-      /* All five in. */
+      /* ---- All five in ---------------------------------------------------- */
       .then(function () { return Flow.wait(SHORT); })
+      .then(function () { return Flow.anim(collapseHeader(false)); })
       .then(function () {
         Beats.sfx('cheer');
-        return speak(LINES.done, 'celebrating');
+        return arriveSaying(LINES.done);
       })
-      .then(function () { return Flow.wait(BEAT); })
+      .then(function () {
+        mascot.state('celebrating');
+        return Flow.wait(1400);
+      })
+      .then(function () {
+        mascot.settle();
+        return Flow.wait(SHORT);
+      })
       .then(function () { return handOver(dom.nextBtn); })
 
       /* ---- and the section closes ---------------------------------------- */
@@ -1213,6 +1630,35 @@
     { name: 'Chord',          play: sceneChord   },
     { name: 'Name the parts', play: sceneQuiz    }
   ];
+
+  /* The lessons after this one, each in a file of its own (see arcs.js).
+     A section brings its scenes and a handful of hooks the board's own
+     housekeeping calls into:
+
+       build(kit)    once, when the board exists: put its marks on the figure
+       parts()       what it has on the figure, for wipeBoard to fade
+       wipe()        promises for whatever it keeps OUTSIDE the figure
+       reset()       back to rest, with no animation
+       stage(i)      the board as its i-th scene expects to find it
+
+     Its scenes are appended to the lesson's, so the level bar, Next, Skip
+     and Replay all work on them without knowing they came from elsewhere. */
+  var BASE_SCENES = SCENES.length;
+  var sections = [];
+
+  function addSection(spec) {
+    if (!spec || !spec.scenes) return;
+    spec.first = SCENES.length;
+    sections.push(spec);
+    spec.scenes.forEach(function (sc) { SCENES.push(sc); });
+    if (dom && spec.build) spec.build(kit);
+  }
+  function sectionOf(index) {
+    for (var i = sections.length - 1; i >= 0; i--) {
+      if (index >= sections[i].first) return sections[i];
+    }
+    return null;
+  }
 
   /* Which scene is on screen, and whoever asked to be told when that
      changes. The level bar is the only listener; the lesson never asks. */
@@ -1268,12 +1714,12 @@
     dom.nextBtn.setAttribute('hidden', '');
     dom.bubble.setAttribute('hidden', '');
 
-    dom.board.classList.remove('show', 'is-animating');
+    dom.board.classList.remove('show', 'is-animating', 'is-headless');
     dom.board.setAttribute('aria-hidden', 'true');
 
     restoreBubble();
     resetFigure();
-    resetTray();
+    resetFooter();
 
     /* Named rather than 'all': the mascot's background-image and
        background-size are written straight to its style by the sprite
@@ -1313,11 +1759,19 @@
        is where the previous scene's exit jump left it. `is-away` is what
        tells wipeBoard's jump-out there is nothing to jump. */
     mascot.el.classList.add('is-away');
+
+    /* Past this lesson's own scenes, the section the scene belongs to
+       writes the rest of its opening state over that. */
+    if (index >= BASE_SCENES) {
+      var s = sectionOf(index);
+      if (s && s.stage) s.stage(index - s.first);
+    }
   }
 
   function init() {
     dom = collect();
     chords = buildChords(dom.chords);
+    longChord = buildLongChord(dom.chords);
     quiz = buildQuiz(dom.quiz);
 
     mascot = global.Mascot.create({ slot: dom.slotWelcome });
@@ -1325,6 +1779,8 @@
     sayTitle  = global.Typer.create($('titleType'));
     sayBubble = global.Typer.create($('bubbleType'), { box: dom.bubble });
     sayPrompt = global.Typer.create($('promptType'));
+
+    sections.forEach(function (s) { if (s.build) s.build(kit); });
 
     return { dom: dom, mascot: mascot };
   }
@@ -1345,9 +1801,37 @@
 
   function run() { return runFrom(0); }
 
+  /* What a later section needs from this file to speak with the same
+     voice: the board's housekeeping, the bird's moves, the words and the
+     pauses, the figure's own geometry. Values that are not known until
+     init() has run are handed over as functions. */
+  var kit = {
+    LINES: LINES, BEAT: BEAT, SHORT: SHORT, HOLD_ASK: HOLD_ASK, TAP_SLOP: TAP_SLOP,
+    CX: CX, CY: CY, RR: RR, VB_W: VB_W, VB_H: VB_H, BOX_W: BOX_W, BOX_H: BOX_H,
+    dom: function () { return dom; },
+    mascot: function () { return mascot; },
+    el: el, seg: seg, round2: round2, onRim: onRim, arrowHead: arrowHead,
+    buildBox: buildBox, emptyBox: emptyBox,
+    buildChips: buildChips, buildChoices: buildChoices, shuffle: shuffle,
+    /* the two rows in the footer are the board's, so the board can take
+       them away in a wipe: a section that fills one says so here */
+    chips: function (list) { if (list) chips = list; return chips; },
+    choices: function (list) { if (list) choiceBtns = list; return choiceBtns; },
+    handOver: handOver, speak: speak, arriveSaying: arriveSaying,
+    clearPrompt: clearPrompt, mascotJumpIn: mascotJumpIn, mascotJumpOut: mascotJumpOut,
+    sayBubble: function (text) { return sayBubble(text); },
+    clearBubble: function () { sayBubble.clear(); },
+    restoreBubble: restoreBubble,
+    wipeBoard: wipeBoard, collapseHeader: collapseHeader, resetFooter: resetFooter,
+    askChoice: askChoice, armQuiz: armQuiz,
+    ripple: ripple, quiet: quiet, clearInline: clearInline
+  };
+
   global.Pages = {
     LINES: LINES,
     init: init,
+    addSection: addSection,
+    kit: kit,
     run: run,
     runFrom: runFrom,
     rewind: rewind,

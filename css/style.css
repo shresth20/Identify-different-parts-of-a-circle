@@ -69,6 +69,29 @@
   --yellow-fill: #FEE18E;
   --yellow-border: #CEA43D;
 
+  /* ---- the parts of the circle: the lines themselves --------------------
+     One colour per part, for the mark on the board only. The words that
+     name the parts, and the arrows that point at them, keep the palette
+     above: a label is an annotation, not a piece of the picture. */
+  --part-circle:   #FF6A58;         /* the rim, and the wash inside it     */
+  --part-centre:   #FF6FA8;
+  --part-radius:   #FFA93A;
+  --part-diameter: #6F8BFF;
+  --part-chord:    #18D6A0;
+  /* One weight for every line laid on the circle, lesson and activity alike,
+     and one size for the points at their ends (written by index.html and
+     pages.js as r=4.4). */
+  --part-weight:   4;
+
+  /* ---- right and wrong --------------------------------------------------
+     A true green and a true red for answers. The palette's mint reads as
+     teal and its coral as brown, and a verdict has to be read in the
+     quarter-second it is on screen. */
+  --right-fill:   #7EE08A;
+  --right-border: #2FB84B;
+  --wrong-fill:   #FF7B7B;
+  --wrong-border: #E8323A;
+
   /* ---- derived: surfaces ------------------------------------------------ */
   --board-highlight: #FFFFFF;
   --board-border: #FFFFFF;
@@ -214,6 +237,13 @@ body {
 }
 .board.show { opacity: 1; visibility: visible; }
 
+/* The top band, closed. Nothing is in it -- the bird has gone and the line
+   has been cleared -- and an empty band is a fifth of the board's height
+   spent on nothing, so the row is taken away and the stage below it is
+   re-measured against the space it now has. The move itself is a transform
+   on the figure; see collapseHeader in pages.js. */
+.board.is-headless { --row-top: 0%; }
+
 /* The three bands. Each gets its own level on the --z ladder. */
 .board__top {
   position: relative;
@@ -287,10 +317,16 @@ body {
    ========================================================================== */
 .figure {
   position: absolute;
-  inset: 0;
+  /* Drawn a little larger than the stage it is centred on: the box is
+     grown by the same amount on every side, so the viewBox's height -- the
+     side it is sized by -- and everything laid out in it scale up together
+     and stay centred. The picture's own units are untouched; every
+     coordinate in index.html and pages.js still means what it did. */
+  --figure-grow: 8%;
+  inset: calc(var(--figure-grow) / -2);
   display: block;
-  width: 100%;
-  height: 100%;
+  width: calc(100% + var(--figure-grow));
+  height: calc(100% + var(--figure-grow));
   overflow: visible;
   /* The same lift the reference game gives every shape it draws: a short,
      soft shadow that sets the figure off the board without reading as a
@@ -307,19 +343,14 @@ body {
    the colour is the part's own.
      The size is in user units, not pixels: the figure is letterboxed into the
    stage by its own viewBox, so a word stated this way scales with the circle
-   it is naming instead of drifting relative to it.
-     The board's own surface colour is painted as a stroke UNDER the fill
-   (paint-order), which keeps the word legible where it crosses the disc
-   without a plate behind it. */
+   it is naming instead of drifting relative to it. Plain ink, no outline:
+   every word sits on the disc's pale fill or the board, and both are light
+   enough for the coloured letters to read without a plate behind them. */
 .figure-label {
   font-family: var(--font-display);
   font-weight: 800;
   font-size: 27px;
   letter-spacing: .3px;
-  paint-order: stroke;
-  stroke: var(--board-bg);
-  stroke-width: 6;
-  stroke-linejoin: round;
 }
 
 /* ---- The circle ---------------------------------------------------------
@@ -328,12 +359,12 @@ body {
    figure was drawn as. Rim, fill, glow and pen all rest invisible; the beats
    reveal them. */
 .figure__disc {
-  fill: color-mix(in srgb, var(--coral-fill) 34%, #FFFFFF);
+  fill: color-mix(in srgb, var(--part-circle) 22%, #FFFFFF);
   opacity: 0;                       /* the fill lands after the rim is drawn */
 }
 .figure__rim {
   fill: none;
-  stroke: var(--coral-border);
+  stroke: var(--part-circle);
   /* The reference game's line weight, matched as a weight rather than as a
      ratio: every shape there is outlined at about 2.5 real pixels however
      big the shape itself is. */
@@ -345,31 +376,19 @@ body {
      dash-based resting state would be wiped by the first draw. */
   opacity: 0;
 }
-/* The highlight the rim is drawn with. Flat caps, not round: these are drawn
-   with the dash trick, and a round cap on a stroke this wide pokes out past
-   the start of the dash as a blob at twelve o'clock before a pixel of the
-   line has been drawn. */
-.rim-glow {
-  fill: none;
-  stroke: var(--coral-fill);
-  stroke-linecap: butt;
-  opacity: 0;                       /* drawRim sets each one's own level */
-}
-.rim-glow--wide  { stroke-width: 30; }
-.rim-glow--tight { stroke-width: 13; }
 /* The pen that draws the rim: a dot in the rim's ink with a white edge, so
    it reads as a point over the line it is leaving behind. */
 .rim-tip {
-  fill: var(--coral-border);
+  fill: var(--part-circle);
   stroke: var(--board-highlight);
   stroke-width: 2.4;
   opacity: 0;
 }
 
 /* ---- The centre dot ----------------------------------------------------- */
-.centre__dot  { fill: var(--coral-border); }
+.centre__dot  { fill: var(--part-centre); }
 .centre__glow {
-  fill: color-mix(in srgb, var(--coral-fill) 70%, transparent);
+  fill: color-mix(in srgb, var(--part-centre) 55%, transparent);
   opacity: 0;
   /* Anchored on ITSELF: the halo's loop is a scale, and an SVG element
      scales about the picture's own origin unless told otherwise. Stated as
@@ -427,43 +446,86 @@ body {
    palette's own names instead of as a hex value baked into a timeline. */
 .dia__half {
   fill: none;
-  stroke: var(--yellow-border);
-  stroke-width: 7;
+  stroke: var(--part-radius);
+  stroke-width: var(--part-weight);
   stroke-linecap: round;
   opacity: 0;
-  transition: stroke .45s ease, stroke-width .45s ease;
+  transition: stroke .45s ease;
 }
 .dia__half.is-dia {
-  stroke: var(--lavender-fill);
-  stroke-width: 9;
+  stroke: var(--part-diameter);
 }
-/* The light that picks out one half at a time: the same segment, wide and
-   soft, under it. */
-.line-glow {
+/* The faint copy of the radius that is carried to the other side: the same
+   ink and weight as the line it is copied from -- it IS that line, moved --
+   and its opacity is written by the beat, so it rests at nothing. */
+.dia__ghost {
   fill: none;
-  stroke: var(--yellow-fill);
-  stroke-width: 22;
+  stroke: var(--part-radius);
+  stroke-width: var(--part-weight);
   stroke-linecap: round;
   opacity: 0;
 }
+/* The light that picks out one half at a time: the same segment under it,
+   wider and blurred (see #neonLine in index.html), in a gold between the
+   line's two yellows so it reads as the line's own light rather than as a
+   pale band behind it. */
+.line-glow {
+  fill: none;
+  stroke: var(--part-radius);
+  stroke-width: 9;
+  stroke-linecap: round;
+  opacity: 0;
+  filter: url(#neonLine);
+}
+/* The names set under the lines, with no arrow between them: each in its
+   own line's colour, so the word and the mark read as one thing. */
 .dia__r {
-  fill: var(--yellow-border);
+  fill: var(--part-radius);
   font-size: 22px;
   opacity: 0;
 }
 .dia__name {
-  fill: var(--lavender-border);
+  fill: var(--part-diameter);
   font-size: 24px;
   opacity: 0;
 }
+/* "Diameter = 2 x Radius", under the circle. The two names borrow the ink of
+   the labels that named their lines; the arithmetic between them is in the
+   board's own text colour. */
+.dia__rule {
+  fill: var(--text-primary);
+  font-size: 26px;
+  opacity: 0;
+}
+/* The plate under it: a soft white pill with no edge, sized to the words by
+   showRule in animations.js, so the sentence reads where the board's waves
+   cross behind it. */
+.dia__plate {
+  fill: color-mix(in srgb, var(--board-highlight) 82%, transparent);
+  opacity: 0;
+}
+.dia__rule .rule__dia { fill: var(--part-diameter); }
+.dia__rule .rule__rad { fill: var(--part-radius); }
 
 /* ---- The chords ---------------------------------------------------------
    Mint: a chord is neither a radius nor a diameter, and it must not look
    like a cousin of either. */
 .chord-line {
   fill: none;
-  stroke: var(--mint-border);
-  stroke-width: 7;
+  stroke: var(--part-chord);
+  stroke-width: var(--part-weight);
+  stroke-linecap: round;
+  opacity: 0;
+}
+/* The chord that goes THROUGH the centre, which the scene ends by asking
+   about. Drawn in the lavender the lesson taught the diameter in, not in
+   the chords' mint: the question is whether this line -- the one they
+   already know as a diameter -- is a chord as well, and answering it from
+   the colour would be answering a different question. */
+.long-chord {
+  fill: none;
+  stroke: var(--part-diameter);
+  stroke-width: var(--part-weight);
   stroke-linecap: round;
   opacity: 0;
 }
@@ -475,34 +537,60 @@ body {
    ========================================================================== */
 .q-part {
   fill: none;
+  stroke-width: var(--part-weight);
   stroke-linecap: round;
   opacity: 0;
 }
-.q-radius   { stroke: var(--yellow-border); stroke-width: 7; }
-.q-diameter { stroke: var(--lavender-fill); stroke-width: 9; }
-.q-chord    { stroke: var(--mint-border);   stroke-width: 7; }
+.q-radius   { stroke: var(--part-radius); }
+.q-diameter { stroke: var(--part-diameter); }
+.q-chord    { stroke: var(--part-chord); }
 
-/* The point on each part its leader runs to, and the leader itself: dashed,
+/* The leader from each box to its part: dashed,
    in the softer ink, so it is plainly a tie and not a sixth line on the
    circle. The leader is shown through a mask that is drawn with the dash
    trick -- see boxesIn in animations.js -- so the mask path is solid, white
    and wider than the line it reveals. */
-.q-anchor {
-  fill: var(--text-primary);
+/* ---- the three levels the activity is read at ---------------------------
+   Off the board, on it, and standing back. A part of the picture is moved
+   between them by its beat, because nothing ever asks a part to change on
+   its own; a box, its line and its point are moved by these classes
+   instead, so the one under the learner's hand can come back up without a
+   tween chasing it -- and go down again the moment the hand moves on. */
+.q-leader,
+.q-box {
   opacity: 0;
+  transition: opacity .34s ease;
 }
+.q-leader.is-shown,
+.q-box.is-shown { opacity: 1; }
+
+.q-leader.is-shown.is-quiet { opacity: .32; }
+.q-box.is-shown.is-quiet { opacity: .42; }
+
+/* Reached for, or answered: back to full, and only this one. Three classes
+   deep so it outranks the quiet level above it. */
+.q-leader.is-shown.is-quiet.is-over,
+.q-box.is-shown.is-quiet.is-over,
+.q-box.is-shown.is-quiet.is-right,
+.q-box.is-shown.is-quiet.is-wrong,
+.q-box.is-shown.is-quiet:focus-visible { opacity: 1; }
+
 .q-leader {
   fill: none;
   stroke: var(--text-secondary);
   stroke-width: 2;
   stroke-dasharray: 4 7;
-  stroke-linecap: round;
-  opacity: 0;
+  /* Butt caps and a mitred corner: the line runs level out of the box and
+     turns once, sharply, and a round join would put a bead on the corner
+     that is the whole point of the shape. */
+  stroke-linecap: butt;
+  stroke-linejoin: miter;
 }
 .q-leader-mask {
   fill: none;
   stroke: #FFFFFF;
   stroke-width: 8;
+  stroke-linejoin: miter;
 }
 
 /* A box. Dashed and empty while it waits; solid green with a tick once it
@@ -510,16 +598,17 @@ body {
    classes because they are states the box stays in -- the movement that
    goes with each is animations.js's. */
 .q-box {
-  opacity: 0;
   outline: none;
   cursor: default;
   pointer-events: none;
 }
-.figure__quiz.is-live .q-box {
+/* On whichever group holds the boxes: section 1's activity, or the one in
+   arcs.js. */
+.is-live .q-box {
   pointer-events: all;
   cursor: pointer;
 }
-.figure__quiz.is-live .q-box.is-right {
+.is-live .q-box.is-right {
   pointer-events: none;
   cursor: default;
 }
@@ -536,14 +625,14 @@ body {
   stroke-width: 3.2;
 }
 .q-box.is-right .q-box__rect {
-  fill: color-mix(in srgb, var(--mint-fill) 22%, #FFFFFF);
-  stroke: var(--mint-border);
+  fill: color-mix(in srgb, var(--right-fill) 28%, #FFFFFF);
+  stroke: var(--right-border);
   stroke-width: 3.2;
   stroke-dasharray: none;
 }
 .q-box.is-wrong .q-box__rect {
-  fill: color-mix(in srgb, var(--coral-fill) 26%, #FFFFFF);
-  stroke: var(--coral-border);
+  fill: color-mix(in srgb, var(--wrong-fill) 30%, #FFFFFF);
+  stroke: var(--wrong-border);
   stroke-width: 3.2;
   stroke-dasharray: none;
 }
@@ -554,12 +643,12 @@ body {
 }
 .q-box__text {
   fill: var(--text-primary);
-  font-size: 24px;
+  font-size: 22px;
   opacity: 0;
 }
 /* The tick beside a right answer. */
 .q-badge { opacity: 0; }
-.q-badge__ring { fill: var(--mint-border); }
+.q-badge__ring { fill: var(--right-border); }
 .q-badge__tick {
   fill: none;
   stroke: #FFFFFF;
@@ -581,6 +670,9 @@ body {
   padding: 0 1%;
 }
 .tray[hidden] { display: none; }
+/* Two answers rather than five names: fewer things, so they stand further
+   apart. Stated after .tray, which is what lets it win the gap. */
+.tray--choice { gap: clamp(14px, 3%, 44px); }
 
 .chip {
   --edge: 4px;
@@ -592,7 +684,7 @@ body {
   user-select: none;
   -webkit-user-select: none;
 
-  padding: .26em .85em .32em;
+  padding: .32em 1.1em .38em;
   border: 3px solid var(--board-highlight);
   border-radius: 999px;
   background: linear-gradient(180deg, var(--board-highlight) 0%, var(--button-bg) 62%, var(--board-decoration) 100%);
@@ -604,8 +696,10 @@ body {
   font-weight: 700;
   /* Sized against BOTH sides of the screen: the five of them stand in one
      row across the footer, so on a narrow board the width is what binds,
-     and on a short one the footer's height is. Whichever is smaller wins. */
-  font-size: clamp(11px, min(2.4vh, 1.6vw), 22px);
+     and on a short one the footer's height is. Whichever is smaller wins.
+     Set to match the boxes they drop into -- a name and the box that takes
+     it are the same object at two moments, and they should read as it. */
+  font-size: clamp(12px, min(3vh, 1.9vw), 26px);
   line-height: 1.1;
   letter-spacing: .3px;
   color: var(--text-primary);
@@ -642,6 +736,70 @@ body {
   pointer-events: none;
 }
 
+/* ---- The two answers to a yes/no question -------------------------------
+   The same pill as a name in the tray, in the same band under the circle,
+   but pressed rather than dragged -- which is why it is its own class and
+   not a modifier of .chip: a chip's grab cursor, its touch-action and its
+   docked state are all about the drag, and none of them belongs on a
+   button. Bigger, too, because there are two of these where there are five
+   names. */
+.choice {
+  --edge: 4px;
+
+  position: relative;
+  appearance: none;
+  cursor: pointer;
+  user-select: none;
+  -webkit-user-select: none;
+
+  padding: .3em 1.5em .36em;
+  border: 3px solid var(--board-highlight);
+  border-radius: 999px;
+  background: linear-gradient(180deg, var(--board-highlight) 0%, var(--button-bg) 62%, var(--board-decoration) 100%);
+  box-shadow:
+    0 var(--edge) 0 var(--horizon),
+    0 calc(var(--edge) + 3px) 10px var(--shadow-soft);
+
+  font-family: var(--font-display);
+  font-weight: 700;
+  /* Sized against both sides of the screen, as the names are: on a narrow
+     board the width binds, on a short one the footer's height does. */
+  font-size: clamp(14px, min(3vh, 2.2vw), 28px);
+  line-height: 1.1;
+  letter-spacing: .3px;
+  color: var(--text-primary);
+  white-space: nowrap;
+
+  /* No transform here: the pulse and the head-shake are GSAP's, and a
+     transition on the property it writes every frame would smear them. */
+  transition: box-shadow .2s ease, border-color .2s ease,
+              background .25s ease, filter .18s ease;
+}
+.choice:hover { filter: brightness(1.03); }
+.choice:focus-visible { outline: none; border-color: var(--lavender-border); }
+
+/* Answered. The one that was pressed says so, and the right one is left
+   standing in green whichever was pressed -- so a learner who chose wrong
+   is still shown the answer rather than just told they missed it. */
+.choice.is-right {
+  border-color: var(--right-border);
+  background: linear-gradient(180deg, #FFFFFF 0%,
+              color-mix(in srgb, var(--right-fill) 40%, #FFFFFF) 100%);
+  box-shadow:
+    0 var(--edge) 0 var(--right-border),
+    0 calc(var(--edge) + 3px) 10px var(--shadow-soft);
+}
+.choice.is-wrong {
+  border-color: var(--wrong-border);
+  background: linear-gradient(180deg, #FFFFFF 0%,
+              color-mix(in srgb, var(--wrong-fill) 40%, #FFFFFF) 100%);
+  box-shadow:
+    0 var(--edge) 0 var(--wrong-border),
+    0 calc(var(--edge) + 3px) 10px var(--shadow-soft);
+}
+/* Spent: the question has been answered and neither is a control any more. */
+.choice.is-done { cursor: default; pointer-events: none; }
+
 /* ---- Next ---------------------------------------------------------------
    Anchored to the frame's bottom-right corner, which IS the board's
    bottom-right corner, whether or not the board is there yet. */
@@ -676,6 +834,7 @@ body {
 
   opacity: 0;
   transition: filter .18s ease;
+  scale: 3;
 }
 .next-btn[hidden] { display: none; }
 .next-btn:hover,

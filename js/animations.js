@@ -148,19 +148,14 @@
 
   var RIM_TIME = 1.7;               /* seconds: the one stroke the learner   */
                                     /* is meant to WATCH being made          */
-  var GLOW_WIDE  = 0.2;             /* the two highlight strokes' opacities  */
-  var GLOW_TIGHT = 0.42;
 
   /* The outline, drawn from a point. A pen-dot pops in at twelve o'clock,
      the stroke unrolls clockwise out of it -- the rim's own path starts
      there, see index.html -- and the dot rides the tip the whole way round,
-     then leaves as the circle closes.
-       `glows` are the highlight: the same path at two wider weights, drawn
-     in step with the rim so the line arrives already lit. They stay until
-     unglowRim() takes them away. `glow: false` draws the plain circle. */
-  function drawRim(rim, glows, tip, opts) {
-    var o = opts || {};
-    var lit = o.glow !== false && glows && glows.length;
+     then leaves as the circle closes. One plain stroke: the line itself is
+     what the learner is meant to watch being made, with nothing laid over
+     or under it. */
+  function drawRim(rim, tip) {
     var len = pathLength(rim) || 1;
     var x0 = parseFloat(tip.getAttribute('cx')) || 0;
     var y0 = parseFloat(tip.getAttribute('cy')) || 0;
@@ -171,7 +166,7 @@
 
     var tl = M.timeline({
       revert: function () {
-        undash([rim].concat(lit ? glows : []));
+        undash([rim]);
         M.set(tip, { clearProps: 'transform,opacity' });
       }
     });
@@ -179,12 +174,6 @@
     tl.to(tip, { scale: 1, duration: M.dur(0.26), ease: M.POP }, 0);
 
     stroke(tl, rim, START, RIM_TIME, 'power1.inOut');
-    if (lit) {
-      glows.forEach(function (g, i) {
-        M.set(g, { opacity: i === 0 ? GLOW_WIDE : GLOW_TIGHT });
-        stroke(tl, g, START, RIM_TIME, 'power1.inOut');
-      });
-    }
 
     /* The pen follows the front of the stroke: a proxy tween with the same
        length and the same ease, reading the point off the rim itself. */
@@ -200,13 +189,6 @@
 
     tl.to(tip, { scale: 0, opacity: 0, duration: M.dur(0.24), ease: 'power2.in' },
           M.gap(START + RIM_TIME));
-    return tl;
-  }
-
-  /* The highlight coming off the rim, once the circumference has its name. */
-  function unglowRim(glows) {
-    var tl = M.timeline({ willChange: glows, willChangeValue: 'opacity' });
-    tl.to(glows, { opacity: 0, duration: M.dur(0.55), ease: 'power2.inOut' });
     return tl;
   }
 
@@ -315,6 +297,19 @@
     return tl;
   }
 
+  /* The arrow alone coming off a callout, its word left standing. Once there
+     are several of a thing on the circle, an arrow at one of them says "this
+     one"; the word on its own says "these". The group stays up and the word
+     is taken off later with calloutOut, which clears the arrow's fade too. */
+  function arrowOut(parts) {
+    var tl = M.timeline({
+      willChange: parts, willChangeValue: 'opacity',
+      revert: function () { M.set(parts, { clearProps: 'opacity' }); }
+    });
+    tl.to(parts, { opacity: 0, duration: M.dur(0.3), ease: 'power2.in' });
+    return tl;
+  }
+
   /* ======================================================================
    * Points and lines
    * ====================================================================== */
@@ -335,6 +330,38 @@
     return tl;
   }
 
+  /* The radius, copied to the other side of the centre. A faint copy fades
+     up ON the radius and lifts a little off it, is carried straight across
+     by exactly one radius, and is set down; as it lands the real left half
+     comes up solid beneath it, the copy is gone, and the point it now
+     reaches lands on the rim. Three moves -- lift, carry, set down -- so it
+     reads as a thing being picked up and placed, and the length never
+     changes on the way: that is the whole of what the beat says.
+       o.ghost is the copy, o.shift how far it travels (a negative radius),
+     o.half the solid left half it becomes, o.end the point at its far end. */
+  var GHOST = 0.45;                 /* the copy's opacity in the hand */
+  var LIFT = 12;                    /* how far it rises off the line  */
+
+  function copyRadius(o) {
+    M.set(o.ghost, { opacity: 0, x: 0, y: 0 });
+    var tl = M.timeline({
+      willChange: [o.ghost, o.half], willChangeValue: 'transform, opacity',
+      revert: function () { M.set(o.ghost, { clearProps: 'opacity,transform' }); }
+    });
+    /* lift */
+    tl.to(o.ghost, { opacity: GHOST, y: -LIFT, duration: M.dur(0.42), ease: 'power2.out' }, 0);
+    /* carry */
+    tl.to(o.ghost, { x: o.shift, duration: M.dur(0.95), ease: 'power2.inOut' }, M.gap(0.6));
+    /* set down */
+    tl.to(o.ghost, { y: 0, duration: M.dur(0.3), ease: 'power2.in' }, M.gap(1.6));
+    tl.to(o.half, { opacity: 1, duration: M.dur(0.3), ease: 'power2.out' }, M.gap(1.85));
+    tl.to(o.ghost, { opacity: 0, duration: M.dur(0.3), ease: 'power2.in' }, M.gap(1.9));
+    M.set(o.end, { opacity: 1, scale: 0, transformOrigin: 'center center' });
+    tl.to(o.end, { scale: 1, duration: M.dur(0.26), ease: M.POP }, M.gap(1.9));
+    tl.call(pop, null, M.gap(1.9));
+    return tl;
+  }
+
   /* One half of the line lit up and named: a wide soft stroke under it
      breathes in and out once, and the word is set beneath it as the light
      is at its fullest. */
@@ -350,8 +377,8 @@
     return tl;
   }
 
-  /* Two radii become one diameter. The halves take the diameter's colour and
-     weight together (a class -- the stylesheet transitions the stroke), the
+  /* Two radii become one diameter. The halves take the diameter's colour
+     together (a class -- the stylesheet transitions the stroke), the
      two names slide in to meet at the middle as they fade, and the whole
      line's name is set down where they meet. That is "two of these make one
      of that" made into a movement. */
@@ -364,6 +391,33 @@
     tl.to(o.names[0], { x: o.meet, opacity: 0, duration: M.dur(0.5), ease: 'power2.inOut' }, M.gap(0.1));
     tl.to(o.names[1], { x: -o.meet, opacity: 0, duration: M.dur(0.5), ease: 'power2.inOut' }, M.gap(0.1));
     tl.to(o.name, { opacity: 1, scale: 1, duration: M.dur(0.42), ease: 'back.out(1.7)' }, M.gap(0.44));
+    return tl;
+  }
+
+  /* The rule, set down under the circle once the line has its name: it rises
+     into place and settles, the same landing every label in the figure has,
+     so it reads as one more thing named rather than as a caption. */
+  function showRule(text, plate) {
+    var els = [text];
+    if (plate) {
+      /* The plate is cut to the words at the moment they are shown, rather
+         than sized by hand: the words are set in a web font, and a box
+         guessed from the markup is the wrong size on the day the font
+         changes. */
+      var PX = 22, PY = 9, b;
+      try { b = text.getBBox(); } catch (e) { b = null; }
+      if (b && b.width) {
+        plate.setAttribute('x', b.x - PX);
+        plate.setAttribute('y', b.y - PY);
+        plate.setAttribute('width', b.width + PX * 2);
+        plate.setAttribute('height', b.height + PY * 2);
+        plate.setAttribute('rx', (b.height + PY * 2) / 2);
+        els.unshift(plate);
+      }
+    }
+    M.set(els, { opacity: 0, y: 14, scale: 0.8, transformOrigin: 'center center' });
+    var tl = M.timeline({ willChange: els, willChangeValue: 'transform, opacity' });
+    tl.to(els, { opacity: 1, y: 0, scale: 1, duration: M.dur(0.48), ease: 'back.out(1.6)' });
     return tl;
   }
 
@@ -399,38 +453,71 @@
     return drawChords([part]);
   }
 
-  /* The five boxes, one after another. For each: the point on the part it
-     names pops in, the dashed leader draws itself out from the box's edge to
-     that point, and the box itself arrives at the other end of it.
+  /* One box, arriving on the part it will name: the point on that part pops
+     in, the dashed line draws itself out from the box's edge to that point,
+     and the box lands at the other end of it. Slow enough to be followed --
+     this is the beat that says WHICH box belongs to WHICH part, and it is
+     the only time that is shown.
        A dashed line cannot be drawn with the dash trick -- the trick IS a
-     dash pattern -- so each leader is drawn through a mask: a solid path
-     over the same line, revealed with the trick, and the dashed one shows
-     through wherever the mask has reached. */
-  var BOX_STEP = 0.52;
+     dash pattern -- so the leader is drawn through a mask: a solid path over
+     the same line, revealed with the trick, and the dashed one shows through
+     wherever the mask has reached.
+       It ends by handing the three of them to the stylesheet. From there
+     their level is a class and not an inline value, which is what lets a box
+     brighten under the hand later without a tween chasing it. */
+  function boxIn(box) {
+    var parts = [box.g, box.leader];
+    var tl = M.timeline({ revert: function () { undash([box.mask]); } });
 
-  function boxesIn(boxes) {
-    var masks = boxes.map(function (b) { return b.mask; });
-    var tl = M.timeline({ revert: function () { undash(masks); } });
-    var at = 0;
-    boxes.forEach(function (b) {
-      if (b.anchor) {
-        M.set(b.anchor, { opacity: 1 });
-        tl.fromTo(b.anchor,
-          { scale: 0, transformOrigin: 'center center' },
-          { scale: 1, duration: M.dur(0.24), ease: M.POP }, M.gap(at));
-        tl.call(pop, null, M.gap(at));
-      }
-      M.set(b.leader, { opacity: 1 });
-      stroke(tl, b.mask, at + 0.1, 0.42, 'power1.inOut');
-      tl.fromTo(b.g,
-        { opacity: 0, scale: 0.72, transformOrigin: 'center center' },
-        { opacity: 1, scale: 1, duration: M.dur(0.4), ease: M.POP }, M.gap(at + 0.4));
-      at += BOX_STEP;
+    M.set(box.leader, { opacity: 1 });
+    stroke(tl, box.mask, 0.14, 0.52, 'power1.inOut');
+    /* The leader ends on the line itself, with no point of its own: the
+       part it runs to is already a mark on the board. */
+    tl.fromTo(box.g,
+      { opacity: 0, scale: 0.72, transformOrigin: 'center center' },
+      { opacity: 1, scale: 1, duration: M.dur(0.44), ease: M.POP }, M.gap(0.52));
+    tl.call(pop, null, M.gap(0.52));
+
+    tl.call(function () {
+      parts.forEach(function (e) { e.classList.add('is-shown'); });
+      M.set(parts, { clearProps: 'opacity' });
     });
     return tl;
   }
 
-  /* The names arriving in the tray under the circle. */
+  /* And the pair standing back. The box, its line and its point drop to the
+     level the whole set rests at -- a class, so the stylesheet can lift one
+     of them out of it again when the learner reaches for it -- and the marks
+     the part is drawn with fade with them, which is what leaves the board
+     clear for the next pair to arrive on. */
+  var PART_DIM = 0.3;
+
+  function dimPair(box, marks) {
+    var tl = M.timeline({ willChange: marks, willChangeValue: 'opacity' });
+    tl.call(function () {
+      [box.g, box.leader].forEach(function (e) { e.classList.add('is-quiet'); });
+    }, null, 0);
+    tl.to(marks, {
+      opacity: PART_DIM, duration: M.dur(0.55), ease: 'power2.inOut'
+    }, 0);
+    return tl;
+  }
+
+  /* Every part of the circle back to full, together: the drawing the learner
+     is about to label, read as one thing again. The boxes and their lines
+     are deliberately not in this -- they stay standing back. */
+  function showParts(marks) {
+    var tl = M.timeline({ willChange: marks, willChangeValue: 'opacity' });
+    tl.to(marks, {
+      opacity: 1, duration: M.dur(0.7), ease: 'power2.inOut', stagger: M.gap(0.05)
+    });
+    return tl;
+  }
+
+  /* What the learner has to reach for, arriving in the band under the
+     circle and leaving it again: the five names in the last activity, and
+     the two answers to the yes/no question before it. One pair of beats for
+     both -- a row of pills is a row of pills. */
   function trayIn(tray, chips) {
     tray.removeAttribute('hidden');
     var tl = M.timeline({ willChange: chips, willChangeValue: 'transform, opacity' });
@@ -452,6 +539,23 @@
       });
     }
     return tl;
+  }
+
+  /* An answer pressed. The colour each one takes is its own class -- a
+     state it stays in -- so these two are only the movement that goes with
+     it: one outward pulse for the right answer, a head-shake for the wrong
+     one. `is-wrong` comes off first, so the button that was shaken can then
+     be shown as the right one without wearing both. */
+  function choiceRight(btn) {
+    btn.classList.remove('is-wrong');
+    btn.classList.add('is-right');
+    sfx('correct');
+    return M.correct(btn);
+  }
+  function choiceWrong(btn) {
+    btn.classList.add('is-wrong');
+    sfx('wrong');
+    return M.incorrect(btn);
   }
 
   /* A name let go of somewhere that is not its box: back to the tray, of its
@@ -729,13 +833,245 @@
     return tl;
   }
 
+
+  /* ======================================================================
+   * Section 2 -- arcs (the scenes are in arcs.js)
+   * ----------------------------------------------------------------------
+   * The second section draws its own circle (the #arcs group in index.html)
+   * and does three things to it section 1 never does: slides it aside,
+   * turns the marks on it, and recolours its rim as two pieces. The beats
+   * for those are here, next to the ones they are made from.
+   * ====================================================================== */
+
+  /* The board leaving: boardIn played back. The bird standing on the field
+     behind it is what the board shrinking away uncovers. `show` comes off
+     at the END and not before, because the class is what keeps the board
+     laid out while it is still on screen. */
+  function boardOut(board) {
+    board.classList.add('is-animating');
+    var tl = M.timeline({
+      willChange: board, willChangeValue: 'transform, opacity',
+      revert: function () {
+        board.classList.remove('show', 'is-animating');
+        board.setAttribute('aria-hidden', 'true');
+        M.set(board, { clearProps: 'opacity,transform' });
+      }
+    });
+    tl.to(board, {
+      opacity: 0, scale: 0.965, y: 14, duration: M.dur(0.5), ease: 'power2.in'
+    });
+    return tl;
+  }
+
+  /* The ghost point: the mark that rides the rim under the learner's
+     finger before a point is placed. Grown by its RADIUS rather than
+     scaled, because it is moving while it appears, and GSAP fixes an SVG
+     element's origin where the element was when the tween began -- a
+     scale on a dot that then moves swells it about the wrong spot. */
+  function ghostIn(ghost) {
+    return M.to(ghost, {
+      attr: { r: 7 }, opacity: 1, duration: M.dur(0.18), ease: M.POP, overwrite: 'auto'
+    });
+  }
+  function ghostOut(ghost) {
+    return M.to(ghost, {
+      attr: { r: 2 }, opacity: 0, duration: M.dur(0.16), ease: 'power2.in', overwrite: 'auto'
+    });
+  }
+
+  /* The weight of a piece of the circumference: the same figure the
+     stylesheet's --arc-weight declares. Every swell below returns to it. */
+  var ARC_W = 7;
+
+  /* A stroke swelling and settling, written into a timeline the caller
+     owns. What lights an arc: the width is tweened rather than a glow laid
+     under it, because an arc has no straight box for a filter region to be
+     measured against. */
+  function swell(tl, paths, at) {
+    tl.to(paths, { strokeWidth: ARC_W * 1.6, duration: M.dur(0.26), ease: 'power2.out' }, M.gap(at))
+      .to(paths, { strokeWidth: ARC_W, duration: M.dur(0.5), ease: M.POP }, M.gap(at + 0.26));
+  }
+  function unswell(paths) { M.set(paths, { clearProps: 'strokeWidth' }); }
+
+  /* The circumference recoloured as two pieces. Both arcs unroll from the
+     FIRST point the learner placed, one each way round, and meet at the
+     second -- so the two colours are seen to be the one line, cut at those
+     two points. The same length of time for both whatever their lengths:
+     it is the meeting that says "divided". The coral rim under them then
+     goes, and the points pulse as the colours reach them.
+       o.minor / o.major are the two paths, both written to start at the
+     first point (see arcs.js); o.rim the rim under them; o.dots the two
+     points. */
+  var SWEEP = 1.05;
+
+  function arcSweep(o) {
+    M.set([o.minor, o.major], { opacity: 1 });
+    var tl = M.timeline({ revert: function () { undash([o.minor, o.major]); } });
+    stroke(tl, o.minor, 0, SWEEP, 'power2.inOut');
+    stroke(tl, o.major, 0, SWEEP, 'power2.inOut');
+    tl.to(o.rim, { opacity: 0, duration: M.dur(0.3), ease: 'power2.out' }, M.gap(SWEEP - 0.15));
+    tl.to(o.dots, { scale: 1.4, transformOrigin: 'center center',
+                    duration: M.dur(0.16), ease: 'power2.out' }, M.gap(SWEEP - 0.06))
+      .to(o.dots, { scale: 1, duration: M.dur(0.34), ease: M.POP }, M.gap(SWEEP + 0.1));
+    tl.call(pop, null, M.gap(SWEEP));
+    return tl;
+  }
+
+  /* One or more pieces, lit once. */
+  function arcPulse(paths) {
+    var tl = M.timeline({ revert: function () { unswell(paths); } });
+    swell(tl, paths, 0);
+    return tl;
+  }
+
+  /* The pieces pulled apart, and put back. Each slides a little way out
+     along its own middle -- `away` is one {x, y} per path -- and the gap
+     that opens between them is what "two pieces" means. */
+  function arcSplit(paths, away) {
+    var tl = M.timeline({ willChange: paths, willChangeValue: 'transform' });
+    paths.forEach(function (p, i) {
+      tl.to(p, { x: away[i].x, y: away[i].y, duration: M.dur(0.55), ease: 'power2.out' }, 0);
+    });
+    return tl;
+  }
+  function arcJoin(paths) {
+    var tl = M.timeline({
+      willChange: paths, willChangeValue: 'transform',
+      revert: function () { M.set(paths, { clearProps: 'transform' }); }
+    });
+    tl.to(paths, { x: 0, y: 0, duration: M.dur(0.5), ease: 'power2.inOut' });
+    return tl;
+  }
+
+  /* The piece the lesson is talking about, and the rest stood back: `on`
+     comes up to full and swells once, `off` drops to a quarter. arcUnfocus
+     brings everything back up together. Nothing here hands opacity back:
+     a piece's resting opacity is nothing, and these are all pieces that are
+     meant to stay on the board. */
+  var ARC_DIM = 0.22;
+
+  function arcFocus(on, off) {
+    var tl = M.timeline({
+      willChange: on.concat(off), willChangeValue: 'opacity',
+      revert: function () { unswell(on); }
+    });
+    if (off.length) tl.to(off, { opacity: ARC_DIM, duration: M.dur(0.4), ease: 'power2.inOut' }, 0);
+    if (on.length) {
+      tl.to(on, { opacity: 1, duration: M.dur(0.3), ease: 'power2.out' }, 0);
+      swell(tl, on, 0.1);
+    }
+    return tl;
+  }
+  function arcUnfocus(all) {
+    var tl = M.timeline({ willChange: all, willChangeValue: 'opacity' });
+    tl.to(all, { opacity: 1, duration: M.dur(0.4), ease: 'power2.inOut' });
+    return tl;
+  }
+
+  /* A word set beside a piece -- "Arc" -- landing the way every label in
+     the figure lands, and a set of them taken away together. */
+  function labelIn(text) {
+    M.set(text, { opacity: 0, scale: 0.72, transformOrigin: 'center center' });
+    var tl = M.timeline({ willChange: text, willChangeValue: 'transform, opacity' });
+    tl.to(text, { opacity: 1, scale: 1, duration: M.dur(0.36), ease: 'back.out(1.7)' });
+    return tl;
+  }
+  function labelsOut(texts) {
+    var tl = M.timeline({ willChange: texts, willChangeValue: 'opacity' });
+    tl.to(texts, { opacity: 0, duration: M.dur(0.26), ease: 'power2.in' });
+    return tl;
+  }
+
+  /* A dashed line drawn out: the mask trick the activity's leaders use
+     (see boxIn). `mask` is the solid path inside the mask that uncovers
+     the dashed one as it is stroked. */
+  function dashedIn(line, mask, seconds) {
+    M.set(line, { opacity: 1 });
+    var tl = M.timeline({ revert: function () { undash([mask]); } });
+    stroke(tl, mask, 0, seconds || 0.6, 'power1.inOut');
+    return tl;
+  }
+
+  /* The nudges beside the points in the third scene: short arrows round
+     the outside of the rim, one per point, saying which way it goes. Drawn
+     as strokes one after the other; each is taken away on its own as its
+     point is moved. */
+  function hintsIn(paths) {
+    M.set(paths, { opacity: 1 });
+    var tl = M.timeline({ revert: function () { undash(paths); } });
+    paths.forEach(function (p, i) { stroke(tl, p, i * 0.14, 0.42, 'power2.out'); });
+    return tl;
+  }
+  function hintOut(path) {
+    return M.to(path, { opacity: 0, duration: M.dur(0.3), ease: 'power2.in', overwrite: 'auto' });
+  }
+
+  /* The turn: the two points, and the pieces between them, carried round
+     the circle by `delta` degrees. The paths are rewritten each frame from
+     the angles -- a circle turned is a circle, so what is SEEN to turn is
+     the marks on it -- which is why this takes the state and the redraw
+     rather than the elements. `state.a` is the angle the first point is
+     at; the redraw draws everything from it. */
+  function turnArcs(state, delta, redraw) {
+    var a0 = state.a;
+    var pen = { t: 0 };
+    var tl = M.timeline();
+    tl.to(pen, {
+      t: 1, duration: M.dur(0.95), ease: 'power2.inOut',
+      onUpdate: function () { state.a = a0 + delta * pen.t; redraw(); }
+    });
+    return tl;
+  }
+
+  /* The circle carried to one side of the board, or back: a slide of the
+     whole group, so nothing in it moves relative to anything else. */
+  function slideArcs(group, x) {
+    var tl = M.timeline({ willChange: group, willChangeValue: 'transform' });
+    tl.to(group, { x: x, duration: M.dur(0.8), ease: 'power2.inOut' });
+    return tl;
+  }
+
+  /* A point caught by the place it belongs: one pop, and the bead sound. */
+  function snapDot(dot) {
+    pop();
+    var tl = M.timeline({ revert: function () { M.set(dot, { clearProps: 'transform' }); } });
+    tl.fromTo(dot, { scale: 1, transformOrigin: 'center center' },
+      { scale: 1.45, duration: M.dur(0.14), ease: 'power2.out' })
+      .to(dot, { scale: 1, duration: M.dur(0.36), ease: M.POP });
+    return tl;
+  }
+
+  /* Both halves made: the pieces swell together, once, and the points with
+     them. */
+  function arcsEqual(paths, dots) {
+    sfx('correct');
+    var tl = M.timeline({
+      revert: function () { unswell(paths); M.set(dots, { clearProps: 'transform' }); }
+    });
+    swell(tl, paths, 0);
+    tl.fromTo(dots, { scale: 1, transformOrigin: 'center center' },
+      { scale: 1.4, duration: M.dur(0.16), ease: 'power2.out' }, 0)
+      .to(dots, { scale: 1, duration: M.dur(0.4), ease: M.POP }, M.gap(0.16));
+    return tl;
+  }
+
+  /* A box lit as the name in it is said. Its own pulse rather than
+     M.pulse: an SVG group has to be told to scale about its own middle. */
+  function boxPulse(box) {
+    var tl = M.timeline({ revert: function () { M.set(box.g, { clearProps: 'transform' }); } });
+    tl.to(box.g, { scale: 1.06, transformOrigin: 'center center',
+                   duration: M.dur(0.18), ease: 'power2.out' })
+      .to(box.g, { scale: 1, duration: M.dur(0.4), ease: M.POP });
+    return tl;
+  }
+
   global.Beats = {
     sfx: sfx,
     pop: pop,
     boardIn: boardIn,
+    boardOut: boardOut,
     /* the circle */
     drawRim: drawRim,
-    unglowRim: unglowRim,
     fillDisc: fillDisc,
     /* the centre */
     plantCentre: plantCentre,
@@ -744,17 +1080,24 @@
     /* the callout */
     callout: callout,
     calloutOut: calloutOut,
+    arrowOut: arrowOut,
     /* points and lines */
     plotDot: plotDot,
     growLine: growLine,
+    copyRadius: copyRadius,
     glowLine: glowLine,
     becomeDiameter: becomeDiameter,
+    showRule: showRule,
     drawChords: drawChords,
     /* the activity */
     plotPart: plotPart,
-    boxesIn: boxesIn,
+    boxIn: boxIn,
+    dimPair: dimPair,
+    showParts: showParts,
     trayIn: trayIn,
     trayOut: trayOut,
+    choiceRight: choiceRight,
+    choiceWrong: choiceWrong,
     chipHome: chipHome,
     chipDock: chipDock,
     boxRight: boxRight,
@@ -772,6 +1115,25 @@
     springOff: springOff,
     controlIn: controlIn,
     controlOut: controlOut,
-    welcomeOut: welcomeOut
+    welcomeOut: welcomeOut,
+    /* section 2 -- arcs */
+    ghostIn: ghostIn,
+    ghostOut: ghostOut,
+    arcSweep: arcSweep,
+    arcPulse: arcPulse,
+    arcSplit: arcSplit,
+    arcJoin: arcJoin,
+    arcFocus: arcFocus,
+    arcUnfocus: arcUnfocus,
+    labelIn: labelIn,
+    labelsOut: labelsOut,
+    dashedIn: dashedIn,
+    hintsIn: hintsIn,
+    hintOut: hintOut,
+    turnArcs: turnArcs,
+    slideArcs: slideArcs,
+    snapDot: snapDot,
+    arcsEqual: arcsEqual,
+    boxPulse: boxPulse
   };
 })(window);

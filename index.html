@@ -6,6 +6,7 @@
   <title>Identify Different Parts of a Circle</title>
 
   <link rel="stylesheet" href="css/style.css" />
+  <link rel="stylesheet" href="css/arcs.css" />
   <link rel="stylesheet" href="css/animations.css" />
   <link rel="stylesheet" href="css/responsive.css" />
 </head>
@@ -86,20 +87,26 @@
                same size a square picture would have given it. -->
           <svg class="figure" id="figure" viewBox="0 0 1000 420"
                role="img" aria-label="A circle">
+            <defs>
+              <!-- The light that picks out one half of the diameter at a
+                   time. A glow is a stroke whose edge has been blurred away,
+                   not a wider stroke laid under a narrower one -- a stack of
+                   hard-edged strokes reads as rings, however translucent each
+                   is.
+                     The radius and diameter are horizontal lines: their box
+                   has no height, so a filter region measured against it
+                   collapses to nothing. This one is measured in the picture's
+                   own units instead, over the strip the lines lie in. -->
+              <filter id="neonLine" filterUnits="userSpaceOnUse"
+                      x="300" y="140" width="400" height="140">
+                <feGaussianBlur stdDeviation="5" />
+              </filter>
+            </defs>
+
             <!-- Fill first in document order so the rim always draws on top of
                  it, whichever of the two is revealed first. -->
             <circle class="figure__disc" id="disc" cx="500" cy="210" r="158" />
 
-            <!-- The highlight the rim is drawn with: the same path twice more,
-                 under it, in the fill's own coral at two wider weights. Both
-                 unroll with the rim and both fade when the circumference has
-                 been named. Two translucent strokes rather than one blurred
-                 one: a blur filter re-rasterises on every frame of the draw,
-                 and this runs on low-end tablets. -->
-            <path class="rim-glow rim-glow--wide"  id="rimGlowWide"
-                  d="M500 52 A158 158 0 0 1 500 368 A158 158 0 0 1 500 52" />
-            <path class="rim-glow rim-glow--tight" id="rimGlowTight"
-                  d="M500 52 A158 158 0 0 1 500 368 A158 158 0 0 1 500 52" />
             <!-- The rim is a path, not a <circle>, for one reason: a stroke
                  unrolls from wherever its path starts, and a circle's starts
                  at three o'clock. This one starts at twelve and runs
@@ -113,26 +120,43 @@
                  animations.js moves it from the rim's own geometry. -->
             <circle class="rim-tip" id="rimTip" cx="500" cy="52" r="7" />
 
-            <!-- The radius, and the diameter it grows into. The line is TWO
+            <!-- The radius, and the diameter it becomes. The line is TWO
                  halves that both start at the centre: the right one is drawn
-                 first and taught as the radius, the left one grows out later
-                 to make the diameter -- and because they are two paths, each
-                 half can be lit and named on its own before the pair is
-                 recoloured as one line. The glows are the same halves again,
-                 wide and translucent, under them. -->
+                 first and taught as the radius; the left one is not drawn at
+                 all but COPIED -- a faint copy of the radius is lifted off it,
+                 carried across the centre and set down on the other side, and
+                 the left half comes up solid underneath it. The learner sees
+                 the very same length moved over, not a second line grown to
+                 match. Because they are two paths, each half can then be lit
+                 and named on its own before the pair is recoloured as one
+                 line. The glows are the same halves again, wider and blurred,
+                 under them. -->
             <g class="figure__dia" id="dia" hidden>
               <path class="line-glow" id="glowRight" d="M500 210 L658 210" />
               <path class="line-glow" id="glowLeft"  d="M500 210 L342 210" />
               <path class="dia__half" id="halfRight" d="M500 210 L658 210" />
               <path class="dia__half" id="halfLeft"  d="M500 210 L342 210" />
-              <circle class="end-dot" id="endRight" cx="658" cy="210" r="6.4" />
-              <circle class="end-dot" id="endLeft"  cx="342" cy="210" r="6.4" />
+              <!-- The copy: the right half's own path once more, faint, and
+                   moved by exactly one radius to the left (see copyRadius in
+                   animations.js). It is above the halves in document order so
+                   it is seen to be lifted OFF the radius rather than out from
+                   under it. -->
+              <path class="dia__ghost" id="halfGhost" d="M500 210 L658 210" />
+              <circle class="end-dot" id="endRight" cx="658" cy="210" r="4.4" />
+              <circle class="end-dot" id="endLeft"  cx="342" cy="210" r="4.4" />
               <text class="figure-label dia__r" id="rLabelRight"
                     x="579" y="246" text-anchor="middle">Radius</text>
               <text class="figure-label dia__r" id="rLabelLeft"
                     x="421" y="246" text-anchor="middle">Radius</text>
               <text class="figure-label dia__name" id="diaName"
                     x="500" y="246" text-anchor="middle">Diameter</text>
+              <!-- The rule the merge has just shown, set under the circle
+                   once the halves are one line. Each name in the colour of
+                   the line it names -- the diameter's blue, the radius's
+                   orange -- so the sentence points back at the picture. -->
+              <rect class="dia__plate" id="diaPlate" x="0" y="0" width="0" height="0" />
+              <text class="figure-label dia__rule" id="diaRule"
+                    x="500" y="411" text-anchor="middle"><tspan class="rule__dia">Diameter</tspan><tspan class="rule__eq"> = 2 × </tspan><tspan class="rule__rad">Radius</tspan></text>
             </g>
 
             <!-- The chords: the one that is taught and the three that follow
@@ -166,13 +190,114 @@
               <path class="mark__head"  id="markHead"  d="" />
               <text class="figure-label mark__label" id="markLabel" x="0" y="0"></text>
             </g>
+
+            <!-- ---- Section 2: arcs (js/arcs.js) ----------------------------
+                 Its own circle, not the one above. Everything this section
+                 does to the circle -- slides it aside, turns the marks on
+                 it, recolours its rim as two pieces -- is done to this group
+                 as ONE thing, and section 1's beats hold the circle above by
+                 name and must never find it moved. What depends on the two
+                 points the learner picks is written by arcs.js; what is
+                 fixed is here. Last in the picture, so it paints over
+                 whatever the section before left -- though nothing of that
+                 is on the board by the time this is shown. -->
+            <g class="figure__arcs" id="arcs" hidden>
+              <defs id="arcDefs"></defs>
+              <circle class="figure__disc" id="arcDisc" cx="500" cy="210" r="158" />
+              <path class="figure__rim" id="arcRim"
+                    d="M500 52 A158 158 0 0 1 500 368 A158 158 0 0 1 500 52" />
+              <circle class="rim-tip" id="arcTip" cx="500" cy="52" r="7" />
+              <!-- A finger-wide, invisible band over the rim: where a press
+                   has to land to put a point on the circle, and what the
+                   keyboard holds while it places one. -->
+              <circle class="arc-band" id="arcBand" cx="500" cy="210" r="158"
+                      tabindex="-1" role="button"
+                      aria-label="The edge of the circle. Tap it to place a point." />
+              <!-- The diameter, dashed: the line the two points are moved
+                   onto in the third scene. Shown through a mask that arcs.js
+                   builds and dashedIn strokes, as the activity's leaders
+                   are. -->
+              <path class="arc-dia" id="arcDia" d="M342 210 L658 210" mask="url(#arcDiaMask)" />
+              <!-- The two pieces. Both are written to start at the FIRST
+                   point the learner placed and run to the second, one each
+                   way round, so that when the circumference is recoloured
+                   the two colours set off from one point and meet at the
+                   other. The minor one is on top: where the two share an
+                   end, the smaller piece's round cap is the one seen. -->
+              <path class="arc-piece arc-piece--major" id="arcMajor" d="" />
+              <path class="arc-piece arc-piece--minor" id="arcMinor" d="" />
+              <!-- What the second point WOULD cut off: faint, from the first
+                   point to wherever the finger is. -->
+              <path class="arc-preview" id="arcPreview" d="" />
+              <!-- The nudges beside the points, the name boxes, and the
+                   callouts and labels -- all built by arcs.js. -->
+              <g class="arc-hints" id="arcHints" hidden></g>
+              <g class="arc-boxes" id="arcBoxes" hidden></g>
+              <g class="arc-marks" id="arcMarks" hidden></g>
+              <g class="figure__centre is-quiet" id="arcCentre" hidden>
+                <circle class="centre__dot" cx="500" cy="210" r="7" />
+              </g>
+              <!-- The ghost: the mark that rides the rim under the finger
+                   before a point is placed. -->
+              <circle class="arc-ghost" id="arcGhost" cx="500" cy="52" r="7" />
+              <!-- The two points, each with a finger-sized hit area for the
+                   scene in which they are dragged. Placed by cx/cy, never by
+                   a transform, so a pop on one can never fight the drag. -->
+              <g class="arc-point" id="arcPointA">
+                <circle class="arc-dot" cx="500" cy="52" r="6.5" />
+                <circle class="arc-dot__hit" cx="500" cy="52" r="30" tabindex="-1" role="button"
+                        aria-label="A point on the circle. Drag it along the edge." />
+              </g>
+              <g class="arc-point" id="arcPointB">
+                <circle class="arc-dot" cx="500" cy="52" r="6.5" />
+                <circle class="arc-dot__hit" cx="500" cy="52" r="30" tabindex="-1" role="button"
+                        aria-label="A point on the circle. Drag it along the edge." />
+              </g>
+            </g>
           </svg>
+
+          <!-- The right half of the board, for the beat in section 2 where
+               the circle stands aside and the bird speaks beside it. Its own
+               bubble, because the hero one is parked on the field outside
+               the board. Sized as a container so the bird and its bubble are
+               measured against THIS half and not the viewport -- see .aside
+               in css/arcs.css. -->
+          <div class="aside" id="aside" hidden>
+            <div class="slot slot--aside" id="slotAside">
+              <div class="bubble bubble--aside" id="bubbleAside" hidden>
+                <svg class="bubble-mark mark-left" viewBox="0 0 40 60" aria-hidden="true">
+                  <path d="M8 12 L30 24" /><path d="M8 48 L30 36" />
+                </svg>
+                <span class="type-wrap" id="asideType">
+                  <span class="type-ghost"></span>
+                  <span class="type" aria-live="polite"><span class="txt"></span></span>
+                </span>
+                <svg class="bubble-mark mark-right" viewBox="0 0 40 60" aria-hidden="true">
+                  <path d="M32 12 L10 24" /><path d="M32 48 L10 36" />
+                </svg>
+                <svg class="bubble-tail" viewBox="0 0 44 42" aria-hidden="true">
+                  <path d="M4 0 H42 V8 C36 20 24 30 2 42 C8 32 8 20 4 8 Z"
+                        fill="var(--bubble-bg)" />
+                  <path d="M42 8 C36 20 24 30 2 42 C8 32 8 20 4 8" fill="none"
+                        stroke="var(--note-edge)" stroke-width="4"
+                        stroke-linecap="round" stroke-linejoin="round"
+                        vector-effect="non-scaling-stroke" />
+                </svg>
+              </div>
+            </div>
+          </div>
         </div>
 
         <!-- The footer holds the five names the learner drags onto the
              boxes, and nothing else, and only in the last activity. -->
+        <!-- The footer holds whatever the learner has to reach for: the five
+             names they drag onto the boxes in the last activity, and the two
+             answers to the yes/no question before it. Never both at once, so
+             they share the band. -->
         <footer class="board__bottom" id="boardBottom">
           <div class="tray" id="tray" hidden aria-label="Names to drag"></div>
+          <div class="tray tray--choice" id="choices" hidden
+               role="group" aria-label="Choose your answer"></div>
         </footer>
       </section>
 
@@ -212,6 +337,7 @@
   <script src="js/mascot.js"></script>
   <script src="js/animations.js"></script>
   <script src="js/pages.js"></script>
+  <script src="js/arcs.js"></script>
   <script src="js/script.js"></script>
   <!-- TEMPORARY: the Back / Skip / Replay level bar. Delete this line
        and js/devnav.js to remove it; nothing else refers to it. -->
