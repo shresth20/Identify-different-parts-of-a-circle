@@ -72,12 +72,21 @@
   /* ---- the parts of the circle: the lines themselves --------------------
      One colour per part, for the mark on the board only. The words that
      name the parts, and the arrows that point at them, keep the palette
-     above: a label is an annotation, not a piece of the picture. */
-  --part-circle:   #FF6A58;         /* the rim, and the wash inside it     */
-  --part-centre:   #FF6FA8;
-  --part-radius:   #FFA93A;
-  --part-diameter: #6F8BFF;
-  --part-chord:    #18D6A0;
+     above: a label is an annotation, not a piece of the picture.
+       Seven names for six parts: the circle is the only one drawn twice --
+     once as its rim and once as the wash inside it -- and the two are far
+     enough apart in strength that the wash cannot be mixed out of the rim.
+     Every other part is one line in one ink. */
+  --part-circle-fill: #D3D1FA;      /* the wash inside the rim             */
+  --part-circle:      #3D35F5;      /* the rim -- the circumference        */
+  /* The wash a shade deeper, for the sections about an AREA of the circle
+     (see "area focus" below): a paler region has to stand out of it. */
+  --part-circle-fill-deep: color-mix(in srgb, var(--part-circle) 32%, #FFFFFF);
+  --part-centre:      #F51B88;
+  --part-radius:      #F9A50B;
+  --part-diameter:    #08B9F5;
+  --part-chord:       #08C58E;
+  --part-point:       #25209B;      /* the points where lines meet the rim */
   /* One weight for every line laid on the circle, lesson and activity alike,
      and one size for the points at their ends (written by index.html and
      pages.js as r=4.4). */
@@ -155,7 +164,7 @@
   /* The three board bands, as fractions of the board's own height. Fixed
      rather than content-sized: the header has to hold its height on the beats
      where it is empty, or the figure below it would shift when text arrives. */
-  --row-top: 19%;
+  --row-top: 16%;
   --row-bottom: 11%;
 }
 
@@ -303,7 +312,7 @@ body {
   /* A shade taller than the band, so the bird stands ON the header rather
      than inside it -- but only by as much as the board's own padding can
      absorb, or its head would break the rounded top border. */
-  height: 110%;
+  height: 120%;
   aspect-ratio: 1;
   pointer-events: none;
 }
@@ -337,7 +346,15 @@ body {
      and stay centred. The picture's own units are untouched; every
      coordinate in index.html and pages.js still means what it did. */
   --figure-grow: 8%;
+  /* And, while the header is open, drawn up under it: the picture's own top
+     margin -- the room its callouts need above the circle -- would otherwise
+     sit on top of the header's, and the two together read as a gap between
+     the bird and the circle. With the header closed the lift comes off and
+     the picture is centred in the room it has. collapseHeader measures the
+     box before and after, so the lift is part of the move it plays. */
+  --figure-lift: 0%;
   inset: calc(var(--figure-grow) / -2);
+  top: calc(var(--figure-grow) / -2 - var(--figure-lift));
   display: block;
   width: calc(100% + var(--figure-grow));
   height: calc(100% + var(--figure-grow));
@@ -351,6 +368,26 @@ body {
 /* The UA stylesheet's own `[hidden]` is written for HTML elements, and an
    SVG <g> carrying the attribute is not reliably hidden by it. */
 .figure g[hidden] { display: none; }
+/* How far: the picture's top margin plus the letterbox slack above it come
+   to about a tenth of the board on a 16:9 screen, and three quarters of
+   that is taken away, leaving the bird's feet a finger's width above the
+   circle. Nothing drawn at the top of the picture reaches the band's own
+   contents, which sit in its middle. */
+.board:not(.is-headless):not(.is-bare) .figure { --figure-lift: 4%; }
+
+/* ---- Area focus ---------------------------------------------------------
+   The segments and sectors sections, and the quiz cards that show one, are
+   about a REGION of the circle. There the rim steps back to a whisper and
+   the wash inside deepens a shade, so the coloured region is the strongest
+   thing on the board and the outline is not competing with it. The rim's
+   opacity is the beats' to write (drawRim sets it), so it is the stroke's
+   own opacity that is lowered here. */
+.figure__segs .figure__rim,
+.figure__secs .figure__rim,
+.qz-card--area .figure__rim { stroke-opacity: .28; }
+.figure__segs .figure__disc,
+.figure__secs .figure__disc,
+.qz-card--area .figure__disc { fill: var(--part-circle-fill-deep); }
 
 /* Every word set ON the figure -- "Center", "Radius", and whatever the later
    sections name -- is the same piece of lettering, so it is one class. Only
@@ -368,12 +405,13 @@ body {
 }
 
 /* ---- The circle ---------------------------------------------------------
-   Coral, the palette's one warm pair: it separates from the pale lavender
-   board by hue rather than by strength, so the fill can be the pale wash the
-   figure was drawn as. Rim, fill, glow and pen all rest invisible; the beats
-   reveal them. */
+   Indigo: the rim is the strongest line on the board, because it is the one
+   every other part is measured against, and the wash inside it is a soft
+   periwinkle of the same family -- near enough to read as the same shape's
+   inside, far enough that the rim never sinks into it. Rim, fill, glow and
+   pen all rest invisible; the beats reveal them. */
 .figure__disc {
-  fill: color-mix(in srgb, var(--part-circle) 22%, #FFFFFF);
+  fill: var(--part-circle-fill);
   opacity: 0;                       /* the fill lands after the rim is drawn */
 }
 .figure__rim {
@@ -430,31 +468,35 @@ body {
 .figure__centre.is-quiet .centre__hit { cursor: default; pointer-events: none; }
 
 /* ---- The callout --------------------------------------------------------
-   Lavender rather than the figure's coral: an annotation is not part of the
-   shape. */
+   The board's own ink, not a colour off the figure: an annotation is not
+   part of the shape. Dark and muted where every part is vivid, so an arrow
+   reaching in to the rim is never mistaken for a piece of it -- which the
+   lavender it used to wear no longer manages, now that the rim is indigo. */
 .mark__arrow,
 .mark__head {
   fill: none;
-  stroke: var(--lavender-border);
+  stroke: var(--text-primary);
   stroke-width: 3.2;
   stroke-linecap: round;
   stroke-linejoin: round;
 }
-.mark__label { fill: var(--lavender-border); }
+.mark__label { fill: var(--text-primary); }
 
 /* ---- Points on the circle -----------------------------------------------
-   Every end of every line is the same mark, in the board's own ink rather
+   Every end of every line is the same mark, in its own deep indigo rather
    than in the line's colour: the points are where a line MEETS the circle,
-   and that reads only if they are not a piece of the line. */
+   and that reads only if they are not a piece of the line. The ink is the
+   rim's own hue taken far darker, so a point sits ON the circle rather than
+   beside it. */
 .end-dot {
-  fill: var(--text-primary);
+  fill: var(--part-point);
   opacity: 0;
 }
 
 /* ---- The radius, and the diameter it becomes ----------------------------
-   The palette's yellow for the radius, because the figure is coral and the
-   callouts are lavender's darker half. The diameter takes the lighter
-   lavender: the last pair this section has not spent.
+   Golden orange for the radius and bright cyan for the diameter: warm
+   against cool, so the half and the whole are told apart at a glance even
+   while one is turning into the other.
      The colour is transitioned rather than tweened: it is the one property
    in the figure GSAP does not drive, and a transition keeps it stated in the
    palette's own names instead of as a hex value baked into a timeline. */
@@ -532,10 +574,10 @@ body {
   opacity: 0;
 }
 /* The chord that goes THROUGH the centre, which the scene ends by asking
-   about. Drawn in the lavender the lesson taught the diameter in, not in
-   the chords' mint: the question is whether this line -- the one they
-   already know as a diameter -- is a chord as well, and answering it from
-   the colour would be answering a different question. */
+   about. Drawn in the cyan the lesson taught the diameter in, not in the
+   chords' mint: the question is whether this line -- the one they already
+   know as a diameter -- is a chord as well, and answering it from the
+   colour would be answering a different question. */
 .long-chord {
   fill: none;
   stroke: var(--part-diameter);

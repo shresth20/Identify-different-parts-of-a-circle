@@ -116,27 +116,35 @@
   /* Where the one callout is aimed for each part it names: the arrow runs
      from `from` through `bend` to `tip`, and the word sits at `label`. Every
      one comes in from the right, clear of the circle, and every tip stops a
-     little short of the thing it points at. */
+     little short of the thing it points at.
+       `part` is the mark on the board the name belongs to. Naming a part
+     lights that part -- see aimCallout -- so the word, the arrow and the
+     thing itself are one event; it is a function because these specs are
+     written before the picture exists. */
   var CALLOUTS = {
     circumference: {
       text: 'Circumference',
       from: { x: 686, y: 50 }, bend: { x: 650, y: 50 }, tip: { x: 608, y: 81 },
-      label: { x: 694, y: 58 }
+      label: { x: 694, y: 58 },
+      part: function () { return dom.rim; }
     },
     centre: {
       text: 'Center',
       from: { x: 604, y: 300 }, bend: { x: 566, y: 282 }, tip: { x: 528, y: 238 },
-      label: { x: 614, y: 326 }
+      label: { x: 614, y: 326 },
+      part: function () { return dom.dot; }
     },
     radius: {
       text: 'Radius',
       from: { x: 644, y: 130 }, bend: { x: 616, y: 152 }, tip: { x: 586, y: 196 },
-      label: { x: 650, y: 122 }
+      label: { x: 650, y: 122 },
+      part: function () { return [dom.halfRight, dom.endRight]; }
     },
     chord: {
       text: 'Chord',
       from: { x: 658, y: 354 }, bend: { x: 626, y: 338 }, tip: { x: 588, y: 312 },
-      label: { x: 664, y: 372 }
+      label: { x: 664, y: 372 },
+      part: function () { return chords[0] && chords[0].line; }
     }
   };
 
@@ -449,6 +457,11 @@
     dom.markLabel.setAttribute('x', spec.label.x);
     dom.markLabel.setAttribute('y', spec.label.y);
     dom.markLabel.textContent = spec.text;
+    /* The part itself, lit under the arrow. Not waited on: the pulse runs
+       for about as long as the line being spoken over it, and the scene is
+       paced by the speech. It is a tracked timeline all the same, so a skip
+       or a replay takes the highlight off with everything else. */
+    if (spec.part) Beats.partPulse(spec.part());
     return Beats.callout(dom.mark, dom.markArrow, dom.markHead, dom.markLabel);
   }
   function markParts() { return [dom.markArrow, dom.markHead, dom.markLabel]; }
@@ -661,15 +674,21 @@
     M.set([mascot.el, dom.hopper], { clearProps: 'transform' });
   }
 
-  /* Up from behind the board, and down onto the spot. */
+  /* Up from behind the board, and down onto the spot.
+       The header is the bird's: it opens as the bird comes back to it and
+     closes as the bird leaves it (see mascotJumpOut), so no scene has to
+     remember to give the picture the room. A jump to any other spot leaves
+     the header as it is. */
   function mascotJumpIn(slot) {
     var el = mascot.el;
+    slot = slot || dom.slotHeader;
+    if (slot === dom.slotHeader) Flow.anim(openHeader());
     /* Away FIRST, then re-parented: the bird is standing out on the field
        under the board, and moving it into the board while it is still
        visible would paint it on top of the board for a frame. */
     el.classList.add('is-away');
     el.hidden = false;
-    mascot.placeIn(slot || dom.slotHeader);
+    mascot.placeIn(slot);
 
     var cell = el.getBoundingClientRect();
     /* A spot with no box -- not laid out yet -- and a learner who has asked
@@ -711,14 +730,19 @@
       .then(jumpDone, function (err) { jumpDone(); throw err; });
   }
 
-  /* Crouch, spring off the spot, and fall back behind the board. */
+  /* Crouch, spring off the spot, and fall back behind the board. Leaving
+     the header closes it behind the bird -- once the bird is gone, not as it
+     springs, or the spot it is springing from would move under it. */
   function mascotJumpOut() {
     var el = mascot.el;
     if (el.hidden || el.classList.contains('is-away')) return Promise.resolve();
+    var fromHeader = el.parentNode === dom.slotHeader;
+    var shut = function () { if (fromHeader) Flow.anim(collapseHeader(true)); };
 
     var cell = el.getBoundingClientRect();
     if (!cell.width || M.reducedMotion()) {
       el.classList.add('is-away');
+      shut();
       return Promise.resolve();
     }
 
@@ -740,7 +764,8 @@
                                          /* hopper is up in its place     */
         return Flow.anim(Beats.hopDown(dom.hopper, plan.park - cell.top));
       })
-      .then(jumpDone, function (err) { jumpDone(); throw err; });
+      .then(function () { jumpDone(); shut(); },
+            function (err) { jumpDone(); throw err; });
   }
 
   /* The bird comes up to say a line.
@@ -807,13 +832,32 @@
   }
 
   function collapseHeader(on, cls) {
+    return moveRows(function () {
+      dom.board.classList.toggle(cls || 'is-headless', !!on);
+    });
+  }
+
+  /* The header open again, whichever way it was closed. The bird's jump in
+     calls this before it aims, so a header the bird is coming back to is
+     never a closed one -- see mascotJumpIn. */
+  function openHeader() {
+    if (!dom.board.classList.contains('is-headless') &&
+        !dom.board.classList.contains('is-bare')) return null;
+    return moveRows(function () {
+      dom.board.classList.remove('is-headless', 'is-bare');
+    });
+  }
+
+  /* `change` rewrites the board's row classes; the picture's move between
+     the two layouts is played as one transform. */
+  function moveRows(change) {
     var was = pictureAt(dom.figure.getBoundingClientRect());
     /* The stylesheet transitions the board's rows for the footer's sake
        (see .board in style.css). This move is played as a transform instead,
        so the rows have to land at once: the transition is held off across
-       the toggle, and the measurement forces the layout while it is off. */
+       the change, and the measurement forces the layout while it is off. */
     dom.board.style.transition = 'none';
-    dom.board.classList.toggle(cls || 'is-headless', !!on);
+    change();
     var now = pictureAt(dom.figure.getBoundingClientRect());
     dom.board.style.transition = '';
 
@@ -990,6 +1034,9 @@
       box.text.textContent = box.name;
       box.g.setAttribute('aria-label', box.name + '. Correct.');
       Beats.boxRight(box);
+      /* A name in its box is that part named, so the part itself is lit --
+         the same pulse the lesson gave it when it was taught. */
+      if (box.lit) Beats.partPulse(box.lit, { times: 2 });
     }
     function boxFor(name) {
       for (var i = 0; i < q.boxes.length; i++) {
@@ -1373,7 +1420,13 @@
         }))]);
       })
       .then(function () { return Flow.wait(BEAT); })
-      .then(function () { return speak(LINES.diameter2); })
+      /* The diameter has no callout of its own -- the merge IS its naming --
+         so the pulse every other part gets from aimCallout is asked for
+         here, on the line the two halves have just become. */
+      .then(function () {
+        Beats.partPulse([dom.halfLeft, dom.halfRight, dom.endLeft, dom.endRight]);
+        return speak(LINES.diameter2);
+      })
       .then(function () { return Flow.wait(BEAT); })
       /* The rule the merge has just acted out, written under the circle in
          the lines' own colours as it is said. */
@@ -1433,7 +1486,8 @@
          the first chord, it would say that one alone is the chord. */
       .then(function () {
         return Promise.all([speak(LINES.chords),
-                            Flow.anim(Beats.arrowOut([dom.markArrow, dom.markHead])),
+                            Flow.anim(Beats.arrowOut([dom.markArrow, dom.markHead],
+                                                     dom.markLabel, 'Chords')),
                             Flow.anim(Beats.drawChords(chords.slice(1)))]);
       })
       .then(function () { return Flow.wait(BEAT); })
@@ -1496,7 +1550,12 @@
         return Promise.all([marked, said]);
       })
       .then(function () { return Flow.wait(BEAT); })
-      .then(function () { return speak(LINES.longest); })
+      /* "The longest chord of all" -- said of the line across the middle, so
+         that line is lit as it is said. */
+      .then(function () {
+        Beats.partPulse([longChord.line].concat(longChord.ends));
+        return speak(LINES.longest);
+      })
       .then(function () { return Flow.wait(BEAT); })
       /* The answers have been read; they go before Next arrives, so the
          last thing on the board is the line they were about. Taken out of
@@ -1525,11 +1584,16 @@
 
   /* The five parts of the circle, each with the box that will name it, in
      the order the lesson taught them. One entry is one pair: what draws the
-     part, and which marks on the board that part is made of. */
+     part, and which marks on the board that part is made of.
+       `lit` is the narrower list -- the marks the pulse is for. It leaves
+     out the wash inside the rim and takes the centre's dot rather than its
+     group, because a highlight has to land on the mark the name is ABOUT,
+     and a group carries a halo and a hit area as well. */
   function quizSteps() {
     return [
       { name: 'Circumference',
         marks: [dom.rim, dom.disc],
+        lit: [dom.rim],
         draw: function () {
           return Flow.anim(Beats.drawRim(dom.rim, dom.rimTip))
             .then(function () { return Flow.wait(140); })
@@ -1537,6 +1601,7 @@
         } },
       { name: 'Center',
         marks: [dom.centre],
+        lit: [dom.dot],
         draw: function () {
           return Flow.anim(Beats.plantCentre(dom.centre, dom.dot, { call: false }));
         } },
@@ -1547,6 +1612,7 @@
       if (!s.part) return s;
       var p = quiz.parts[s.part];
       s.marks = [p.line].concat(p.ends);
+      s.lit = s.marks;
       s.draw = function () { return Flow.anim(Beats.plotPart(p)); };
       return s;
     });
@@ -1558,6 +1624,11 @@
      quiet again and the learner is never watching two things at once. */
   function introPair(step) {
     var box = boxOf(step.name);
+    /* The box learns which marks it names now, while the pair is being
+       introduced, so that dropping the right name into it later lights the
+       part -- see dock() in armQuiz. A box from another section has no
+       `lit`, and nothing lights. */
+    if (box) box.lit = step.lit;
     return step.draw()
       .then(function () { return Flow.wait(240); })
       .then(function () { return Flow.anim(Beats.boxIn(box)); })

@@ -8,32 +8,35 @@
    the palette in style.css.
    ========================================================================== */
 :root {
-  /* The inside, lit: the circle's own coral, deeper than the wash the disc
+  /* The inside, lit: the circle's own indigo, deeper than the wash the disc
      rests at, so the same shape is seen to come forward rather than a new
      colour to arrive. */
   --seg-area:     color-mix(in srgb, var(--part-circle) 42%, #FFFFFF);
   --seg-area-lit: color-mix(in srgb, var(--part-circle) 58%, #FFFFFF);
 
-  /* The two regions. Gold for the smaller, as the smaller arc was; sky
-     blue for the larger. Both pale, because they are AREAS -- a region
-     filled at full strength would swallow the points and the chord laid
-     on it -- and each with a deeper shade it is lit to while it is being
-     spoken of. The word that names a region is set in the region's own
-     hue at its border strength, where a fill this pale would not read. */
-  --seg-minor:     color-mix(in srgb, var(--yellow-fill) 70%, #FFFFFF);
-  --seg-minor-lit: var(--yellow-fill);
-  --seg-minor-ink: var(--yellow-border);
-  --seg-major:     color-mix(in srgb, var(--blue-fill) 50%, #FFFFFF);
-  --seg-major-lit: color-mix(in srgb, var(--blue-fill) 82%, #FFFFFF);
-  --seg-major-ink: var(--blue-border);
+  /* The two regions -- "Sunshine Blue": golden yellow for the smaller, as
+     the smaller arc was; soft blue for the larger. Both are stated at the
+     strength they are meant to be SEEN at, because a region is an area and
+     an area carries the points and the chord laid on it; each is lit by
+     being carried a little way towards its own accent, so the lift is a
+     deepening of the same hue and not a new colour. The word that names a
+     region is set in that accent, where a fill this pale would not read. */
+  --seg-minor:     #FDD279;
+  --seg-minor-ink: #EE6B1F;
+  --seg-minor-lit: color-mix(in srgb, var(--seg-minor) 80%, var(--seg-minor-ink));
+  --seg-major:     #ABDCFD;
+  --seg-major-ink: #2160DD;
+  --seg-major-lit: color-mix(in srgb, var(--seg-major) 80%, var(--seg-major-ink));
 
-  /* The activity's pair: two more of the palette, so the names have to be
-     given for the regions' sizes and not matched to the colours the lesson
-     taught them in. */
-  --seg-minor-quiz:     color-mix(in srgb, var(--mint-fill) 50%, #FFFFFF);
-  --seg-minor-quiz-lit: color-mix(in srgb, var(--mint-fill) 80%, #FFFFFF);
-  --seg-major-quiz:     color-mix(in srgb, var(--lavender-fill) 36%, #FFFFFF);
-  --seg-major-quiz-lit: color-mix(in srgb, var(--lavender-fill) 60%, #FFFFFF);
+  /* The activity's pair -- "Berry Periwinkle": two more of the same make,
+     so the names have to be given for the regions' sizes and not matched
+     to the colours the lesson taught them in. */
+  --seg-minor-quiz:     #FCA1CF;
+  --seg-minor-quiz-ink: #B72D72;
+  --seg-minor-quiz-lit: color-mix(in srgb, var(--seg-minor-quiz) 82%, var(--seg-minor-quiz-ink));
+  --seg-major-quiz:     #B7BFFD;
+  --seg-major-quiz-ink: #443FC4;
+  --seg-major-quiz-lit: color-mix(in srgb, var(--seg-major-quiz) 82%, var(--seg-major-quiz-ink));
 }
 
 /* ---- The band and the glow ----------------------------------------------
@@ -87,16 +90,18 @@
 
 /* ---- Labels and callouts ------------------------------------------------
    "Segment" set on a region, and the callouts that name the two at the
-   end. The arrows keep the callout's lavender; the WORD takes the ink of
-   the region it names, so the name and the region read as one thing. */
+   end. A word set on its own, with no arrow, takes the ink of the region
+   it names. A callout -- arrow and word -- keeps the one ink every callout
+   in the game has (see .mark__label in style.css). The activity's two
+   regions are a different pair, so a word set there takes their accents. */
 .seg-label {
   font-size: 24px;
   opacity: 0;
 }
-.seg-label--minor,
-.seg-callout--minor .mark__label { fill: var(--seg-minor-ink); }
-.seg-label--major,
-.seg-callout--major .mark__label { fill: var(--seg-major-ink); }
+.seg-label--minor { fill: var(--seg-minor-ink); }
+.seg-label--major { fill: var(--seg-major-ink); }
+.figure__segs.is-quiz .seg-label--minor { fill: var(--seg-minor-quiz-ink); }
+.figure__segs.is-quiz .seg-label--major { fill: var(--seg-major-quiz-ink); }
 
 /* ---- Reduced motion -----------------------------------------------------
    As arcs.css says of its own glow: the rim is lit, it just does not

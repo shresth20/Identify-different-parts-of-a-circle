@@ -9,6 +9,7 @@
   <link rel="stylesheet" href="css/arcs.css" />
   <link rel="stylesheet" href="css/segments.css" />
   <link rel="stylesheet" href="css/sectors.css" />
+  <link rel="stylesheet" href="css/quiz.css" />
   <link rel="stylesheet" href="css/animations.css" />
   <link rel="stylesheet" href="css/responsive.css" />
 </head>
@@ -102,6 +103,26 @@
               <filter id="neonLine" filterUnits="userSpaceOnUse"
                       x="300" y="140" width="400" height="140">
                 <feGaussianBlur stdDeviation="5" />
+              </filter>
+
+              <!-- The bloom under a part while it is being named. A blurred
+                   copy of the mark itself, laid twice under the mark, so the
+                   glow is always in the part's OWN ink -- nothing here names
+                   a colour, which is what lets one filter serve the rim, the
+                   lines and the dots alike.
+                     Measured in the picture's own units, over the whole view
+                   box, for the reason #neonLine is: the radius, the diameter
+                   and the level chord are horizontal, so their boxes have no
+                   height, and a region measured against one would collapse
+                   to nothing and take the line with it. -->
+              <filter id="partGlow" filterUnits="userSpaceOnUse"
+                      x="0" y="0" width="1000" height="420">
+                <feGaussianBlur in="SourceGraphic" stdDeviation="6" result="bloom" />
+                <feMerge>
+                  <feMergeNode in="bloom" />
+                  <feMergeNode in="bloom" />
+                  <feMergeNode in="SourceGraphic" />
+                </feMerge>
               </filter>
             </defs>
 
@@ -214,7 +235,9 @@
                 </filter>
               </defs>
               <circle class="arc-glow" id="arcGlow" cx="500" cy="210" r="158" />
-              <circle class="figure__disc" id="arcDisc" cx="500" cy="210" r="158" />
+              <!-- No disc here, unlike the lesson's circle: this section is
+                   about the circumference, and an open ring keeps the eye on
+                   the line rather than on the shape it closes. -->
               <path class="figure__rim" id="arcRim"
                     d="M500 52 A158 158 0 0 1 500 368 A158 158 0 0 1 500 52" />
               <circle class="rim-tip" id="arcTip" cx="500" cy="52" r="7" />
@@ -398,6 +421,79 @@
               </g>
               <g class="arc-nudges" id="secNudges" hidden aria-hidden="true"></g>
             </g>
+
+            <!-- ---- Section 5: the quiz (js/quiz.js) ----------------------
+                 Two activities that ask for what the four sections before
+                 taught, on circles of their own. The first puts three
+                 small circles in a row, each with one part picked out and
+                 a name under it, and asks which name is right; the second
+                 draws one circle with every part on it, stands it aside,
+                 and asks for each part's name in turn. What depends on the
+                 angles is written by quiz.js; what is fixed is here. The
+                 marks wear the classes of the sections they come from, so
+                 they are visibly the same marks. -->
+            <g class="figure__qz" id="qz" hidden>
+              <defs id="qzDefs">
+                <!-- The two segments are coloured in from the chord
+                     outward, through circles quiz.js places on the chord's
+                     middle -- the way section 3 colours its own. At rest
+                     both stand wide open. -->
+                <clipPath id="qzClipMinor">
+                  <circle id="qzClipMinorC" cx="500" cy="210" r="400" />
+                </clipPath>
+                <clipPath id="qzClipMajor">
+                  <circle id="qzClipMajorC" cx="500" cy="210" r="400" />
+                </clipPath>
+                <!-- The face of a name pill under the first activity's
+                     circles: the Start button's own gradient, top to
+                     bottom, so the three read as buttons to press. The
+                     stops take their colours from quiz.css. -->
+                <linearGradient id="qzOptGrad" x1="0" y1="0" x2="0" y2="1">
+                  <stop class="qz-opt-grad__top" offset="0" />
+                  <stop class="qz-opt-grad__mid" offset=".55" />
+                  <stop class="qz-opt-grad__low" offset="1" />
+                </linearGradient>
+              </defs>
+              <!-- The first activity's three circles, and the names under
+                   them. Built by quiz.js: each circle is drawn at the
+                   centre, at full size, and carried to its place. -->
+              <g class="qz-cards" id="qzCards"></g>
+              <g class="qz-opts" id="qzOpts" hidden></g>
+              <!-- The second activity's circle, with every part on it.
+                   Fills first, then the lines, then the rim and its two
+                   pieces, then the centre and the points, so each paints
+                   over the one before. Slid aside as ONE thing. -->
+              <g class="qz-circle" id="qzCircle">
+                <circle class="figure__disc" id="qzDisc" cx="500" cy="210" r="158" />
+                <path class="qz-region qz-region--major" id="qzSegMajor" d=""
+                      clip-path="url(#qzClipMajor)" />
+                <path class="qz-region qz-region--minor" id="qzSegMinor" d=""
+                      clip-path="url(#qzClipMinor)" />
+                <path class="qz-region qz-region--major" id="qzSecMajor" d="" />
+                <path class="qz-region qz-region--minor" id="qzSecMinor" d="" />
+                <path class="chord-line" id="qzChord" d="" />
+                <path class="sec-radius" id="qzRadiusA" d="" />
+                <path class="sec-radius" id="qzRadiusB" d="" />
+                <path class="figure__rim" id="qzRim"
+                      d="M500 52 A158 158 0 0 1 500 368 A158 158 0 0 1 500 52" />
+                <circle class="rim-tip" id="qzTip" cx="500" cy="52" r="7" />
+                <path class="arc-piece arc-piece--major" id="qzArcMajor" d="" />
+                <path class="arc-piece arc-piece--minor" id="qzArcMinor" d="" />
+                <g class="figure__centre is-quiet" id="qzCentre" hidden>
+                  <circle class="centre__dot" id="qzCentreDot" cx="500" cy="210" r="7" />
+                </g>
+                <circle class="arc-dot" id="qzPointA" cx="500" cy="52" r="6.5" />
+                <circle class="arc-dot" id="qzPointB" cx="500" cy="52" r="6.5" />
+              </g>
+              <!-- The one box, and the leader that ties it to the part it
+                   asks about -- built afresh by quiz.js for each part.
+                   Outside the circle's group on purpose: it stays put when
+                   the circle slides aside. -->
+              <g class="qz-boxes" id="qzBoxes" hidden></g>
+              <!-- Where the pieces of a burst are put: last, so they fly
+                   over everything. -->
+              <g class="qz-burst" id="qzBurst" aria-hidden="true"></g>
+            </g>
           </svg>
 
           <!-- The right half of the board, for the beat in section 2 where
@@ -484,6 +580,7 @@
   <script src="js/arcs.js"></script>
   <script src="js/segments.js"></script>
   <script src="js/sectors.js"></script>
+  <script src="js/quiz.js"></script>
   <script src="js/script.js"></script>
   <!-- TEMPORARY: the Back / Skip / Replay level bar. Delete this line
        and js/devnav.js to remove it; nothing else refers to it. -->

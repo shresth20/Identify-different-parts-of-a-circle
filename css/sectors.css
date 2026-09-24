@@ -113,16 +113,15 @@
 
 /* ---- Labels and callouts ------------------------------------------------
    "Sector" set on a region, and the callouts that name the two. The arrows
-   keep the callout's lavender; the WORD takes the ink of the region it
-   names, so the name and the region read as one thing. */
+   A word set on its own, with no arrow, takes the ink of the region it
+   names. A callout -- arrow and word -- keeps the one ink every callout in
+   the game has (see .mark__label in style.css). */
 .sec-label {
   font-size: 24px;
   opacity: 0;
 }
-.sec-label--minor,
-.sec-callout--minor .mark__label { fill: var(--sec-minor-ink); }
-.sec-label--major,
-.sec-callout--major .mark__label { fill: var(--sec-major-ink); }
+.sec-label--minor { fill: var(--sec-minor-ink); }
+.sec-label--major { fill: var(--sec-major-ink); }
 
 /* ---- Reduced motion -----------------------------------------------------
    As arcs.css says of its own glow: the rim is lit, it just does not

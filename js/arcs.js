@@ -143,7 +143,6 @@
 
     dom.arcs       = $('arcs');
     dom.arcDefs    = $('arcDefs');
-    dom.arcDisc    = $('arcDisc');
     dom.arcRim     = $('arcRim');
     dom.arcTip     = $('arcTip');
     dom.arcBand    = $('arcBand');
@@ -423,11 +422,11 @@
     };
   }
 
-  /* ---- the circle, drawn ------------------------------------------------ */
+  /* ---- the circle, drawn ------------------------------------------------
+     The rim only. The lesson's circle is filled once it is drawn; this one is
+     left as an open ring, because the section is about the line itself. */
   function drawCircle() {
-    return Flow.anim(Beats.drawRim(dom.arcRim, dom.arcTip))
-      .then(function () { return Flow.wait(160); })
-      .then(function () { return Flow.anim(Beats.fillDisc(dom.arcDisc)); });
+    return Flow.anim(Beats.drawRim(dom.arcRim, dom.arcTip));
   }
 
   /* The two points put on the circle where `arc` has them, one after the
@@ -1362,7 +1361,7 @@
     if (local <= 0) return;             /* opens on the wiped board, as left */
 
     dom.arcs.removeAttribute('hidden');
-    M.set([dom.arcDisc, dom.arcMinor, dom.arcMajor].concat(dots()), { opacity: 1 });
+    M.set([dom.arcMinor, dom.arcMajor].concat(dots()), { opacity: 1 });
     redraw();
 
     if (local === 1) {

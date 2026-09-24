@@ -9,7 +9,7 @@
    ========================================================================== */
 :root {
   /* The two pieces. Gold for the smaller, the palette's lavender for the
-     larger: neither is the coral the circle is drawn in, so a recoloured
+     larger: neither is the indigo the circle is drawn in, so a recoloured
      rim reads as two NEW things and not as the circle changing its mind.
      The word that names a piece is set in the piece's own colour, so the
      two read as one thing. */
@@ -17,11 +17,13 @@
   --part-arc-major: #8A84FF;
   --part-arc-minor-ink: var(--part-arc-minor);
   --part-arc-major-ink: var(--part-arc-major);
-  /* The activity's pair: two more colours from the palette, so the names
+  /* The activity's pair: two colours the lesson never used, so the names
      have to be given for the pieces' sizes and not matched to the colours
-     the lesson taught them in. */
-  --part-arc-minor-quiz: var(--mint-border);
-  --part-arc-major-quiz: var(--blue-border);
+     the lesson taught them in. Berry for the smaller, indigo for the larger,
+     each lifted towards white so it sits as light on the pale board rather
+     than as a dark ring around it. */
+  --part-arc-minor-quiz: color-mix(in srgb, #B72D72 72%, #FFFFFF);
+  --part-arc-major-quiz: color-mix(in srgb, #443FC4 72%, #FFFFFF);
   /* The weight of a piece: heavier than the rim it replaces, so each
      piece reads as a length of something and not as an outline. Mirrored
      by ARC_W in animations.js, which every swell returns to. */
@@ -53,7 +55,7 @@
 }
 
 /* ---- The glow -----------------------------------------------------------
-   While a point is being picked the rim breathes: a wide coral stroke under
+   While a point is being picked the rim breathes: a wide indigo stroke under
    it, blurred to a haze, brightening and dimming. Opacity alone, so the
    filtered circle is rasterised once and only composited after. It rests at
    nothing and stops the moment the second point is down. */
@@ -104,8 +106,9 @@
   opacity: 0;
   pointer-events: none;
 }
+/* A point on the rim, in the same ink section 1's points wear. */
 .arc-dot {
-  fill: var(--text-primary);
+  fill: var(--part-point);
   stroke: var(--board-highlight);
   stroke-width: 2.2;
   opacity: 0;
@@ -194,17 +197,16 @@
 
 /* ---- Labels and callouts ------------------------------------------------
    "Arc" set beside a piece, and the callouts that name the two pieces at
-   the end. The arrows keep the callout's lavender; the WORD takes the
-   colour of the piece it names, as "Diameter = 2 x Radius" did for its
-   lines -- so the name and the piece read as one thing. */
+   the end. A word set on its own, with no arrow, takes the colour of the
+   piece it names, as "Diameter = 2 x Radius" did for its lines. A callout
+   -- arrow and word -- keeps the one ink every callout in the game has, so
+   the annotations read as one voice from section to section. */
 .arc-label {
   font-size: 24px;
   opacity: 0;
 }
-.arc-label--minor,
-.arc-callout--minor .mark__label { fill: var(--part-arc-minor-ink); }
-.arc-label--major,
-.arc-callout--major .mark__label { fill: var(--part-arc-major-ink); }
+.arc-label--minor { fill: var(--part-arc-minor-ink); }
+.arc-label--major { fill: var(--part-arc-major-ink); }
 
 /* ==========================================================================
    The aside -- the right half of the board

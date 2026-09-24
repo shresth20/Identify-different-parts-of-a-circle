@@ -155,11 +155,16 @@
      then leaves as the circle closes. One plain stroke: the line itself is
      what the learner is meant to watch being made, with nothing laid over
      or under it. */
-  function drawRim(rim, tip) {
+  function drawRim(rim, tip, opts) {
     var len = pathLength(rim) || 1;
     var x0 = parseFloat(tip.getAttribute('cx')) || 0;
     var y0 = parseFloat(tip.getAttribute('cy')) || 0;
     var START = 0.3;                /* the pen lands before the stroke starts */
+    /* The one stroke is given its full time by default. A section that
+       draws several circles in a row -- the quiz -- asks for a quicker
+       pen, or the third circle is watched with less patience than the
+       first. */
+    var time = (opts && opts.time) || RIM_TIME;
 
     M.set(rim, { opacity: 1 });
     M.set(tip, { opacity: 1, scale: 0, x: 0, y: 0, transformOrigin: 'center center' });
@@ -173,13 +178,13 @@
 
     tl.to(tip, { scale: 1, duration: M.dur(0.26), ease: M.POP }, 0);
 
-    stroke(tl, rim, START, RIM_TIME, 'power1.inOut');
+    stroke(tl, rim, START, time, 'power1.inOut');
 
     /* The pen follows the front of the stroke: a proxy tween with the same
        length and the same ease, reading the point off the rim itself. */
     var pen = { t: 0 };
     tl.to(pen, {
-      t: 1, duration: M.dur(RIM_TIME), ease: 'power1.inOut',
+      t: 1, duration: M.dur(time), ease: 'power1.inOut',
       onUpdate: function () {
         var p;
         try { p = rim.getPointAtLength(len * pen.t); } catch (e) { return; }
@@ -188,7 +193,7 @@
     }, M.gap(START));
 
     tl.to(tip, { scale: 0, opacity: 0, duration: M.dur(0.24), ease: 'power2.in' },
-          M.gap(START + RIM_TIME));
+          M.gap(START + time));
     return tl;
   }
 
@@ -297,16 +302,67 @@
     return tl;
   }
 
-  /* The arrow alone coming off a callout, its word left standing. Once there
-     are several of a thing on the circle, an arrow at one of them says "this
-     one"; the word on its own says "these". The group stays up and the word
-     is taken off later with calloutOut, which clears the arrow's fade too. */
-  function arrowOut(parts) {
-    var tl = M.timeline({
-      willChange: parts, willChangeValue: 'opacity',
-      revert: function () { M.set(parts, { clearProps: 'opacity' }); }
-    });
-    tl.to(parts, { opacity: 0, duration: M.dur(0.3), ease: 'power2.in' });
+  /* The arrow alone coming off a callout, its word left standing -- and,
+     given `text`, the word changed as it goes. Once there are several of a
+     thing on the circle, an arrow at one of them says "this one"; the word
+     on its own, made plural, says "these".
+       No revert: a timeline's revert runs when it COMPLETES, and handing the
+     arrow's opacity back there would put the arrow straight back on screen.
+     The group stays up; calloutOut takes the word off later and clears the
+     arrow with it, and the next callout() sets the arrow to 1 before it
+     draws. */
+  function arrowOut(parts, label, text) {
+    var tl = M.timeline({ willChange: parts, willChangeValue: 'opacity' });
+    tl.to(parts, { opacity: 0, duration: M.dur(0.3), ease: 'power2.in' }, 0);
+    if (label && text) {
+      tl.to(label, { opacity: 0, duration: M.dur(0.16), ease: 'power2.in' }, 0)
+        .call(function () { label.textContent = text; }, null, M.gap(0.16))
+        .to(label, { opacity: 1, duration: M.dur(0.26), ease: 'power2.out' }, M.gap(0.16));
+    }
+    return tl;
+  }
+
+  /* ======================================================================
+   * The pulse -- a part, lit while it is named
+   * ====================================================================== */
+
+  /* One breath of the pulse, and how many breaths a naming gets. The seconds
+     are the period stated in .is-pulsing (animations.css): the pulse itself
+     is a CSS animation -- it has to survive a beat being skipped without a
+     tween to hold it -- so all that is kept here is how long to leave the
+     class on.
+       The class is taken off and put back on inside one call, with a box
+     read between, because that is what restarts a CSS animation: a part
+     named twice in a scene begins its breathing again rather than joining
+     the cycle already running. */
+  var PULSE_SECS = 1.05;
+  var PULSE_TIMES = 3;
+
+  function partPulse(marks, opts) {
+    var o = opts || {};
+    var times = o.times || PULSE_TIMES;
+    var list = [].concat(marks).filter(Boolean);
+
+    function off() {
+      list.forEach(function (m) {
+        m.classList.remove('is-pulsing');
+        if (m.style) m.style.removeProperty('--pulse-times');
+      });
+    }
+
+    var tl = M.timeline({ revert: off });
+    tl.call(function () {
+      list.forEach(function (m) {
+        m.classList.remove('is-pulsing');
+        void m.getBoundingClientRect().width;
+        if (m.style) m.style.setProperty('--pulse-times', String(times));
+        m.classList.add('is-pulsing');
+      });
+    }, null, 0);
+    /* An empty callback at the far end: it gives the timeline the length of
+       the pulse, so a caller that waits on it waits the right amount and a
+       skip has something to collapse. */
+    tl.call(function () {}, null, M.gap(PULSE_SECS * times));
     return tl;
   }
 
@@ -1362,6 +1418,147 @@
     return tl;
   }
 
+  /* ======================================================================
+   * Section 5 -- the quiz (the scenes are in quiz.js)
+   * ----------------------------------------------------------------------
+   * The last section asks for everything the four before it taught, and
+   * does one thing to a circle none of them did: it stands every part of
+   * the circle back but the one being asked about. The beats for that,
+   * for the three names the first activity puts under its circles, and
+   * for the answer's small burst are here, next to the beats they are
+   * made from.
+   * ====================================================================== */
+
+  /* The names arriving under the circles, one after the other, each with
+     the pop a mark makes as it lands. They end in the stylesheet's hands,
+     as the boxes do: from there their level is a class. */
+  function optsIn(list) {
+    var tl = M.timeline({ willChange: list, willChangeValue: 'transform, opacity' });
+    list.forEach(function (g, i) {
+      var at = i * 0.14;
+      tl.fromTo(g,
+        { opacity: 0, scale: 0.72, transformOrigin: 'center center' },
+        { opacity: 1, scale: 1, duration: M.dur(0.44), ease: M.POP }, M.gap(at));
+      tl.call(pop, null, M.gap(at));
+    });
+    tl.call(function () {
+      list.forEach(function (g) { g.classList.add('is-shown'); });
+      M.set(list, { clearProps: 'opacity' });
+    });
+    return tl;
+  }
+
+  /* A name pressed. The colour each one takes is its own class -- the
+     green a state it stays in, the red held for a beat -- so these are
+     the movement that goes with it: one outward pulse for the right
+     name, a head-shake for a wrong one, as a box gives. */
+  function optRight(g) {
+    g.classList.remove('is-wrong');
+    g.classList.add('is-right');
+    sfx('correct');
+    var tl = M.timeline({ revert: function () { M.set(g, { clearProps: 'transform' }); } });
+    tl.to(g, { scale: 1.07, transformOrigin: 'center center',
+               duration: M.dur(0.14), ease: 'power2.out' })
+      .to(g, { scale: 1, duration: M.dur(0.4), ease: M.POP });
+    return tl;
+  }
+  function optWrong(g) {
+    g.classList.add('is-wrong');
+    sfx('wrong');
+    var tl = M.timeline({
+      willChange: g, willChangeValue: 'transform',
+      revert: function () {
+        g.classList.remove('is-wrong');
+        M.set(g, { clearProps: 'transform' });
+      }
+    });
+    var each = M.dur(0.3) / SHAKE.length;
+    SHAKE.forEach(function (x, i) {
+      tl.to(g, { x: x, duration: each, ease: i === SHAKE.length - 1 ? 'power2.out' : 'none' });
+    });
+    tl.to({}, { duration: M.dur(0.5) });
+    return tl;
+  }
+
+  /* The part being asked about, and the rest stood back: `on` comes up to
+     full and `off` drops to a shadow of itself -- far enough down that a
+     coloured line reads as a faint grey one, which is what says "not
+     this". The pieces of the rim among `on` swell once, as an arc is lit
+     everywhere in the lesson; a region's colour is its own beat (segFill,
+     secFill), because the region has to be SEEN to be made. */
+  var QZ_DIM = 0.18;
+
+  function quizFocus(on, off, arcs) {
+    var tl = M.timeline({
+      willChange: on.concat(off), willChangeValue: 'opacity',
+      revert: function () { if (arcs && arcs.length) unswell(arcs); }
+    });
+    if (off.length) tl.to(off, { opacity: QZ_DIM, duration: M.dur(0.45), ease: 'power2.inOut' }, 0);
+    if (on.length) tl.to(on, { opacity: 1, duration: M.dur(0.35), ease: 'power2.out' }, 0);
+    if (arcs && arcs.length) swell(tl, arcs, 0.12);
+    return tl;
+  }
+  function quizUnfocus(all) {
+    var tl = M.timeline({ willChange: all, willChangeValue: 'opacity' });
+    tl.to(all, { opacity: 1, duration: M.dur(0.5), ease: 'power2.inOut' });
+    return tl;
+  }
+
+  /* A region's colour taken off again, once its name has been given. */
+  function fillOut(region) {
+    var tl = M.timeline({ willChange: region, willChangeValue: 'opacity' });
+    tl.call(function () { region.classList.remove('is-lit'); }, null, 0);
+    tl.to(region, { opacity: 0, duration: M.dur(0.36), ease: 'power2.in' }, 0);
+    return tl;
+  }
+
+  /* The burst. A dozen or so small pieces put down on the spot -- `x`,
+     `y` in the picture's units, in `host` -- thrown outward and up, each
+     turning as it goes, slowing, and falling a little as it fades. Kept
+     small on purpose: it is a word on the end of a right answer, not the
+     end of the lesson. The pieces are taken out of the tree when it is
+     over, however it ends. */
+  var BURST_N = 14;
+  var BURST_HUES = ['blue', 'mint', 'lavender', 'coral', 'yellow'];
+
+  function confetti(host, x, y) {
+    var bits = [];
+    for (var i = 0; i < BURST_N; i++) {
+      var round = i % 3 === 0;
+      var size = 5 + Math.random() * 4;
+      var el = document.createElementNS('http://www.w3.org/2000/svg', round ? 'circle' : 'rect');
+      el.setAttribute('class', 'qz-bit qz-bit--' + BURST_HUES[i % BURST_HUES.length]);
+      if (round) {
+        el.setAttribute('cx', x); el.setAttribute('cy', y); el.setAttribute('r', size / 2);
+      } else {
+        el.setAttribute('x', x - size / 2); el.setAttribute('y', y - size * 0.3);
+        el.setAttribute('width', size); el.setAttribute('height', size * 0.6);
+        el.setAttribute('rx', 1);
+      }
+      host.appendChild(el);
+      bits.push(el);
+    }
+    var tl = M.timeline({
+      revert: function () {
+        bits.forEach(function (b) { if (b.parentNode) b.parentNode.removeChild(b); });
+      }
+    });
+    if (M.reducedMotion()) return tl;          /* a burst is motion for its own sake */
+    bits.forEach(function (b, i) {
+      /* spread round the whole compass, but thrown mostly upward */
+      var ang = (i / BURST_N) * Math.PI * 2 + (Math.random() - 0.5) * 0.6;
+      var dist = 58 + Math.random() * 52;
+      var dx = Math.cos(ang) * dist;
+      var dy = -Math.abs(Math.sin(ang)) * dist * 0.9 - 14;
+      var spin = (Math.random() - 0.5) * 540;
+      M.set(b, { transformOrigin: 'center center' });
+      tl.to(b, { x: dx, y: dy, rotation: spin, duration: M.dur(0.55), ease: 'power2.out' }, 0)
+        .to(b, { y: dy + 36 + Math.random() * 20, duration: M.dur(0.5), ease: 'power1.in' }, M.gap(0.5))
+        .to(b, { opacity: 0, scale: 0.5, duration: M.dur(0.4), ease: 'power2.in' }, M.gap(0.62));
+    });
+    return tl;
+  }
+
   global.Beats = {
     sfx: sfx,
     pop: pop,
@@ -1378,6 +1575,7 @@
     callout: callout,
     calloutOut: calloutOut,
     arrowOut: arrowOut,
+    partPulse: partPulse,
     /* points and lines */
     plotDot: plotDot,
     growLine: growLine,
@@ -1447,6 +1645,14 @@
     secFill: secFill,
     secSweep: secSweep,
     secRight: secRight,
-    secWrong: secWrong
+    secWrong: secWrong,
+    /* section 5 -- the quiz */
+    optsIn: optsIn,
+    optRight: optRight,
+    optWrong: optWrong,
+    quizFocus: quizFocus,
+    quizUnfocus: quizUnfocus,
+    fillOut: fillOut,
+    confetti: confetti
   };
 })(window);

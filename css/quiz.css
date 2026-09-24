@@ -1,0 +1,170 @@
+/* ==========================================================================
+   Section 5 -- the quiz
+   The last section's own marks: the regions it colours in, the name pills
+   under the first activity's three circles, the pieces of the burst a
+   right answer sets off, and the two things it does to the tray -- six
+   names in it rather than five, and a name that has gone into its box
+   leaving an empty slot behind. Everything else it draws is a mark from
+   one of the sections before, wearing that section's classes. Everything
+   is picked out of the palette in style.css.
+   ========================================================================== */
+:root {
+  /* The regions, in the colours the arcs were TAUGHT in: gold for the
+     smaller of anything, the palette's lavender for the larger -- so the
+     coloured piece of the circumference and the coloured region under it
+     read as one thing. Near full strength, not the pale wash the earlier
+     sections use: here a region is coloured to be PICKED OUT of a circle
+     whose other parts stand back, and a wash would not carry. */
+  --qz-minor: color-mix(in srgb, var(--yellow-fill) 90%, #FFFFFF);
+  --qz-major: color-mix(in srgb, var(--lavender-fill) 52%, #FFFFFF);
+
+  /* The empty slot a name leaves in the tray once it has gone into its
+     box: the tray's own edge, dashed, at a whisper. */
+  --qz-slot: color-mix(in srgb, var(--lavender-border) 26%, transparent);
+
+  /* The wall a name pill stands on: the same edge every raised control in
+     the game has. In the picture's units, so it scales with the pill. */
+  --qz-edge: 5px;
+}
+
+/* ---- The regions --------------------------------------------------------
+   Filled shapes with no edge of their own: the pieces of the rim, the
+   chord and the radii are their edges. All rest invisible; segFill and
+   secFill (animations.js) colour one in for the beat it is asked about,
+   and fillOut takes it away again. */
+.qz-region {
+  opacity: 0;
+  pointer-events: none;
+  transition: fill .45s ease;
+}
+.qz-region--minor { fill: var(--qz-minor); }
+.qz-region--major { fill: var(--qz-major); }
+
+/* Nothing laid on the second activity's circle is a target: the names
+   are dragged to a box beside it, never dropped on it. */
+.qz-circle .figure__rim,
+.qz-circle .rim-tip,
+.qz-circle .arc-piece,
+.qz-circle .chord-line,
+.qz-circle .arc-dot,
+.qz-circle .centre__dot,
+.qz-card * { pointer-events: none; }
+
+/* ---- The names under the three circles ----------------------------------
+   The Start button, drawn in the picture: a pill with the same gradient
+   face, the same white rim, standing on the same wall -- so the three
+   read as buttons to press and not as labels. Pressed, the face drops
+   onto its wall, as every raised control in the game does. Off the board
+   until optsIn brings it on; live -- a hand over it, a press on it --
+   only while the question is open. */
+.qz-opt {
+  opacity: 0;
+  outline: none;
+  cursor: default;
+  pointer-events: none;
+  filter: drop-shadow(0 5px 7px var(--shadow-soft));
+  transition: opacity .34s ease, filter .18s ease;
+}
+.qz-opt.is-shown { opacity: 1; }
+.figure__qz.is-asking .qz-opt {
+  pointer-events: all;
+  cursor: pointer;
+}
+.figure__qz.is-asking .qz-opt:hover { filter: drop-shadow(0 6px 9px var(--shadow-soft)) brightness(1.03); }
+.figure__qz.is-asking .qz-opt.is-right,
+.figure__qz.is-asking .qz-opt.is-wrong { pointer-events: none; cursor: default; }
+
+/* the gradient's three stops (see #qzOptGrad in index.html) */
+.qz-opt-grad__top { stop-color: var(--board-highlight); }
+.qz-opt-grad__mid { stop-color: var(--button-bg); }
+.qz-opt-grad__low { stop-color: var(--board-decoration); }
+
+.qz-opt__wall {
+  fill: var(--horizon);
+  transition: fill .25s ease;
+}
+.qz-opt__face {
+  fill: url(#qzOptGrad);
+  stroke: var(--board-highlight);
+  stroke-width: 3.5;
+  transition: fill .25s ease, stroke .25s ease, transform .08s ease-out;
+}
+.qz-opt__text {
+  fill: var(--text-primary);
+  font-size: 25px;
+  letter-spacing: .5px;
+  pointer-events: none;
+  transition: fill .25s ease, transform .08s ease-out;
+}
+/* Under the finger: the face and the word sink onto the wall. */
+.qz-opt.is-down .qz-opt__face,
+.qz-opt.is-down .qz-opt__text { transform: translateY(var(--qz-edge)); }
+.qz-opt.is-down { filter: drop-shadow(0 2px 3px var(--shadow-soft)); }
+
+.qz-opt:focus-visible .qz-opt__face { stroke: var(--lavender-border); }
+
+/* Answered. The green is a state the pill stays in; the red is held for
+   a beat by optWrong and then taken off again. The wall takes the
+   verdict's own border, as the answers to a yes/no question do. */
+.qz-opt.is-right .qz-opt__face {
+  fill: color-mix(in srgb, var(--right-fill) 34%, #FFFFFF);
+  stroke: var(--right-border);
+}
+.qz-opt.is-right .qz-opt__wall { fill: var(--right-border); }
+.qz-opt.is-right .qz-opt__text { fill: var(--right-border); }
+.qz-opt.is-wrong .qz-opt__face {
+  fill: color-mix(in srgb, var(--wrong-fill) 34%, #FFFFFF);
+  stroke: var(--wrong-border);
+}
+.qz-opt.is-wrong .qz-opt__wall { fill: var(--wrong-border); }
+
+/* ---- The one box ----------------------------------------------------------
+   The boxes' own make (style.css), a size up: it is the one thing on the
+   right half of the board, and it takes a whole name. */
+.qz-boxes .q-box__text { font-size: 24px; }
+
+/* ---- The burst ----------------------------------------------------------
+   A dozen small pieces in the palette's five fills, thrown up from a box
+   that has just been answered right and falling away. Their motion is
+   confetti's (animations.js); they are put in the tree for the length of
+   it and taken out after. */
+.qz-bit { pointer-events: none; }
+.qz-bit--blue     { fill: var(--blue-fill); }
+.qz-bit--mint     { fill: var(--mint-fill); }
+.qz-bit--lavender { fill: var(--lavender-fill); }
+.qz-bit--coral    { fill: var(--coral-fill); }
+.qz-bit--yellow   { fill: var(--yellow-fill); }
+
+/* ---- The tray, with six names in it ---------------------------------------
+   Six pills where the first activity had five, and longer words on them
+   -- "major segment" is as long as "circumference" -- so the size is
+   brought down a step to keep the row on one line at every board size.
+   Sized against both sides of the screen, as the five are. */
+.tray--six .chip {
+  font-size: clamp(11px, min(2.6vh, 1.45vw), 21px);
+  padding: .32em .95em .38em;
+}
+
+/* A name that has gone into its box leaves its place in the row -- the
+   others must not close up under the learner's hand -- and here that
+   place is SHOWN: an empty dashed slot where the name was, so the row
+   reads as a set with some of it used. The word is still there, in no
+   ink, which is what holds the slot at the name's own width. */
+.tray--slots .chip.is-docked {
+  visibility: visible;
+  pointer-events: none;
+  cursor: default;
+  color: transparent;
+  background: color-mix(in srgb, var(--board-highlight) 40%, transparent);
+  border: 3px dashed var(--qz-slot);
+  box-shadow: none;
+  filter: none;
+}
+
+/* ---- Reduced motion ----------------------------------------------------- */
+@media (prefers-reduced-motion: reduce) {
+  .qz-opt,
+  .qz-opt__face,
+  .qz-opt__text,
+  .qz-region { transition: none !important; }
+}

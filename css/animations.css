@@ -98,6 +98,61 @@
   transition: opacity .3s ease, transform .3s ease;
 }
 
+/* ==========================================================================
+   The pulse -- a part, picked out while it is being named
+   --------------------------------------------------------------------------
+   Every time the lesson says what a part IS, that part itself is lit: the
+   mark blooms in its own ink and breathes three times under the arrow, so
+   the word, the arrow and the thing on the circle are read as one event
+   rather than as a label landing near some lines.
+     Two flavours, because the parts are two kinds of mark. A LINE -- the
+   rim, a radius, a chord -- swells and settles, the way a hand goes back
+   over a stroke to press it home. A POINT has no width to swell, so it
+   pings instead: a ring in its own ink opens out of it and fades. Both wear
+   the same bloom (#partGlow in index.html), which is a blurred copy of the
+   mark itself and therefore always in the mark's own colour.
+     This is the motion layer's second deliberate exception to
+   transform/opacity/filter only: stroke-width. A stroke is the only thing a
+   line HAS, and swelling one costs no layout -- the picture is an SVG, so
+   nothing reflows. Beats.partPulse in animations.js turns the class on and
+   takes it off again; the period below and PULSE_SECS there are the same
+   number stated in the two places that need it, so they move together. */
+.is-pulsing {
+  filter: url(#partGlow);
+  animation: part-pulse-line 1.05s ease-in-out var(--pulse-times, 3);
+  /* How far a line swells, and back to what. Every line on the circle rests
+     at --part-weight; the rim is the one that does not, so it says so.
+       Both are plain numbers, and the wide one is written out rather than
+     worked out: a keyframe interpolates two lengths of the same KIND, and
+     `calc(4 * 1.75)` is not the same kind of value as `4` -- the pair would
+     be stepped between instead of eased, which is a flicker rather than a
+     swell. */
+  --pulse-w0: var(--part-weight);
+  --pulse-w1: 7;
+}
+.figure__rim.is-pulsing { --pulse-w0: 2.6; --pulse-w1: 5.4; }
+
+@keyframes part-pulse-line {
+  0%, 100% { stroke-width: var(--pulse-w0); }
+  50%      { stroke-width: var(--pulse-w1); }
+}
+
+/* The points: a ring opening out of the mark and fading, drawn as the mark's
+   own stroke so nothing has to be added to the picture to make it. Neither
+   dot has a stroke at rest, so there is nothing to put back. */
+.centre__dot.is-pulsing,
+.end-dot.is-pulsing {
+  stroke: var(--pulse-ink);
+  animation-name: part-pulse-ring;
+}
+@keyframes part-pulse-ring {
+  0%   { stroke-width: 0;  stroke-opacity: .72; }
+  70%  { stroke-width: 15; stroke-opacity: 0; }
+  100% { stroke-width: 0;  stroke-opacity: 0; }
+}
+.centre__dot.is-pulsing { --pulse-ink: var(--part-centre); }
+.end-dot.is-pulsing     { --pulse-ink: var(--part-point); }
+
 /* A name picked up by a tap, waiting for its box: it breathes so it is
    plainly the one in hand. */
 .chip.is-picked { animation: chip-pick 1.3s ease-in-out infinite; }
@@ -157,4 +212,13 @@
     transform: scale(1);
   }
   .chip.is-picked { animation: none !important; }
+  /* The pulse is a highlight before it is a motion: the part still has to be
+     picked out, so the bloom is left standing for as long as the beat holds
+     the class on, and only the breathing is dropped. */
+  .is-pulsing {
+    animation: none !important;
+    stroke-width: var(--pulse-w1);
+  }
+  .centre__dot.is-pulsing,
+  .end-dot.is-pulsing { stroke-width: 0; }
 }
