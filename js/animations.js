@@ -720,15 +720,26 @@
      both fractions of the box's own type size -- and that size is a clamp,
      so it is a different number of pixels on every screen. */
   var TAIL_X = 0.78 + 0.76 / 2;        /* in em, from .bubble in style.css */
+  var TAIL_BORDER = 4;                 /* and the border it is measured from */
 
   function tailOrigin(bubble) {
     var em = parseFloat(getComputedStyle(bubble).fontSize) || 16;
-    return (em * TAIL_X) + 'px 100%';
+    /* The border counts. --bub-tail-x is an offset into the PADDING box,
+       and a transform-origin is measured from the BORDER box, so leaving
+       the 4px out put the origin a few pixels left of the tail and the
+       bubble grew out of its own edge instead of out of its point. The
+       reference spells the same sum out in CSS:
+         calc(4px + var(--bub-tail-x) + var(--bub-tail-w) / 2) 100% */
+    return (TAIL_BORDER + em * TAIL_X) + 'px 100%';
   }
 
   function bubbleArm(bubble) {
     bubble.removeAttribute('hidden');
-    M.set(bubble, { opacity: 0, scale: 0.78, transformOrigin: tailOrigin(bubble) });
+    /* .15, as the reference arms it. Nearly nothing, so what opens is a
+       point at the tail rather than a box that was already most of the way
+       there -- which is what makes the bubble read as coming OUT of the
+       bird rather than as fading up over it. */
+    M.set(bubble, { opacity: 0, scale: 0.15, transformOrigin: tailOrigin(bubble) });
   }
 
   /* And opening. Scaled from its own tail rather than its centre, so it
@@ -737,7 +748,10 @@
     var tl = M.timeline({ willChange: bubble, willChangeValue: 'transform, opacity' });
     tl.to(bubble, {
       opacity: 1, scale: 1, transformOrigin: tailOrigin(bubble),
-      duration: M.dur(0.34), ease: 'back.out(1.4)'
+      /* the reference's own .44s, and an overshoot in place of its
+         cubic-bezier(.2, .9, .3, 1.45) -- the same pop, expressed the way
+         this game's tweens are, so Skip and Replay still reach it */
+      duration: M.dur(0.44), ease: 'back.out(1.6)'
     });
     return tl;
   }

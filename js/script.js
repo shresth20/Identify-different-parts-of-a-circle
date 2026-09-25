@@ -42,6 +42,7 @@
     /* Only what the opening beats actually touch. The rest of the 82
        animations on disk are never fetched. */
     var art = [
+      imageReady('assets/image/welcome-page.png'),
       imageReady('assets/image/board.png'),
       imageReady('assets/image/bg.png'),
       global.Mascot.preload([

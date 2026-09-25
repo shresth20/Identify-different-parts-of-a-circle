@@ -29,17 +29,10 @@
            entrance rises back out of the board's own surface. -->
       <div class="slot slot--hero" id="slotHero">
         <div class="bubble" id="bubble" hidden>
-          <!-- The two emphasis strokes that flank the bubble. -->
-          <svg class="bubble-mark mark-left" viewBox="0 0 40 60" aria-hidden="true">
-            <path d="M8 12 L30 24" /><path d="M8 48 L30 36" />
-          </svg>
           <span class="type-wrap" id="bubbleType">
             <span class="type-ghost"></span>
             <span class="type" aria-live="polite"><span class="txt"></span></span>
           </span>
-          <svg class="bubble-mark mark-right" viewBox="0 0 40 60" aria-hidden="true">
-            <path d="M32 12 L10 24" /><path d="M32 48 L10 36" />
-          </svg>
           <!-- The tail. Two paths, in this order for a reason: the filled
                one goes down first so it covers the box's border where the
                tail joins it, and the stroke then draws the tail's two FREE
@@ -126,9 +119,10 @@
               </filter>
             </defs>
 
-            <!-- Fill first in document order so the rim always draws on top of
-                 it, whichever of the two is revealed first. -->
-            <circle class="figure__disc" id="disc" cx="500" cy="210" r="158" />
+            <!-- No wash inside this circle: section 1 is about the parts drawn
+                 ON the circle -- rim, centre, radius, diameter, chord -- and
+                 an open ring keeps every one of them the strongest thing on
+                 the board. The sections about areas draw their own discs. -->
 
             <!-- The rim is a path, not a <circle>, for one reason: a stroke
                  unrolls from wherever its path starts, and a circle's starts
@@ -505,16 +499,10 @@
           <div class="aside" id="aside" hidden>
             <div class="slot slot--aside" id="slotAside">
               <div class="bubble bubble--aside" id="bubbleAside" hidden>
-                <svg class="bubble-mark mark-left" viewBox="0 0 40 60" aria-hidden="true">
-                  <path d="M8 12 L30 24" /><path d="M8 48 L30 36" />
-                </svg>
                 <span class="type-wrap" id="asideType">
                   <span class="type-ghost"></span>
                   <span class="type" aria-live="polite"><span class="txt"></span></span>
                 </span>
-                <svg class="bubble-mark mark-right" viewBox="0 0 40 60" aria-hidden="true">
-                  <path d="M32 12 L10 24" /><path d="M32 48 L10 36" />
-                </svg>
                 <svg class="bubble-tail" viewBox="0 0 44 42" aria-hidden="true">
                   <path d="M4 0 H42 V8 C36 20 24 30 2 42 C8 32 8 20 4 8 Z"
                         fill="var(--bubble-bg)" />
@@ -556,15 +544,11 @@
       </button>
     </div>
 
-    <!-- Welcome, over everything until Start is pressed. -->
+    <!-- Welcome, over everything until Start is pressed. The title and the
+         bird are painted into the artwork (welcome-page.png), so the heading
+         is there for screen readers only. -->
     <section class="welcome" id="welcome">
-      <div class="slot slot--welcome" id="slotWelcome"></div>
-      <h1 class="welcome__title heading">
-        <span class="type-wrap" id="titleType">
-          <span class="type-ghost"></span>
-          <span class="type" aria-live="polite"><span class="txt"></span></span>
-        </span>
-      </h1>
+      <h1 class="welcome__title">Identify Different Parts of a Circle</h1>
       <button class="start-btn" id="startBtn" type="button" hidden>Start</button>
     </section>
   </main>

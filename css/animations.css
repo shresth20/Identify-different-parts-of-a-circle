@@ -41,7 +41,7 @@
   text-align: left;
   /* Each word span carries its own trailing spaces (see wordCuts in
      typer.js), and they must not collapse. */
-  white-space: pre-wrap;
+  white-space: nowrap;
 }
 /* A centred heading centres both of its rows. */
 .heading .type,

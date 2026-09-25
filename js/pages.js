@@ -29,13 +29,12 @@
      Every word the learner reads, in one place. Short sentences and plain
      words: the audience is grade 7. */
   var LINES = {
-    title:   'Identify Different Parts of a Circle',
     hello:   'Hey there!',
     warmup:  'Let’s do a quick warm-up!',
 
     draw:           'Let’s draw a circle!',
     circumference:  'This is the circumference.',
-    circumference2: 'It is the line all the way around the circle.',
+    circumference2: 'Circumference is the distance all the way around a circle.',
     tapDot:         'Tap the dot in the middle!',
     centre:         'This is the center.',
     radius:         'This is the radius.',
@@ -189,7 +188,7 @@
   var quiz = { parts: {}, boxes: [] };
   var chips = [];
   var choiceBtns = [];          /* the two answers, while a question is up */
-  var sayTitle, sayBubble, sayPrompt;
+  var sayBubble, sayPrompt;
 
   function $(id) { return document.getElementById(id); }
 
@@ -198,7 +197,6 @@
       welcome:  $('welcome'),
       title:    document.querySelector('.welcome__title'),
       startBtn: $('startBtn'),
-      slotWelcome: $('slotWelcome'),
 
       frame:    $('frame'),
       slotHero: $('slotHero'),
@@ -210,7 +208,6 @@
       promptLine: document.querySelector('.prompt__line'),
 
       figure:    $('figure'),
-      disc:      $('disc'),
       rim:       $('rim'),
       rimTip:    $('rimTip'),
 
@@ -470,7 +467,7 @@
      Every mark that can be on the circle at once, in one list: what a scene
      hands back when it is over, and what a replay has to undo. */
   function figureParts() {
-    var own = [dom.rim, dom.disc, dom.rimTip,
+    var own = [dom.rim, dom.rimTip,
                dom.dia, dom.chords, dom.quiz, dom.centre, dom.mark];
     return sections.reduce(function (all, s) {
       return s.parts ? all.concat(s.parts()) : all;
@@ -568,7 +565,9 @@
 
   /* Say a line in the header, and carry the bird to where the new line
      leaves room for it.
-       The prompt row is centred as a pair, so the bird's resting place is a
+       The prompt row is now a fixed-width pair (see .prompt in style.css),
+     so the bird keeps its spot and the shift below measures zero. The guard stays
+     for any layout that centres the row again: there the bird's resting place is a
      function of how long the line beside it is -- and the ghost takes the
      whole line's width in a single frame, before one word of it is visible.
      Left alone that is a hard sideways jump of the bird on every line.
@@ -797,12 +796,10 @@
   }
 
   /* ---- the circle, drawn --------------------------------------------------
-     Outline first, colour second, with a pause between them: two acts, not
-     one. */
+     The outline only: this section's circle is an open ring (see the figure
+     in index.html), so the draw is one act. */
   function drawCircle() {
-    return Flow.anim(Beats.drawRim(dom.rim, dom.rimTip))
-      .then(function () { return Flow.wait(160); })
-      .then(function () { return Flow.anim(Beats.fillDisc(dom.disc)); });
+    return Flow.anim(Beats.drawRim(dom.rim, dom.rimTip));
   }
 
   /* ---- the board's top band, taken away and given back -------------------
@@ -1225,14 +1222,15 @@
    * ====================================================================== */
 
   /* ---- Scene 0 -- welcome ----------------------------------------------
-     The bird is waving before a word is on screen, so the first thing that
-     moves is the character rather than the interface. */
+     The title and a waving bird are painted into the welcome artwork, so
+     the only live thing on it is Start. The real bird is already on its
+     mark behind the screen, waving, and is revealed as the artwork fades --
+     the painted bird hands over to the live one. */
   function sceneWelcome() {
-    mascot.placeIn(dom.slotWelcome);
+    mascot.placeIn(dom.slotHero);
     mascot.state('waving');
 
     return Flow.wait(SHORT)
-      .then(function () { return sayTitle(LINES.title); })
       .then(function () {
         dom.startBtn.removeAttribute('hidden');
         /* One frame between display:none coming off and the class going on,
@@ -1247,16 +1245,10 @@
       .then(function () {
         Beats.sfx('click');
 
-        /* "Hey there!" -- the welcome stands aside and the bird walks to its
-           mark on the field in the same beat: a step from where it was
-           already standing, not a leap. Re-parent FIRST so Flip measures the
-           move against a welcome screen that is still on screen. */
-        var walk = mascot.moveTo(dom.slotHero, {
-          vars: { duration: 0.62, ease: 'power2.inOut' }
-        });
+        /* "Hey there!" -- the artwork stands aside over a bird that is
+           already waving on its mark. */
         mascot.settle();                       /* wave_stop, then the idle */
-        Beats.welcomeOut(dom.welcome, dom.title, dom.startBtn);
-        return Flow.anim(walk);
+        return Flow.anim(Beats.welcomeOut(dom.welcome, dom.title, dom.startBtn));
       })
       .then(function () { return Flow.wait(SHORT); })
       .then(function () {
@@ -1585,19 +1577,17 @@
   /* The five parts of the circle, each with the box that will name it, in
      the order the lesson taught them. One entry is one pair: what draws the
      part, and which marks on the board that part is made of.
-       `lit` is the narrower list -- the marks the pulse is for. It leaves
-     out the wash inside the rim and takes the centre's dot rather than its
-     group, because a highlight has to land on the mark the name is ABOUT,
-     and a group carries a halo and a hit area as well. */
+       `lit` is the narrower list -- the marks the pulse is for. It takes
+     the centre's dot rather than its group, because a highlight has to land
+     on the mark the name is ABOUT, and a group carries a halo and a hit
+     area as well. */
   function quizSteps() {
     return [
       { name: 'Circumference',
-        marks: [dom.rim, dom.disc],
+        marks: [dom.rim],
         lit: [dom.rim],
         draw: function () {
-          return Flow.anim(Beats.drawRim(dom.rim, dom.rimTip))
-            .then(function () { return Flow.wait(140); })
-            .then(function () { return Flow.anim(Beats.fillDisc(dom.disc)); });
+          return Flow.anim(Beats.drawRim(dom.rim, dom.rimTip));
         } },
       { name: 'Center',
         marks: [dom.centre],
@@ -1782,7 +1772,6 @@
      behind is undone here rather than at the end of the run, because a run
      that was replayed half way through never reached its end. */
   function rewind() {
-    if (sayTitle)  sayTitle.clear();
     if (sayBubble) sayBubble.clear();
     if (sayPrompt) sayPrompt.clear();
     speaking++;
@@ -1835,7 +1824,7 @@
     if (index === 2) {
       /* The chord opens on the circle, with the bird still on the header
          from the scene before. */
-      M.set([dom.rim, dom.disc], { opacity: 1 });
+      M.set(dom.rim, { opacity: 1 });
       mascot.placeIn(dom.slotHeader);
       return;
     }
@@ -1859,9 +1848,8 @@
     longChord = buildLongChord(dom.chords);
     quiz = buildQuiz(dom.quiz);
 
-    mascot = global.Mascot.create({ slot: dom.slotWelcome });
+    mascot = global.Mascot.create({ slot: dom.slotHero });
 
-    sayTitle  = global.Typer.create($('titleType'));
     sayBubble = global.Typer.create($('bubbleType'), { box: dom.bubble });
     sayPrompt = global.Typer.create($('promptType'));
 

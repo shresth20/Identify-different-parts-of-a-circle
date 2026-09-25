@@ -259,7 +259,6 @@
   text-align: left;
 }
 .bubble--aside::before,
-.bubble--aside .bubble-mark,
 .bubble--aside .bubble-tail { display: none; }
 /* Three classes deep: animations.css centres `.bubble .type` and is loaded
    after this file, so the plainer selector would lose. */
