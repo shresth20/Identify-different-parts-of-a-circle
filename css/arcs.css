@@ -282,60 +282,106 @@
    All dimensions follow the aside so the card and bird stay together. */
 .aside--message .slot--aside {
   left: 12cqw;
-  bottom: 22cqh;
+  bottom: var(--message-bottom, 15cqh);
   height: 36cqh;
 }
 .aside--message .bubble--aside {
-  --bubble-bg: #f4ecff;
-  --note-edge: #ffffff;
-  --message-edge-low: #d5beeF;
+  --bubble-bg: #efe5ff;              /* the fill at the foot, and the tail's */
+  --message-rim: #c7aef5;
+  --message-rim-low: #a586e6;
+  --message-lip: #9673dbb3;          /* the rounded underside */
+  --message-border: .075em;
+  --note-edge: var(--message-rim-low);
   left: -7cqw;
   bottom: calc(100% + 1.6cqh);
-  width: 88cqw;
-  max-width: none;
+  /* Sized by its own sentence: a short rule gets a snug card, a long
+     definition the full measure, and the card always lies WIDE -- a line
+     first, a box second. max-content, not fit-content: the card hangs off
+     a slot much narrower than itself, and a fit-content box is clamped to
+     that slot's width, which stacks the sentence into a tall column.
+     max-content measures the unwrapped line alone, and the max-width is
+     what breaks it. Never narrower than the stretch of foot the tail sits
+     on -- its left offset plus its width plus the corner's radius. */
+  width: max-content;
+  min-width: calc(1cqw + 18cqh + 2.2em);
+  max-width: 88cqw;
   padding: .85em 1.05em .95em;
-  border: .09em solid transparent;
+  border: var(--message-border) solid transparent;
   border-radius: 1.45em;
-  /* White light along the upper rim fades into the lavender lower edge.
-     The fill settles to the tail's colour before it reaches their join. */
+  /* A lavender rim, deepening toward the foot, drawn round a white card --
+     so the card holds its edge against the pale board instead of fading
+     into it. The fill is flat at the tail's colour for its last stretch,
+     because the tail's top reaches up into it and has to vanish there. */
   background:
-    linear-gradient(180deg, #fffaff 0%, #f9f3ff 46%, var(--bubble-bg) 88%) padding-box,
-    linear-gradient(165deg, var(--note-edge) 12%, #fcf8ff 42%, var(--message-edge-low) 92%) border-box;
-  box-shadow: inset 0 .06em .12em #ffffffcc,
-              inset 0 -.06em .1em #b594d933;
-  /* Shadow the combined card-and-tail silhouette, so the pointer belongs
-     to the same raised surface instead of sitting over a rectangular shadow. */
-  filter: drop-shadow(0 .1em .08em #a784cf66)
-          drop-shadow(0 .35em .65em #8054b352);
-  font-size: 4.8cqw;
+    linear-gradient(180deg, #ffffff 0%, #fbf8ff 40%, var(--bubble-bg) 84%) padding-box,
+    linear-gradient(180deg, var(--message-rim) 0%, var(--message-rim-low) 100%) border-box;
+  /* A white bevel just inside the rim, a gloss across the top, and a little
+     shade drawn in at either side, so the face reads as curved rather than
+     flat. No shade at the foot, for the tail's sake. */
+  box-shadow: inset 0 0 0 .05em #ffffffe6,
+              inset 0 .22em .3em -.12em #ffffff,
+              inset .16em 0 .26em -.12em #b190e638,
+              inset -.16em 0 .26em -.12em #b190e638;
+  /* Lifted off the board in three soft layers, none with a hard edge: a
+     blurred underside that rounds the card's edge over, a contact shadow
+     just beneath it, and a wide one cast well below. drop-shadow rather than
+     box-shadow, so all three follow the card-and-tail silhouette and the
+     pointer belongs to the same raised surface. */
+  filter: drop-shadow(0 .1em .07em var(--message-lip))
+          drop-shadow(0 .25em .22em #5b3fa547)
+          drop-shadow(0 .75em .9em #3f2a8a52);
+  font-size: 5.3cqw;
   line-height: 1.38;
   letter-spacing: 0;
   text-align: left;
 }
+/* A card carrying two sentences at once (the diameter's notes): at the
+   one-line size the pair would crowd the pane's top, so the type steps
+   down a little and the card keeps its air. */
+.aside--message .bubble--aside.msg-two { font-size: 4.4cqw; }
+/* The tail's stroke starts 8 of its 44 units down (index.html), so the tail
+   is lifted until that point sits on the rim's outer edge: the fill closes
+   the rim across the opening and the stroke carries it on down the sides
+   with no break. 8 units of a 1.4em tail is .2545em. */
 .aside--message .bubble-tail {
   display: block;
   left: calc(1cqw + 18cqh - .7em);
-  top: calc(100% - .09em);
+  top: calc(100% + var(--message-border) - .2545em);
   width: 1.4em;
   transform: scaleX(-1);
 }
+/* As thick as the card's border, in the tail's own units (44 across 1.4em),
+   and scaled with it, so the rim keeps one weight through the pop-in. */
 .aside--message .bubble-tail path:last-child {
-  stroke: var(--message-edge-low);
-  stroke-width: 2;
+  stroke-width: 2.36;
+  vector-effect: none;
 }
-/* Apply the same keyword metrics to the invisible layout copy. */
-.aside--message #asideType .type-ghost { white-space: pre-wrap; }
-.aside--message #asideType .wd:first-child {
+/* Apply the same keyword metrics to the invisible layout copy. The more
+   line's ghost wraps too, so the two-line card is laid out whole. */
+.aside--message #asideType .type-ghost,
+.aside--message #asideMore .type-ghost { white-space: pre-wrap; }
+/* The pill: the word that names the part, wherever it falls in the line.
+   pillKey (pages.js) tags it in the type and in the ghost alike, so the
+   words land where the layout was reserved. */
+.aside--message #asideType .wd.wd--key {
   display: inline-block;
   padding: 0 .38em .04em;
   margin: 0 .05em .08em -.12em;
   border-radius: 999px;
-  background: linear-gradient(180deg, #e9dcff, #d8c1ff);
-  box-shadow: 0 .07em .1em #b997e64d, inset 0 .04em .06em #ffffff80;
+  background: linear-gradient(180deg, #ece1ff, #d8c1ff);
+  /* The card's own make, smaller: a rim, a gloss, a soft underside and a
+     shadow. */
+  box-shadow: inset 0 0 0 .04em #c8aef5,
+              inset 0 .08em .06em #ffffffb3,
+              0 .06em .04em #a888e6a6,
+              0 .14em .18em #5b3fa538;
   white-space: nowrap;
 }
+/* The sparks only suit a pill at the HEAD of the line -- a shine in the
+   card's corner over a plain first word reads as debris -- so they wait
+   for .msg-lead, which pillKey sets only then. */
 .message-sparks { display: none; }
-.aside--message .message-sparks {
+.aside--message .msg-lead .message-sparks {
   display: block;
   position: absolute;
   width: 1.18em;

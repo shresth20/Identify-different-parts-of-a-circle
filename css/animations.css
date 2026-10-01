@@ -82,20 +82,14 @@
 /* The centre dot, asking to be tapped. Opacity and transform only, so the
    whole loop runs off the main thread; the halo is a separate circle under
    the dot, so the dot itself never softens.
-     The loop is led in by a fade of its own, up to exactly the loop's first
-   frame: the halo rests at nothing, and the glow starting should read as a
-   light coming on rather than a ring switched in. The loop waits out the
-   fade and so takes over from the very value it stopped on. */
+     The halo rests at nothing and every breath starts and ends there: it
+   comes on slowly, goes all the way out, and comes again, so no lead-in
+   fade is needed -- the loop's own first frame IS the light coming on. */
 .figure__centre.is-calling .centre__glow {
-  animation: dot-glow-in .7s ease-out,
-             dot-glow 1.5s ease-in-out .7s infinite;
-}
-@keyframes dot-glow-in {
-  from { opacity: 0;   transform: scale(.72); }
-  to   { opacity: .30; transform: scale(.72); }
+  animation: dot-glow 1.8s ease-in-out infinite;
 }
 @keyframes dot-glow {
-  0%, 100% { opacity: .30; transform: scale(.72); }
+  0%, 100% { opacity: 0;   transform: scale(.72); }
   50%      { opacity: .85; transform: scale(1.22); }
 }
 /* Answered: the halo settles to a quiet ring instead of stopping dead. It
@@ -124,14 +118,16 @@
    transform/opacity/filter only: stroke-width. A stroke is the only thing a
    line HAS, and swelling one costs no layout -- the picture is an SVG, so
    nothing reflows. Beats.partPulse in animations.js turns the class on and
-   takes it off again; the period below and PULSE_SECS there are the same
+   takes it off again (Beats.pulseHold leaves it on, --pulse-times infinite,
+   until Beats.pulseRelease); the period below and PULSE_SECS there are the same
    number stated in the two places that need it, so they move together. */
 .is-pulsing {
   filter: url(#partGlow);
   animation: part-pulse-line 1.05s ease-in-out var(--pulse-times, 3);
   /* How far a line swells, and back to what. Every line on the circle rests
-     at --part-weight; the rim is the one that does not, so it says so.
-       Both are plain numbers, and the wide one is written out rather than
+     at --part-weight; the ones that do not -- the rim, and the arcs'
+     pieces (--arc-weight, arcs.css) -- say so below.
+       All are plain numbers, and the wide ones are written out rather than
      worked out: a keyframe interpolates two lengths of the same KIND, and
      `calc(4 * 1.75)` is not the same kind of value as `4` -- the pair would
      be stepped between instead of eased, which is a flicker rather than a
@@ -140,6 +136,9 @@
   --pulse-w1: 7;
 }
 .figure__rim.is-pulsing { --pulse-w0: 2.6; --pulse-w1: 5.4; }
+/* The arc pieces swell by the same ratio their own one-shot swell uses
+   (swellTo in animations.js: 1.6 of their rest). */
+.arc-piece.is-pulsing { --pulse-w0: 7; --pulse-w1: 11; }
 
 @keyframes part-pulse-line {
   0%, 100% { stroke-width: var(--pulse-w0); }
@@ -165,27 +164,33 @@
 /* The circumference, held lit. Not the pulse above: the rim stays lit from
    the moment it is named until the callout on it has been looked at, which
    is longer than three breaths and not known in advance, so the light is a
-   loop of its own that runs while .is-lit is on. Slower than the pulse --
-   this is a light left on, not a nudge. Opacity only, on the blurred circle
+   loop of its own that runs while .is-lit is on. Slower than the pulse, and
+   it comes from nothing and goes all the way out again between breaths --
+   a light slowly switched on and off, not a nudge. Opacity only, on the blurred circle
    inside the group; the group's own opacity is the beats' to fade, which is
    what lets the light go out gently whatever point of a breath it is at. */
 .rim-light.is-lit .rim-light__glow {
-  animation: rim-breathe 1.4s ease-in-out infinite;
+  animation: rim-breathe 2s ease-in-out infinite;
 }
 @keyframes rim-breathe {
-  0%, 100% { opacity: .38; }
+  0%, 100% { opacity: 0; }
   50%      { opacity: .85; }
 }
 
-/* The radius, held lit while it is named. Its light breathes by its WIDTH:
-   the opacity is the beats' to fade in and out (lineLight / lineUnlight in
-   animations.js), and a CSS loop on the same property would outrank them. */
+/* The radius, held lit while it is named. The light arrives from nothing,
+   swells to full, and goes ALL the way out again before it returns -- a slow
+   on-and-off, not a flicker between two brightnesses. While .is-lit is on,
+   this loop owns the opacity (it outranks the inline value the beats write);
+   lineLight in animations.js still sets that inline value underneath, which
+   is what the reduced-motion block's `animation: none` falls back to, and
+   lineUnlight picks the fade-out up from whatever brightness the breath is
+   at (see the handover there). */
 .line-glow.is-lit {
-  animation: line-breathe 1.4s ease-in-out infinite;
+  animation: line-breathe 2s ease-in-out infinite;
 }
 @keyframes line-breathe {
-  0%, 100% { stroke-width: 9; }
-  50%      { stroke-width: 16; }
+  0%, 100% { opacity: 0;   stroke-width: 9; }
+  50%      { opacity: .85; stroke-width: 16; }
 }
 
 /* A name picked up by a tap, waiting for its box: it breathes so it is

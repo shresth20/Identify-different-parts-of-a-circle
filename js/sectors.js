@@ -354,7 +354,7 @@
    *   Keyboard: each wedge takes focus, and Enter or Space presses it.
    *   Hands back the index of the wedge that was pressed, in `list`.
    * ====================================================================== */
-  function askRegion(list) {
+  function askRegion(list, answer) {
     var picked = -1;
     var live = true;
 
@@ -389,8 +389,12 @@
       p.addEventListener('keydown', onKey);
     });
 
-    return Flow.once(dom.gate).then(
-      function () { off(); return picked; },
+    /* `auto`: a skip answers it with the right wedge. */
+    return Flow.once(dom.gate, { auto: true }).then(
+      function () {
+        off();
+        return (picked < 0 && answer != null) ? answer : picked;
+      },
       function (err) { off(); throw err; });
   }
 
@@ -407,7 +411,7 @@
 
     return Promise.resolve()
       .then(function () {
-        answer = K.quiet(askRegion(regions()));
+        answer = K.quiet(askRegion(regions(), regions().indexOf(want)));
         return K.speak(line);
       })
       .then(function () { return answer; })

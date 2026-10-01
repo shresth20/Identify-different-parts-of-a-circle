@@ -498,7 +498,7 @@
    *   Keyboard: each name takes focus, and Enter or Space presses it.
    *   Hands back the index of the name that was pressed, in `list`.
    * ====================================================================== */
-  function askOption(list) {
+  function askOption(list, answer) {
     var picked = -1;
     var live = true;
 
@@ -547,8 +547,13 @@
       g.addEventListener('pointercancel', onUp);
     });
 
-    return Flow.once(dom.gate).then(
-      function () { off(); return picked; },
+    /* `auto`: a skip answers it with the right name, so the board the
+       beats after this explain is a right one. */
+    return Flow.once(dom.gate, { auto: true }).then(
+      function () {
+        off();
+        return (picked < 0 && answer != null) ? answer : picked;
+      },
       function (err) { off(); throw err; });
   }
 
@@ -561,7 +566,7 @@
     var list = opts.map(function (o) { return o.g; });
     var misses = 0;
     function round() {
-      return askOption(list).then(function (i) {
+      return askOption(list, answer).then(function (i) {
         if (i === answer) return { found: true };
         misses++;
         var shaken = Flow.anim(Beats.optWrong(list[i]));

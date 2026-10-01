@@ -125,7 +125,6 @@
   /* ---- the elements ----------------------------------------------------- */
   var dom = null;         /* pages.js's, with this section's own on top     */
   var mascot = null;
-  var sayAside = null;    /* the typer bound to the line in the aside       */
   var boxes = [];         /* the two name boxes, while they are built       */
   var labels = {};        /* the two "Arc" words                            */
   var callouts = {};      /* minor, major: named callouts; arrow: an arrow alone */
@@ -176,8 +175,6 @@
     callouts.major = callout('arc-callout--major');
     callouts.arrow = callout('');
     nudges = [hand(), hand()];
-
-    sayAside = global.Typer.create($('asideType'), { box: dom.bubbleAside });
     reset();
   }
 
@@ -443,15 +440,10 @@
       });
   }
 
-  /* ---- the bird in the aside -------------------------------------------- */
-  function sayBeside(text) {
-    /* the order the welcome uses: armed and laid out, then opened */
-    mascot.state('talking');
-    Beats.bubbleArm(dom.bubbleAside);
-    var said = sayAside(text);
-    Beats.bubbleIn(dom.bubbleAside);
-    return said;
-  }
+  /* ---- the bird in the aside --------------------------------------------
+     What it says there goes up on the speech card the lesson's other
+     explanations wear -- K.cardUp, with this section's circle as the
+     anchor -- so there is one card, one pill and one pulse everywhere. */
 
   /* When a phrase of a line is due under the typer's clock. The reveal is
      paced per character from the moment it starts, so the moment a phrase
@@ -667,8 +659,18 @@
     band.addEventListener('blur', onBlur);
     armHand();
 
-    return Flow.once(dom.gate).then(
-      function () { off(); },
+    /* What a skip puts down for the learner: the two spots the hand was
+       nudging at. They go through put() like any other pair, so the cut is
+       worked out and handed on exactly as it would have been. */
+    function fillIn() {
+      if (!live) return;
+      hideGhost();
+      if (!picked.length) put(NUDGE_FIRST, null);
+      if (live && picked.length < 2) put(allowed(picked[0] + NUDGE_NEXT), null);
+    }
+
+    return Flow.once(dom.gate, { auto: true }).then(
+      function () { fillIn(); off(); },
       function (err) { off(); throw err; });
   }
 
@@ -828,8 +830,16 @@
     document.addEventListener('pointerup', onUp);
     document.addEventListener('pointercancel', onUp);
 
-    return Flow.once(dom.gate).then(
-      function () { off(); },
+    /* And what a skip slides for them: each point straight to the mark it
+       was heading for, through moveTo(), so it snaps and sets the way a
+       hand-slid one does. */
+    function fillIn() {
+      if (!live) return;
+      pts.forEach(function (s) { moveTo(s, s.target); });
+    }
+
+    return Flow.once(dom.gate, { auto: true }).then(
+      function () { fillIn(); off(); },
       function (err) { off(); throw err; });
   }
 
@@ -913,20 +923,18 @@
           Flow.anim(Beats.slideArcs(dom.arcs, SHIFT))
         ]);
       })
-      .then(function () {
-        dom.aside.removeAttribute('hidden');
-        return K.mascotJumpIn(dom.slotAside);
-      })
+      /* The two pieces breathe under the card from the moment it opens --
+         which is the old "Circumference" swell, held instead of one-shot
+         -- and still act the line out under the words as it is said. */
       .then(function () {
         dom.arcMarks.removeAttribute('hidden');
+        return K.cardUp(LINES.arcs, pieces(), 'arc', dom.arcRim);
+      })
+      .then(function (reveals) {
         var text = LINES.arcs;
-        var said = sayBeside(text);
+        mascot.state('talking');
         return Promise.all([
-          said,
-          /* "Circumference": the whole rim, lit as one */
-          at(cue(text, 'Circumference'), function () {
-            return Flow.anim(Beats.arcPulse(pieces()));
-          }),
+          reveals[0](),
           /* "divided into two pieces": pulled apart at the two points */
           at(cue(text, 'divided'), function () {
             return Flow.anim(Beats.arcSplit(pieces(), apart(10)));
@@ -959,14 +967,12 @@
    * the same way -- and both names are left standing.
    * ====================================================================== */
   function sceneMinorMajor() {
-    return Promise.all([
-        Flow.anim(Beats.bubbleOut(dom.bubbleAside)),
-        Flow.anim(Beats.labelsOut([labels.minor, labels.major])),
-        K.mascotJumpOut()
-      ])
+    /* the card comes down whole: the pieces eased out of their breath,
+       the labels away with it, and the pane handed back */
+    return K.cardAway(pieces(),
+                      [Flow.anim(Beats.labelsOut([labels.minor, labels.major]))])
       .then(function () {
-        sayAside.clear();
-        dom.aside.setAttribute('hidden', '');
+        K.restoreAside();
         M.set([labels.minor, labels.major], { clearProps: 'opacity,transform' });
         return Promise.all([
           Flow.anim(K.collapseHeader(false)),
@@ -1184,7 +1190,7 @@
         return Flow.anim(Beats.trayIn(dom.choices, choiceBtns));
       })
       .then(function () {
-        picked = K.quiet(K.askChoice(choiceBtns));
+        picked = K.quiet(K.askChoice(choiceBtns, { answer: answer }));
         dom.arcMarks.removeAttribute('hidden');
         aimCallout(callouts.arrow, 58, '');
         return Promise.all([
@@ -1349,10 +1355,9 @@
     clearBoxes();
     redraw();
 
-    dom.aside.setAttribute('hidden', '');
-    sayAside.clear();
-    dom.bubbleAside.setAttribute('hidden', '');
-    M.set(dom.bubbleAside, { clearProps: 'opacity,transform' });
+    /* the pane, its card dressing and its typed line, all through the
+       board's own hand-back */
+    K.restoreAside();
   }
 
   /* The board as the scene at `local` expects to find it, written straight
@@ -1365,10 +1370,13 @@
     redraw();
 
     if (local === 1) {
-      /* the circle aside, the bird beside it, its line already said */
+      /* the circle aside, the bird beside it under the card's layout,
+         its line already said -- the scene opens by taking this down */
       dom.board.classList.add('is-headless');
       M.set(dom.arcs, { x: SHIFT });
+      dom.aside.classList.add('aside--message');
       dom.aside.removeAttribute('hidden');
+      K.alignMessage(dom.arcRim);
       mascot.placeIn(dom.slotAside);
       mascot.el.classList.remove('is-away');
       mascot.idle();

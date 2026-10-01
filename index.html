@@ -598,9 +598,25 @@
            with the rest of the chain when a scene is retired. -->
       <span id="gate" hidden></span>
 
+      <!-- The round Next disc, as drawn in the spacecraft game: a rim set a
+           little low so it reads as the thickness of a disc, a face lit from
+           the top, and an arrow grown back by a round stroke so every corner
+           of it is rounded evenly. Its colours are the --next-* tokens in
+           style.css, so it is re-skinned with the rest of the palette. -->
       <button class="next-btn" id="nextBtn" type="button" hidden aria-label="Next">
-        <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false">
-          <path d="M4.5 12h12.2M11.4 6.2 17.6 12l-6.2 5.8" />
+        <svg viewBox="0 0 100 100" aria-hidden="true" focusable="false">
+          <defs>
+            <linearGradient id="icoNextFace" x1="50" y1="8" x2="50" y2="92" gradientUnits="userSpaceOnUse">
+              <stop offset="0" stop-color="var(--next-face-1)" />
+              <stop offset=".55" stop-color="var(--next-face-2)" />
+              <stop offset="1" stop-color="var(--next-face-3)" />
+            </linearGradient>
+          </defs>
+          <circle cx="50" cy="51.5" r="45" fill="var(--next-rim)" />
+          <circle cx="50" cy="50" r="41.5" fill="url(#icoNextFace)" />
+          <path d="M31.25 43.125 H52.5 V31.25 L77.5 50 L52.5 68.75 V56.875 H31.25 Z"
+                fill="var(--next-arrow)" stroke="var(--next-arrow)" stroke-width="8.75"
+                stroke-linejoin="round" stroke-linecap="round" />
         </svg>
       </button>
     </div>

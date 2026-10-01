@@ -63,8 +63,18 @@
      the scene behind it would hang forever. */
   function anim(a) {
     if (!a) return Promise.resolve();
-    if (fast && a.totalProgress && a.totalProgress() < 1) {
-      /* Motion.skip() will land it; do not wait on the frame that does. */
+    if (fast) {
+      /* Land it HERE, in this statement, rather than leaving it to render a
+         frame later. The chain is already moving on -- that is what a skip
+         is -- and a tween that writes its end state a tick after the beat
+         that tidied up behind it leaves that write standing: a group faded
+         out by a wipe, cleared, and then faded out again by the tween that
+         had not run yet, which is a piece of the picture gone for good.
+           Endless animations have no end to jump one to; they are left to
+         the scene that owns them. */
+      if (!a.__motionEndless && a.totalProgress && a.totalProgress() < 1) {
+        a.totalProgress(1, false);
+      }
       return Promise.resolve();
     }
     return new Promise(function (resolve, reject) {
@@ -94,6 +104,21 @@
   function once(el, opts) {
     var o = opts || {};
     if (!el) return Promise.resolve(null);
+    /* A skip is in flight, and there are two kinds of wait it can meet.
+         One the caller can honestly answer FOR the learner -- a dot whose
+       only possible answer is "tapped", a question whose right answer the
+       caller knows. Those pass `auto`: the wait is taken as answered and the
+       caller fills in what the person would have done, so the chain runs on
+       with the board in the state the beats after it describe.
+         The other is a thing only a person can do: the hand-over at the end
+       of a scene, and an activity with something to place. There the skip
+       ENDS -- fast off, full speed again -- and the beat is put in front of
+       the learner properly. That is what makes Skip stop ON the Next button
+       instead of running through it. */
+    if (fast) {
+      if (o.auto) return Promise.resolve(null);
+      resume();
+    }
     return new Promise(function (resolve, reject) {
       var entry = {
         timer: 0,

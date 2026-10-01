@@ -38,7 +38,7 @@
     tapDot:         'Tap on the dot.',
     centre:         'This is the center.',
     radius:         'This is the radius.',
-    radius2:        'The line segment from the center to any point on the circle.',
+    radius2:        'Radius is the line segment from the center to any point of the circle.',
     twoRadius:      'This line segment is another radius. Same length!',
     diameter:       'This is the diameter.',
     /* the notes set beside the circle once it has its name */
@@ -257,7 +257,7 @@
   var mascot = null;
   var chords = [];              /* [{ line, ends, glow }] -- see buildChords */
   var longChord = null;         /* the one through the centre  */
-  var sweep = null;             /* { arm, ghosts } -- see buildSweep */
+  var sweep = null;             /* { arm, ghosts, lines } -- see buildSweep */
   var quiz = { parts: {}, boxes: [] };
   var chips = [];
   var choiceBtns = [];          /* the two answers, while a question is up */
@@ -387,16 +387,20 @@
      passes on the way, SWEEP_STEP degrees apart. Each is a line and the
      point at its end, grouped so the beat shows the pair as one. Angles run
      clockwise on the screen from three o'clock, the way the arm turns; the
-     arm goes in last so it is drawn over the radii it leaves. */
+     arm goes in last so it is drawn over the radii it leaves. The lines are
+     handed back on their own as well, for the pulse to light every one. */
   var SWEEP_STEP = 45;
 
   function buildSweep(group) {
+    var lines = [];
     function radius(cls, deg) {
       var g = el('g', { 'class': cls });
       var p = onRim(-deg);
-      g.appendChild(el('path', { 'class': 'rad-sweep__line', d: seg({ x: CX, y: CY }, p) }));
+      var line = el('path', { 'class': 'rad-sweep__line', d: seg({ x: CX, y: CY }, p) });
+      g.appendChild(line);
       g.appendChild(el('circle', { 'class': 'end-dot', cx: p.x, cy: p.y, r: 4.4 }));
       group.appendChild(g);
+      lines.push(line);
       return g;
     }
     var ghosts = [];
@@ -405,7 +409,7 @@
       g.setAttribute('data-angle', deg);
       ghosts.push(g);
     }
-    return { arm: radius('rad-sweep__arm', 0), ghosts: ghosts };
+    return { arm: radius('rad-sweep__arm', 0), ghosts: ghosts, lines: lines };
   }
 
   /* The activity's picture: the three lines, then the five boxes with their
@@ -583,50 +587,44 @@
   }
   function markParts() { return [dom.markArrow, dom.markHead, dom.markLabel]; }
 
-  /* Reuse the annotation without its label: the speech card now names the
-     part. Measure after the pop so the arrow starts at the resting card,
-     and map the screen position into the slid circle's SVG coordinates. */
-  var messageArrowObserver = null;
+  /* The speech card beside the slid circle, its bird kept level with the
+     bottom of the rim while the card, the pane or the figure resizes.
+     Which rim is a variable: every section's card stands beside that
+     section's own circle (the arcs', say), so the anchor is whatever
+     cardUp was handed, and this section's rim when it was handed nothing. */
+  var messageObserver = null;
+  var messageAnchor = null;
 
-  function stopMessageArrow() {
-    if (messageArrowObserver) messageArrowObserver.disconnect();
-    messageArrowObserver = null;
+  function stopMessageAlign() {
+    if (messageObserver) messageObserver.disconnect();
+    messageObserver = null;
   }
 
-  function positionMessageArrow() {
-    var matrix = dom.mark.getScreenCTM();
-    if (!matrix) return;
-    var box = dom.bubbleAside.getBoundingClientRect();
-    var point = dom.figure.createSVGPoint();
-    var em = parseFloat(getComputedStyle(dom.bubbleAside).fontSize);
-    point.x = box.left - em * .2;
-    point.y = box.top + box.height * .55;
-    var from = point.matrixTransform(matrix.inverse());
-    var tip = onRim(35);
-    var bend = { x: (from.x + tip.x) / 2,
-                 y: Math.min(from.y, tip.y) - 18 };
-    dom.markArrow.setAttribute('d',
-      'M' + round2(from.x) + ' ' + round2(from.y) +
-      ' Q' + round2(bend.x) + ' ' + round2(bend.y) + ' ' + tip.x + ' ' + tip.y);
-    dom.markHead.setAttribute('d', arrowHead(tip, bend));
+  function alignMessageToCircle() {
+    var pane = dom.aside.getBoundingClientRect();
+    var circle = (messageAnchor || dom.rim).getBoundingClientRect();
+    var slot = dom.slotAside.getBoundingClientRect();
+    if (!pane.height || !circle.height || !slot.height) return;
+    /* The sprite has transparent space below its feet. Align the visible
+       bird, carrying its bubble with it, rather than the sprite cell. */
+    var bottom = pane.bottom - circle.bottom - (1 - FOOT) * slot.height;
+    dom.aside.style.setProperty('--message-bottom', round2(bottom) + 'px');
   }
 
-  function showMessageArrow() {
-    stopMessageArrow();
-    dom.markLabel.textContent = '';
-    M.set(markParts(), { opacity: 0 });
-    dom.mark.removeAttribute('hidden');
-    positionMessageArrow();
+  function alignMessageTo(anchor) {
+    messageAnchor = anchor || null;
+    alignMessageToCircle();
+  }
+
+  function watchMessageAlign() {
+    stopMessageAlign();
+    alignMessageToCircle();
     if (global.ResizeObserver) {
-      messageArrowObserver = new ResizeObserver(positionMessageArrow);
-      messageArrowObserver.observe(dom.bubbleAside);
-      messageArrowObserver.observe(dom.aside);
-      messageArrowObserver.observe(dom.figure);
+      messageObserver = new ResizeObserver(alignMessageToCircle);
+      messageObserver.observe(dom.bubbleAside);
+      messageObserver.observe(dom.aside);
+      messageObserver.observe(dom.figure);
     }
-    var parts = [dom.markArrow, dom.markHead];
-    var tl = M.timeline({ willChange: parts, willChangeValue: 'opacity' });
-    tl.to(parts, { opacity: 1, duration: M.dur(M.SLOW), ease: M.OUT });
-    return tl;
   }
 
   /* ---- the figure, as a whole -------------------------------------------
@@ -652,6 +650,12 @@
     dom.centre.classList.remove('is-calling', 'is-found', 'is-quiet');
     Array.prototype.forEach.call(dom.figure.querySelectorAll('.is-lit'),
                                  function (l) { l.classList.remove('is-lit'); });
+    /* a held pulse (Beats.pulseHold) has no timeline for a retire to kill */
+    Array.prototype.forEach.call(dom.figure.querySelectorAll('.is-pulsing'),
+                                 function (p) {
+                                   p.classList.remove('is-pulsing');
+                                   p.style.removeProperty('--pulse-times');
+                                 });
     dom.quiz.classList.remove('is-live');
     [dom.halfLeft, dom.halfRight].forEach(function (h) { h.classList.remove('is-dia'); });
     quiz.boxes.forEach(emptyBox);
@@ -716,10 +720,38 @@
      appearing, the waiting and the leaving are one function: a beat that
      hands over to the learner and takes the control away behind them. */
   function handOver(btn) {
+    /* Every hand-over is a page turned, and a page is what the level bar
+       moves in: the stretch of lesson between one Next and the next.
+         A jump that is seeking past this one steps over it -- the page it
+       ends is behind the page that was asked for. The LAST one stepped over
+       is where that page BEGINS, so the fast-forward ends there and the
+       lesson is at full speed for the page the learner came to see. */
+    /* This page exists: it has reached its own Next. Counted HERE rather
+       than when the button is pressed, or the press that ends a scene's
+       last page would invent one more page after it -- and said at once, so
+       a page the bar has not seen before is on its list while it is still
+       the page on screen. */
+    note(at, page);
+    announce();
+
+    if (seek > 0) {
+      seek--;
+      turned();
+      if (!seek) Flow.resume();
+      return Promise.resolve();
+    }
+
+    /* Where a skip stops. Everything behind this beat has been fast-forwarded
+       and landed, and from here the lesson is at full speed again: the button
+       arrives the way it always does and is genuinely waited on. So Skip
+       leaves the learner exactly where Next appears, not past it. */
+    Flow.resume();
+
     M.button3d(btn, { edge: 5 });
     Beats.controlIn(btn);
     return Flow.once(btn).then(function () {
       Beats.sfx('click');
+      turned();
       return Flow.anim(Beats.controlOut(btn));
     });
   }
@@ -978,23 +1010,18 @@
   /* ---- the line said beside the circle -------------------------------------
      The aside is the right half of the stage (see .aside in arcs.css): where
      the bird stands, and says its line, while the circle has stepped left.
-     Its bubble is plain type with none of the bubble about it, so what is
-     read there is a line of the lesson set beside the figure. Opened the way
-     the welcome opens the hero bubble: armed and laid out, then shown. */
-  function sayBeside(text) {
-    mascot.state('talking');
-    Beats.bubbleArm(dom.bubbleAside);
-    var said = sayAside(text);
-    Beats.bubbleIn(dom.bubbleAside);
-    return said;
-  }
+     Every explanation said there now goes up on the speech card -- see
+     cardUp, below the note kit. */
 
-  /* And the aside put away, emptied and shut. Two sections stand the circle
+  /* The aside put away, emptied and shut. Two sections stand the circle
      aside, and both hand the pane back through here -- see the kit. */
   function restoreAside() {
-    stopMessageArrow();
+    stopMessageAlign();
+    messageAnchor = null;
+    dom.aside.style.removeProperty('--message-bottom');
     dom.aside.setAttribute('hidden', '');
     dom.aside.classList.remove('aside--message');
+    dom.bubbleAside.classList.remove('msg-lead', 'msg-two');
     sayAside.clear();
     sayMore.clear();
     dom.asideMore.setAttribute('hidden', '');
@@ -1040,6 +1067,87 @@
      character, so this is when to light whatever the word names. */
   function wordAt(text, word) {
     return Math.max(0, text.indexOf(word)) * global.Typer.TYPE_MS;
+  }
+
+  /* ---- the speech card ----------------------------------------------------
+     The explanation said on the card the circumference built (see
+     .aside--message in arcs.css), which every stood-aside explanation now
+     wears: the pane dressed as the card, the bird brought up under it, and
+     the part the card is about breathing -- Beats.pulseHold -- from the
+     moment the card opens until cardAway eases it back. The name in the
+     line is worn as a pill. */
+
+  /* The pill (.wd--key, arcs.css): the first word of the line that says
+     the part's name, tagged in the typed line AND in the invisible layout
+     copy under it, so the type lands exactly where the ghost reserved. The
+     sparks beside the pill only suit one at the HEAD of the line -- a
+     shine in the card's corner over a plain first word is just debris --
+     so they are only shown then. Run after reserve, before reveal. */
+  function pillKey(name) {
+    dom.bubbleAside.classList.remove('msg-lead');
+    if (!name) return;
+    var want = String(name).toLowerCase();
+    ['.type-ghost', '.type .txt'].forEach(function (sel) {
+      var words = dom.asideType.querySelectorAll(sel + ' .wd');
+      for (var i = 0; i < words.length; i++) {
+        if (words[i].textContent.trim().replace(/[.,!?]+$/, '')
+                    .toLowerCase() === want) {
+          words[i].classList.add('wd--key');
+          if (i === 0) dom.bubbleAside.classList.add('msg-lead');
+          break;
+        }
+      }
+    });
+  }
+
+  /* The card put up: the pane dressed and the bird brought in as the name
+     on the circle goes -- the card is about to say it better -- then the
+     line (or the pair of lines, laid out together the way noteBeside lays
+     them, so the card is its finished size from the first word) reserved,
+     the pill put on, the marks set breathing, and the card popped. Hands
+     back the reveals, one per line, for the scene to say in its own time,
+     alongside whatever it wants to run with them.
+       `anchor` is the circle the card stands beside -- another section
+     passes its own (see the kit); left out, it is this section's rim. The
+     callout faded here is this board's one shared #mark, whichever section
+     aimed it; a section with marks of its own sends them in `also` when
+     the card comes down. */
+  function cardUp(lines, marks, key, anchor) {
+    dom.aside.classList.add('aside--message');
+    dom.aside.removeAttribute('hidden');
+    alignMessageTo(anchor);
+    return Promise.all([
+      Flow.anim(Beats.calloutOut(dom.mark, markParts())),
+      mascotJumpIn(dom.slotAside)
+    ]).then(function () {
+      return Flow.wait(M.reducedMotion() ? 0 : M.FAST * 1000);
+    }).then(function () {
+      var texts = [].concat(lines);
+      Beats.bubbleArm(dom.bubbleAside);
+      var reveals = [sayAside.reserve(texts[0])];
+      if (texts.length > 1) {
+        dom.bubbleAside.classList.add('msg-two');
+        dom.asideMore.removeAttribute('hidden');
+        reveals.push(sayMore.reserve(texts[1]));
+      }
+      pillKey(key);
+      if (marks) Beats.pulseHold(marks);
+      return Flow.anim(Beats.bubbleIn(dom.bubbleAside)).then(function () {
+        watchMessageAlign();
+        return reveals;
+      });
+    });
+  }
+
+  /* And taken down on Next, all at once: the marks caught mid-breath and
+     eased back, the card shut, the bird away -- with whatever else the
+     scene sends along (the swept radii, the figure's group). The pane
+     itself is handed back by restoreAside, as ever. */
+  function cardAway(marks, also) {
+    stopMessageAlign();
+    var jobs = [Flow.anim(Beats.bubbleOut(dom.bubbleAside)), mascotJumpOut()];
+    if (marks) jobs.push(Flow.anim(Beats.pulseRelease(marks)));
+    return Promise.all(jobs.concat(also || []));
   }
 
   /* ---- the circle, drawn --------------------------------------------------
@@ -1181,8 +1289,11 @@
      THAT: an ordinary Flow.once, cancelled with the rest of the chain when
      a scene is retired, with the listeners coming off whichever way it
      ends.
-       Hands back the index of the button that was pressed. */
-  function askChoice(buttons) {
+       Hands back the index of the button that was pressed -- or, if a skip
+     answered it, `opts.answer`: the lesson takes the right one so the beats
+     after this are talking about a board that says what they say it says. */
+  function askChoice(buttons, opts) {
+    var o = opts || {};
     var picked = -1;
     var live = true;
 
@@ -1206,8 +1317,12 @@
 
     buttons.forEach(function (b) { b.addEventListener('click', onPick); });
 
-    return Flow.once(dom.gate).then(
-      function () { off(); return picked; },
+    return Flow.once(dom.gate, { auto: true }).then(
+      function () {
+        off();
+        if (picked < 0) picked = (o.answer == null ? 0 : o.answer);
+        return picked;
+      },
       function (err) { off(); throw err; });
   }
 
@@ -1471,9 +1586,22 @@
     document.addEventListener('pointerup', onUp);
     document.addEventListener('pointercancel', onCancel);
 
+    /* Every name still in the tray put into its own box, at once. This is
+       the last-chance reveal above, minus the beat between each one: what a
+       skip needs, which is a finished board rather than a half-built one for
+       the explanation that follows to be about. */
+    function fill() {
+      q.boxes.forEach(function (b) {
+        if (b.filled) return;
+        for (var i = 0; i < names.length; i++) {
+          if (names[i].dataset.name === b.name) { dock(b, names[i]); return; }
+        }
+      });
+    }
+
     /* Hands back how it went: right only if no box was ever refused. */
-    return Flow.once(dom.gate).then(
-      function () { off(); return { right: !failed }; },
+    return Flow.once(dom.gate, { auto: true }).then(
+      function () { live = false; fill(); off(); return { right: !failed }; },
       function (err) { off(); throw err; });
   }
 
@@ -1505,7 +1633,7 @@
       .then(function () {
         dom.startBtn.classList.add('in');
         M.button3d(dom.startBtn, { edge: 5 });
-        return Flow.once(dom.startBtn);
+        return Flow.once(dom.startBtn, { auto: true });
       })
       .then(function () {
         Beats.sfx('click');
@@ -1596,52 +1724,33 @@
         clearPrompt();
         return slideCircle(ASIDE_X);
       })
+      /* The rim starts to pulse as the card opens, so the word in it and
+         the line it names are read as one, and goes on pulsing until Next;
+         the travelling light starts with the speech, in sync with it. */
       .then(function () {
-        dom.aside.classList.add('aside--message');
-        dom.aside.removeAttribute('hidden');
+        return cardUp(LINES.circumference2, dom.rim, 'Circumference');
+      })
+      .then(function (reveals) {
+        mascot.state('talking');
         return Promise.all([
-          Flow.anim(Beats.calloutOut(dom.mark, markParts())),
-          mascotJumpIn(dom.slotAside)
+          reveals[0](),
+          Flow.anim(Beats.rimRun(dom.rimRun,
+            LINES.circumference2.length * global.Typer.TYPE_MS / 1000))
         ]);
-      })
-      .then(function () {
-        return Flow.wait(M.reducedMotion() ? 0 : M.FAST * 1000);
-      })
-      .then(function () {
-        /* Reserve the finished card before its pop; speech starts once the
-           card has landed, keeping the rim's travelling light in sync. */
-        Beats.bubbleArm(dom.bubbleAside);
-        var reveal = sayAside.reserve(LINES.circumference2);
-        return Flow.anim(Beats.bubbleIn(dom.bubbleAside)).then(function () {
-          mascot.state('talking');
-          return Promise.all([
-            Flow.anim(showMessageArrow()),
-            reveal(),
-            Flow.anim(Beats.rimRun(dom.rimRun,
-              LINES.circumference2.length * global.Typer.TYPE_MS / 1000))
-          ]);
-        });
       })
       .then(function () {
         mascot.settle();
         return Flow.wait(BEAT);
       })
-      /* Keep the message and its arrow on screen until the learner is ready. */
+      /* Keep the message on screen until the learner is ready. */
       .then(function () { return handOver(dom.nextBtn); })
-      /* Next clears the board down to the circle and nothing else: the arrow
-         comes off the rim, the message beside it goes and the bird leaves, all
-         at once, and only then does the circle come back to the middle as
-         the header opens again. The bird stays away -- it comes back up
-         with the instruction, not before, so the centre is shown on a board
-         with nothing else on it. */
-      .then(function () {
-        stopMessageArrow();
-        return Promise.all([
-          Flow.anim(Beats.calloutOut(dom.mark, markParts())),
-          Flow.anim(Beats.bubbleOut(dom.bubbleAside)),
-          mascotJumpOut()
-        ]);
-      })
+      /* Next clears the board down to the circle and nothing else: the
+         rim settles out of its pulse, the message beside it goes and the
+         bird leaves, all at once, and only then does the circle come back
+         to the middle as the header opens again. The bird stays away -- it
+         comes back up with the instruction, not before, so the centre is
+         shown on a board with nothing else on it. */
+      .then(function () { return cardAway(dom.rim); })
       .then(function () {
         restoreAside();
         return Promise.all([Flow.anim(collapseHeader(false)), slideCircle(0)]);
@@ -1662,7 +1771,8 @@
       .then(function () { return Flow.wait(CENTRE_HOLD); })
       .then(function () {
         Beats.callCentre(dom.centre);
-        var tap = quiet(Flow.once(dom.centreHit, { before: function () { hit = true; } }));
+        var tap = quiet(Flow.once(dom.centreHit,
+                                  { auto: true, before: function () { hit = true; } }));
         tapped = quiet(tap.then(function (ev) {
           ripple(ev, dom.centreHit);
           Beats.confirmCentre(dom.centre, dom.dot);
@@ -1738,10 +1848,12 @@
       .then(function () { return Flow.wait(STAND_HOLD); })
 
       /* The circle stands aside, name and all, as it did for the
-         circumference, and the bird says what a radius IS from the right
-         half. As it says it, a copy of the radius is swept once round the
-         centre and leaves a faint radius at each point it passes: from the
-         centre to ANY point on the circle, and every one the same line. */
+         circumference, and the bird comes back up in the right half under
+         the same speech card to say what a radius IS -- the card's first
+         word names it, so the name on the circle goes as the bird arrives.
+         As it says it, a copy of the radius is swept once round the centre
+         and leaves a faint radius at each point it passes: from the centre
+         to ANY point on the circle, and every one the same line. */
       .then(function () {
         return Promise.all([mascotJumpOut(), Flow.anim(Beats.lineOut(dom.promptLine))]);
       })
@@ -1749,35 +1861,36 @@
         clearPrompt();
         return slideCircle(ASIDE_X);
       })
+      /* As for the circumference: the radius pulses from the moment the
+         card opens until Next -- and every radius the sweep leaves pulses
+         with it, in step: all are started together, the left ones still
+         unseen, so each is already breathing with the rest when the arm
+         sets it down. */
       .then(function () {
-        dom.aside.removeAttribute('hidden');
-        return mascotJumpIn(dom.slotAside);
+        return cardUp(LINES.radius2,
+                      [dom.halfRight].concat(sweep.lines), 'Radius');
       })
-      .then(function () {
-        var text = LINES.radius2;
+      .then(function (reveals) {
+        mascot.state('talking');
         return Promise.all([
-          sayBeside(text),
+          reveals[0](),
           Flow.anim(Beats.radiusSweep(sweep.arm, sweep.ghosts, CX, CY,
-                                      text.length * global.Typer.TYPE_MS / 1000))
+            LINES.radius2.length * global.Typer.TYPE_MS / 1000))
         ]);
       })
       .then(function () {
         mascot.settle();
         return Flow.wait(BEAT);
       })
-      /* Stop: the radius keeps its name until Next is pressed. Then the
-         name, the swept radii, the line beside the circle and the bird all
-         go, and the circle comes back to the middle as the header opens:
-         the circle and its radius, with nothing written anywhere. The bird
-         stays away until it has something to say. */
+      /* Stop: the message stays up until Next is pressed. Then the radii
+         settle out of their pulse, and the swept ones, the message beside
+         the circle and the bird all go, and the circle comes back to the
+         middle as the header opens: the circle and its radius, with nothing
+         written anywhere. The bird stays away until it has something to say. */
       .then(function () { return handOver(dom.nextBtn); })
       .then(function () {
-        return Promise.all([
-          Flow.anim(Beats.calloutOut(dom.mark, markParts())),
-          Flow.anim(Beats.marksOut(sweep.ghosts)),
-          Flow.anim(Beats.bubbleOut(dom.bubbleAside)),
-          mascotJumpOut()
-        ]);
+        return cardAway([dom.halfRight].concat(sweep.lines),
+                        [Flow.anim(Beats.marksOut(sweep.ghosts))]);
       })
       .then(function () {
         restoreAside();
@@ -1833,12 +1946,13 @@
       .then(function () { return Flow.anim(Beats.lineUnlight(dom.glowDia)); })
       .then(function () { return Flow.wait(SAID_HOLD); })
 
-      /* The circle stands aside, name and all, and what a diameter is goes
-         up beside it as notes: two lines, the second added under the first
-         and each left to be read; then both give way to the two that make
-         the rule, as the rule itself is written under the circle. Each note
-         lights what it is talking about as the words for it arrive -- the
-         line, its centre, its two ends, its two halves. */
+      /* The circle stands aside, name and all, and what a diameter is is
+         said on the speech card: two lines, the second added under the
+         first and each left to be read; then both give way to the two that
+         make the rule, as the rule itself is written under the circle. The
+         diameter breathes under the card the whole while, and each note
+         still lights what it is talking about as the words for it arrive
+         -- the centre, the two ends, the two halves. */
       .then(function () {
         return Promise.all([mascotJumpOut(), Flow.anim(Beats.lineOut(dom.promptLine))]);
       })
@@ -1847,12 +1961,10 @@
         return slideCircle(ASIDE_X);
       })
       .then(function () {
-        dom.aside.removeAttribute('hidden');
-        return mascotJumpIn(dom.slotAside);
+        return cardUp([LINES.diameter2, LINES.diameter3], dom.diaJoin, 'diameter');
       })
-      .then(function () {
-        var lines = noteBeside(LINES.diameter2, LINES.diameter3);
-        Beats.partPulse([dom.diaJoin, dom.endLeft, dom.endRight]);
+      .then(function (lines) {
+        Beats.partPulse([dom.endLeft, dom.endRight]);
         return tell(lines[0])
           .then(function () { return Flow.wait(NOTE_HOLD); })
           .then(function () {
@@ -1870,6 +1982,7 @@
       .then(clearBeside)
       .then(function () {
         var lines = noteBeside(LINES.diameter4, LINES.diameter5);
+        pillKey('diameter');
         return Promise.all([
           tell(lines[0]),
           Flow.anim(Beats.glowLine(dom.glowLeft, dom.rLabelLeft)),
@@ -1881,18 +1994,13 @@
           });
       })
       .then(function () { return Flow.wait(BEAT); })
-      /* Stop: the diameter, its notes and its rule stay until Next. Then
+      /* Stop: the diameter, its card and its rule stay until Next. Then
          all of it goes -- the line with everything written about it -- and
          the circle comes back to the middle with only its centre, which is
          the board the chord is drawn on. The bird stays away. */
       .then(function () { return handOver(dom.nextBtn); })
       .then(function () {
-        return Promise.all([
-          Flow.anim(Beats.calloutOut(dom.mark, markParts())),
-          Flow.anim(Beats.clearFigure([dom.dia])),
-          Flow.anim(Beats.bubbleOut(dom.bubbleAside)),
-          mascotJumpOut()
-        ]);
+        return cardAway(dom.diaJoin, [Flow.anim(Beats.clearFigure([dom.dia]))]);
       })
       .then(function () {
         restoreAside();
@@ -1952,7 +2060,8 @@
       .then(function () { return Flow.wait(DIA_HOLD); })
 
       /* The circle stands aside, name and all, and the bird says what a
-         chord IS from the right half, lighting the two points as it says
+         chord IS from the speech card, the chord breathing under it from
+         the moment the card opens; the two points are still lit as it says
          "any two points" and the rim as it says "circumference". */
       .then(function () {
         return Promise.all([mascotJumpOut(), Flow.anim(Beats.lineOut(dom.promptLine))]);
@@ -1962,10 +2071,9 @@
         return slideCircle(ASIDE_X);
       })
       .then(function () {
-        dom.aside.removeAttribute('hidden');
-        return mascotJumpIn(dom.slotAside);
+        return cardUp(LINES.chordIs, first.line, 'Chord');
       })
-      .then(function () {
+      .then(function (reveals) {
         var text = LINES.chordIs;
         quiet(Flow.wait(wordAt(text, 'two points')).then(function () {
           Beats.partPulse(first.ends);
@@ -1973,24 +2081,16 @@
         quiet(Flow.wait(wordAt(text, 'circumference')).then(function () {
           Beats.partPulse(dom.rim);
         }));
-        return sayBeside(text);
+        return tell(reveals[0]);
       })
-      .then(function () {
-        mascot.settle();
-        return Flow.wait(BEAT);
-      })
+      .then(function () { return Flow.wait(BEAT); })
       /* Stop: one chord, named and said, until Next is pressed. Then it
-         goes, with its name and the line beside it, and the circle comes
+         goes, with its card and everything beside it, and the circle comes
          back to the middle with only its centre: the board the rest of the
          chords are drawn on. The bird stays away. */
       .then(function () { return handOver(dom.nextBtn); })
       .then(function () {
-        return Promise.all([
-          Flow.anim(Beats.calloutOut(dom.mark, markParts())),
-          Flow.anim(Beats.clearFigure([dom.chords])),
-          Flow.anim(Beats.bubbleOut(dom.bubbleAside)),
-          mascotJumpOut()
-        ]);
+        return cardAway(first.line, [Flow.anim(Beats.clearFigure([dom.chords]))]);
       })
       .then(function () {
         restoreAside();
@@ -2016,11 +2116,13 @@
       .then(function () {
         return Promise.all([Flow.anim(collapseHeader(true)), slideCircle(ASIDE_X)]);
       })
+      /* All four chords breathe as one under the card -- in step, the way
+         the swept radii do -- while each one's light still arrives as it
+         is said. */
       .then(function () {
-        dom.aside.removeAttribute('hidden');
-        return mascotJumpIn(dom.slotAside);
+        return cardUp(LINES.chords, chords.map(function (c) { return c.line; }));
       })
-      .then(function () {
+      .then(function (reveals) {
         var text = LINES.chords;
         var step = text.length * global.Typer.TYPE_MS / chords.length;
         chords.forEach(function (c, i) {
@@ -2028,27 +2130,21 @@
             return Flow.anim(Beats.lineLight(c.glow));
           }));
         });
-        return sayBeside(text);
+        return tell(reveals[0]);
       })
-      .then(function () {
-        mascot.settle();
-        return Flow.wait(BEAT);
-      })
+      .then(function () { return Flow.wait(BEAT); })
       .then(function () { return handOver(dom.nextBtn); })
 
       /* ---- The one that goes through the centre --------------------------
-         Everything comes off the circle -- the four chords and the line
+         Everything comes off the circle -- the four chords and the card
          beside them -- and the circle comes back to the middle with its
          centre dot and the bird back on the header. One line is then drawn
          across it, through that dot, in the colour the lesson taught the
          diameter in. It is a diameter, and the question is whether it is a
          chord as well. */
       .then(function () {
-        return Promise.all([
-          Flow.anim(Beats.clearFigure([dom.chords])),
-          Flow.anim(Beats.bubbleOut(dom.bubbleAside)),
-          mascotJumpOut()
-        ]);
+        return cardAway(chords.map(function (c) { return c.line; }),
+                        [Flow.anim(Beats.clearFigure([dom.chords]))]);
       })
       .then(function () {
         restoreAside();
@@ -2075,7 +2171,7 @@
         choiceBtns = buildChoices(dom.choices, ['Yes', 'No']);
         return Flow.anim(Beats.trayIn(dom.choices, choiceBtns));
       })
-      .then(function () { return askChoice(choiceBtns); })
+      .then(function () { return askChoice(choiceBtns, { answer: 0 }); })
 
       /* Right or wrong, the lesson is the same one -- so only the word in
          front of it changes. A wrong answer is shaken and then the right
@@ -2103,9 +2199,9 @@
       })
       .then(function () { dom.choices.setAttribute('hidden', ''); })
 
-      /* "The longest chord of a circle" -- said beside the circle, as every
-         rule in this section is, with the line it is about lit as it is
-         said and left lit until Next. */
+      /* "The longest chord of a circle" -- said on the card, as every rule
+         in this section now is, with the line it is about breathing under
+         it and lit as it is said, and left so until Next. */
       .then(function () {
         return Promise.all([mascotJumpOut(), Flow.anim(Beats.lineOut(dom.promptLine))]);
       })
@@ -2114,27 +2210,20 @@
         return slideCircle(ASIDE_X);
       })
       .then(function () {
-        dom.aside.removeAttribute('hidden');
-        return mascotJumpIn(dom.slotAside);
+        return cardUp(LINES.longest, longChord.line, 'diameter');
       })
-      .then(function () {
+      .then(function (reveals) {
         return Promise.all([Flow.anim(Beats.lineLight(longChord.glow)),
-                            sayBeside(LINES.longest)]);
+                            tell(reveals[0])]);
       })
-      .then(function () {
-        mascot.settle();
-        return Flow.wait(BEAT);
-      })
-      /* Stop. Then the line beside the circle and the bird go, the light
-         goes out, and the circle comes back to the middle for the activity
-         to wipe. */
+      .then(function () { return Flow.wait(BEAT); })
+      /* Stop. Then the card beside the circle and the bird go, the light
+         goes out and the line settles out of its breath, and the circle
+         comes back to the middle for the activity to wipe. */
       .then(function () { return handOver(dom.nextBtn); })
       .then(function () {
-        return Promise.all([
-          Flow.anim(Beats.lineUnlight(longChord.glow)),
-          Flow.anim(Beats.bubbleOut(dom.bubbleAside)),
-          mascotJumpOut()
-        ]);
+        return cardAway(longChord.line,
+                        [Flow.anim(Beats.lineUnlight(longChord.glow))]);
       })
       .then(function () {
         restoreAside();
@@ -2339,16 +2428,41 @@
     return null;
   }
 
-  /* Which scene is on screen, and whoever asked to be told when that
-     changes. The level bar is the only listener; the lesson never asks. */
+  /* Where the lesson is, and whoever asked to be told when that changes.
+     The level bar is the only listener; the lesson itself never asks.
+       Two numbers, because a scene is not what the learner moves through:
+     `at` is the scene, and `page` is which stretch of it is on screen --
+     how many hand-overs are behind us within that scene. A scene can hold
+     one page or six (the last activity is one page per name), which is why
+     the bar counts pages and not scenes.
+       `seen` is how many pages each scene turned out to have. It cannot be
+     known in advance -- a scene that hands over inside a loop decides it as
+     it plays -- so it is learned as the lesson is played, and the bar's
+     list of places to jump to grows with it. */
   var at = 0;
+  var page = 0;
+  var seen = [];
+  var seek = 0;              /* hand-overs a jump is still stepping over */
+  var seekIn = -1;           /* and the scene those hand-overs are in     */
   var watchers = [];
 
+  function note(scene, p) {
+    if (!(seen[scene] > p + 1)) seen[scene] = p + 1;
+  }
+
+  function turned() {
+    page++;
+    announce();
+  }
+
   function announce() {
-    var n = at;
+    var where = {
+      scene: at, scenes: SCENES.length, name: SCENES[at].name,
+      page: page, pages: seen.slice()
+    };
     watchers.forEach(function (fn) {
       /* A listener's fault is not the lesson's. */
-      try { fn(n, SCENES.length, SCENES[n].name); } catch (e) {}
+      try { fn(where); } catch (e) {}
     });
   }
 
@@ -2363,6 +2477,12 @@
   function enter(i) {
     return function () {
       at = i;
+      page = 0;
+      note(i, 0);
+      /* A seek that outlived its own scene was asking for a page that scene
+         does not have. It stops here, at the start of the next one, rather
+         than eating its way through the rest of the lesson. */
+      if (seek && i !== seekIn) { seek = 0; Flow.resume(); }
       announce();
       return SCENES[i].play();
     };
@@ -2470,10 +2590,19 @@
     return { dom: dom, mascot: mascot };
   }
 
-  /* Start the lesson at a scene and play it through to the end. */
-  function runFrom(index) {
+  /* Start the lesson at a scene -- at one PAGE of that scene -- and play it
+     through to the end.
+       The pages of the scene before the one asked for are not cut: they are
+     played at once. Every beat still runs, the taps they ask for are
+     answered for the learner (Flow.once's `auto`), and the hand-overs
+     between them are stepped over by handOver. The board the asked-for page
+     opens on is therefore the board that page would really have opened on,
+     and the page itself plays at full speed from its own first beat. */
+  function runFrom(index, wanted) {
     if (!dom) init();
     index = Math.max(0, Math.min(SCENES.length - 1, index | 0));
+    seek = Math.max(0, wanted | 0);
+    seekIn = index;
 
     /* Retire the previous run BEFORE cleaning up after it. Each tracked
        animation hands back whatever it had written inline as it is killed,
@@ -2481,10 +2610,13 @@
     Flow.reset();
     rewind();
     stageFor(index);
-    return Flow.run(function () { return play(index); });
+    return Flow.run(function () {
+      if (seek > 0) Flow.skip();
+      return play(index);
+    });
   }
 
-  function run() { return runFrom(0); }
+  function run() { return runFrom(0, 0); }
 
   /* What a later section needs from this file to speak with the same
      voice: the board's housekeeping, the bird's moves, the words and the
@@ -2509,6 +2641,10 @@
     restoreBubble: restoreBubble,
     sayAside: function () { return sayAside; },
     restoreAside: restoreAside,
+    /* the speech card every stood-aside explanation wears: a section
+       passes its own circle as the anchor, and hands the pane back
+       through restoreAside as ever */
+    cardUp: cardUp, cardAway: cardAway, alignMessage: alignMessageTo,
     wipeBoard: wipeBoard, collapseHeader: collapseHeader, resetFooter: resetFooter,
     askChoice: askChoice, armQuiz: armQuiz,
     ripple: ripple, quiet: quiet, clearInline: clearInline
@@ -2524,8 +2660,14 @@
     rewind: rewind,
     levels: function () { return SCENES.map(function (s) { return s.name; }); },
     level: function () { return at; },
+    page: function () { return page; },
+    /* How many pages each scene has turned out to have, so far. */
+    pages: function () { return seen.slice(); },
     onLevel: function (fn) {
-      if (typeof fn === 'function') { watchers.push(fn); fn(at, SCENES.length, SCENES[at].name); }
+      if (typeof fn !== 'function') return;
+      watchers.push(fn);
+      fn({ scene: at, scenes: SCENES.length, name: SCENES[at].name,
+           page: page, pages: seen.slice() });
     },
     mascot: function () { return mascot; },
     dom: function () { return dom; }

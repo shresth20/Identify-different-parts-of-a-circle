@@ -85,7 +85,7 @@
   --part-centre:      #F51B88;
   --part-radius:      #F9A50B;
   --part-diameter:    #08B9F5;
-  --part-chord:       #08C58E;
+  --part-chord:       #A435F5;
   --part-point:       #25209B;      /* the points where lines meet the rim */
   /* One weight for every line laid on the circle, lesson and activity alike,
      and one size for the points at their ends (written by index.html and
@@ -127,6 +127,18 @@
   --horizon: color-mix(in srgb, var(--lavender-fill) 34%, var(--board-decoration));
   --button-bg: var(--board-decoration);
   --button-text: var(--text-primary);
+
+  /* ---- derived: the round Next disc --------------------------------------
+     The disc artwork from the spacecraft game (index.html, #nextBtn): a rim,
+     a face lit from the top, and a rounded arrow. Read by the SVG itself, so
+     the button is re-skinned from here -- here in the coral the game's Next
+     has always worn, the face being the same three stops the old gradient
+     mixed. */
+  --next-rim:    var(--coral-border);
+  --next-face-1: color-mix(in srgb, var(--coral-fill) 55%, #FFFFFF);
+  --next-face-2: var(--coral-fill);
+  --next-face-3: color-mix(in srgb, var(--coral-fill) 72%, var(--coral-border));
+  --next-arrow:  var(--board-highlight);
 
   /* ---- derived: glow and shadow ----------------------------------------- */
   --glow-board: color-mix(in srgb, #FFFFFF 55%, transparent);
@@ -637,8 +649,9 @@ body {
 .dia__rule .rule__rad { fill: var(--part-radius); }
 
 /* ---- The chords ---------------------------------------------------------
-   Mint: a chord is neither a radius nor a diameter, and it must not look
-   like a cousin of either. */
+   Violet: a chord is neither a radius nor a diameter, and it must not look
+   like a cousin of either -- and never green or red, which are kept for
+   right and wrong answers alone. */
 .chord-line {
   fill: none;
   stroke: var(--part-chord);
@@ -648,7 +661,7 @@ body {
 }
 /* The chord that goes THROUGH the centre, which the scene ends by asking
    about. Drawn in the cyan the lesson taught the diameter in, not in the
-   chords' mint: the question is whether this line -- the one they already
+   chords' violet: the question is whether this line -- the one they already
    know as a diameter -- is a chord as well, and answering it from the
    colour would be answering a different question. */
 .long-chord {
@@ -933,6 +946,10 @@ body {
    Anchored to the frame's bottom-right corner, which IS the board's
    bottom-right corner, whether or not the board is there yet. */
 .next-btn {
+  /* The 3D press still writes these (motion.js, button3d): the disc has no
+     wall of its own to collapse, so only --sink does anything -- the whole
+     disc dips by the press depth and springs back. --edge is kept so the
+     binding has somewhere harmless to write. */
   --edge: 5px;
   --sink: 0px;
 
@@ -943,23 +960,18 @@ body {
 
   display: grid;
   place-items: center;
-  width: clamp(44px, 7.2vh, 74px);
+  width: clamp(56px, 9.2vh, 94px);
   aspect-ratio: 1;
   padding: 0;
-  border: 3px solid var(--board-highlight);
-  border-radius: 999px;
-  background: linear-gradient(180deg,
-              color-mix(in srgb, var(--coral-fill) 55%, #FFFFFF) 0%,
-              var(--coral-fill) 58%,
-              color-mix(in srgb, var(--coral-fill) 72%, var(--coral-border)) 100%);
-  color: var(--board-highlight);
+  border: 0;
+  border-radius: 50%;
+  /* the disc is drawn whole in its own SVG -- rim, face and arrow -- so the
+     page adds nothing but the shadow it casts: on the shape, not on a box */
+  background: none;
+  filter: drop-shadow(0 5px 9px var(--shadow-soft));
   cursor: pointer;
+  -webkit-tap-highlight-color: transparent;
   translate: 0 var(--sink);
-  box-shadow:
-    0 var(--edge) 0 var(--coral-border),
-    0 0 14px 2px color-mix(in srgb, var(--coral-fill) 45%, transparent),
-    0 calc(var(--edge) + 1px) 2px var(--shadow-soft),
-    0 calc(var(--edge) + 5px) calc(var(--edge) * 2 + 12px) var(--shadow-deep);
 
   opacity: 0;
   transition: filter .18s ease;
@@ -967,20 +979,15 @@ body {
 }
 .next-btn[hidden] { display: none; }
 .next-btn:hover,
-.next-btn:focus-visible { filter: brightness(1.06); outline: none; }
-.next-btn:focus-visible { border-color: var(--lavender-border); }
-/* Same reason as .start-btn.is-3d: the press writes --edge every frame and
-   box-shadow is spelled off it. */
-.next-btn.is-3d { transition: filter .18s ease; }
-.next-btn svg {
-  width: 52%;
-  height: 52%;
-  fill: none;
-  stroke: currentColor;
-  stroke-width: 2.6;
-  stroke-linecap: round;
-  stroke-linejoin: round;
+.next-btn:focus-visible {
+  filter: drop-shadow(0 8px 13px var(--shadow-soft)) brightness(1.05);
+  outline: none;
 }
+.next-btn:focus-visible { outline: 3px solid var(--lavender-border); outline-offset: 3px; }
+/* Same reason as .start-btn.is-3d: the press writes --sink every frame and
+   translate is spelled off it. */
+.next-btn.is-3d { transition: filter .18s ease; }
+.next-btn svg { width: 100%; height: 100%; display: block; }
 
 /* ---- The mascot and its slots -------------------------------------------
    One bird for the whole lesson. It is re-parented between slots and the move
@@ -1081,10 +1088,12 @@ body {
      The tail's TIP is put on the bird's head, and the box is then set back
      from that point by wherever the tip falls inside it.
 
-     Where the tip goes: 74% across the sprite cell and 31.2% down it. Those
-     two numbers are measured off the reference game rather than reasoned
-     out, and the slot here IS the sprite cell -- square, with the bird
-     filling it -- so they can be read straight off it as percentages. (--
+     Where the tip goes: 74% across the sprite cell and 21% down it. The
+     across is measured off the reference game; the down was too, at 31.2%,
+     but there the box's lower corner sat over the top of this bird's head,
+     so the tip is lifted to just above the head's outline. The slot here
+     IS the sprite cell -- square, with the bird filling it -- so both can
+     be read straight off it as percentages. (--
      bottom resolves against the slot's height and left against its width;
      the slot's aspect-ratio is 1, so the two agree.)
 
@@ -1098,7 +1107,7 @@ body {
      centred the tail over the cell and left the tip hanging above the head
      rather than on it. Measured, the tip was landing at 49% / 15%. */
   --bub-tip-x: 74%;
-  --bub-tip-y: 68.8%;                 /* 31.2% down the cell, from its foot */
+  --bub-tip-y: 75%;                   /* 21% down the cell, from its foot */
   left:   calc(var(--bub-tip-x) - 4px - .815em);
   /* The signs here are the other way round from the reference's own copy of
      this line, and deliberately: the tail's tip is .725em BELOW the box's
@@ -1106,8 +1115,7 @@ body {
      to sit that much higher than the tip, not that much lower. The reference
      has the two terms flipped, which drops its tip about 32px -- which is why
      its tail lands 31% down the sprite cell rather than the 23% its own
-     comment states. The percentage above is the 31%: this reproduces where
-     the reference actually draws, and now the number in the CSS means it. */
+     comment states. Here the number in the CSS means what it says. */
   bottom: calc(var(--bub-tip-y) + .725em - 8px);
   width: max-content;
   /* As wide as the screen allows, as in the reference: the box is sized by
@@ -1135,12 +1143,12 @@ body {
      54vh: it is 44% of a 16:9 frame that is itself sized from --board-w. So
      the ratio is what is copied. 8.52% of the bird's height is what the
      reference measures at, the bird is .44 * 9/16 * --board-w tall, and
-     .0852 * .44 * 9/16 is .0211. Measured back, this lands the type at
-     8.53% of the bird -- the reference, to two decimal places -- and it
-     holds at every width, because both sides are the same variable.
-     The bounds mirror the reference's 18px/46px, scaled by the same ratio;
-     neither binds at any ordinary size. */
-  font-size: clamp(14px, calc(var(--board-w) * .0211), 44px);
+     .0852 * .44 * 9/16 is .0211. That read a little small beside this
+     bird, so the type is set about 12% over it, at .0236 -- some 9.5% of
+     the bird -- and it holds at every width, because both sides are the
+     same variable. The bounds mirror the reference's 18px/46px, scaled by
+     the same ratio; neither binds at any ordinary size. */
+  font-size: clamp(14px, calc(var(--board-w) * .0236), 44px);
   line-height: 1.2;
   letter-spacing: .2px;
   text-align: center;

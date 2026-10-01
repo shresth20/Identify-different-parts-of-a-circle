@@ -439,6 +439,51 @@
     return tl;
   }
 
+  /* The same pulse, held: breathing for as long as a beat leaves it on
+     instead of for three breaths -- the rim beside the circumference's
+     message, and the radius beside its own, breathe until the learner
+     presses Next. A class and not a
+     tween, as every loop of unknown length in this game is, so resetFigure
+     (pages.js) is what takes it off if the scene is torn down instead.
+       The release IS a tween: the line is caught at whatever width it had
+     reached and eased back to its rest, rather than snapping thin, and the
+     bloom goes with the class once it gets there -- where the three-breath
+     pulse leaves it too.
+       Either takes one mark or several. Several held in one call breathe
+     in step, because their animations start in the same frame -- which is
+     how every radius round the circle breathes as one line. */
+  function pulseHold(marks) {
+    [].concat(marks).filter(Boolean).forEach(function (mark) {
+      mark.classList.remove('is-pulsing');
+      void mark.getBoundingClientRect().width;
+      mark.style.setProperty('--pulse-times', 'infinite');
+      mark.classList.add('is-pulsing');
+    });
+  }
+
+  function pulseRelease(marks) {
+    var list = [].concat(marks).filter(Boolean);
+    var tl = M.timeline({
+      revert: function () {
+        list.forEach(function (mark) { mark.style.filter = ''; });
+        M.set(list, { clearProps: 'strokeWidth' });
+      }
+    });
+    list.forEach(function (mark) {
+      var now = parseFloat(getComputedStyle(mark).strokeWidth);
+      mark.classList.remove('is-pulsing');
+      mark.style.removeProperty('--pulse-times');
+      var rest = parseFloat(getComputedStyle(mark).strokeWidth);
+      mark.style.filter = 'url(#partGlow)';
+      /* autoRound off: GSAP rounds px in-betweens to whole pixels, and a
+         line under three pixels wide visibly steps instead of easing */
+      tl.fromTo(mark, { strokeWidth: now },
+                { strokeWidth: rest, autoRound: false,
+                  duration: M.dur(0.4), ease: 'power2.out' }, 0);
+    });
+    return tl;
+  }
+
   /* ======================================================================
    * Points and lines
    * ====================================================================== */
@@ -467,9 +512,11 @@
      The radius lit as it is named and kept lit while its name is written,
      then put out: the circumference's light (rimLight), for a line. Two
      beats for the same reason that is: the light has to outlast its own
-     fade-in. `glow` is one of the .line-glow paths under the halves; its
-     breathing is CSS (.line-glow.is-lit), by width, so the fades here have
-     the opacity to themselves. */
+     fade-in. `glow` is one of the .line-glow paths under the halves; while
+     .is-lit is on, the CSS loop (line-breathe) owns the opacity and takes
+     the light from nothing to full and all the way out again each breath.
+     The inline fade below still runs under it: it is what the glow shows
+     when reduced motion turns the loop off. */
   var LINE_LIT = 0.85;
 
   function lineLight(glow) {
@@ -480,11 +527,18 @@
     return tl;
   }
 
+  /* The loop owns the opacity for as long as the class is on, so the
+     fade-out starts by taking the breath's CURRENT brightness onto the
+     element and letting the class go -- the light then dims from exactly
+     where it was, at whatever point of a breath it is at, instead of
+     snapping to the inline value underneath. */
   function lineUnlight(glow) {
+    var from = getComputedStyle(glow).opacity;
+    glow.classList.remove('is-lit');
+    M.set(glow, { opacity: from });
     var tl = M.timeline({
       willChange: glow, willChangeValue: 'opacity',
       revert: function () {
-        glow.classList.remove('is-lit');
         M.set(glow, { clearProps: 'opacity' });
       }
     });
@@ -1768,6 +1822,8 @@
     callout: callout,
     calloutOut: calloutOut,
     partPulse: partPulse,
+    pulseHold: pulseHold,
+    pulseRelease: pulseRelease,
     /* points and lines */
     plotDot: plotDot,
     growLine: growLine,
