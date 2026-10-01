@@ -148,6 +148,49 @@
     return out;
   }
 
+  /* ---- a wrapped line's own width ---------------------------------------
+     A box sized by its text stays as wide as its cap the moment the line
+     wraps -- CSS has no width for "the longest row it broke into" -- so a
+     two-row sentence sits in a box with a band of air either side. With
+     `fit`, the wrapper is set to the widest row the ghost broke into and
+     the box closes round the words. The rows cannot move: each one already
+     fitted, and the word after it did not fit even at the wider width.
+     Glyphs only -- the space after a row's last word hangs past its end and
+     is left out. Measured through whatever scale an ancestor wears (a
+     bubble arming at .15) by the wrapper's drawn-to-laid-out ratio, and set
+     in em, so a board resized under a standing line keeps its rows. */
+  function fitWidth(wrap, ghost) {
+    wrap.style.width = '';
+    var cs = getComputedStyle(wrap);
+    var laid = parseFloat(cs.width);
+    var em = parseFloat(cs.fontSize);
+    var drawn = wrap.getBoundingClientRect().width;
+    if (!laid || !em || !drawn) return;
+    var k = drawn / laid;
+
+    var range = document.createRange();
+    var words = ghost.querySelectorAll('.wd');
+    var widest = 0, top = null, left = 0, right = 0;
+    for (var i = 0; i < words.length; i++) {
+      var node = words[i].firstChild;
+      var n = node ? node.data.replace(/\s+$/, '').length : 0;
+      if (!n) continue;
+      range.setStart(node, 0);
+      range.setEnd(node, n);
+      var r = range.getBoundingClientRect();
+      if (top === null || r.top > top + r.height / 2) {
+        if (top !== null) widest = Math.max(widest, right - left);
+        top = r.top;
+        left = r.left;
+      }
+      right = r.right;
+    }
+    widest = Math.max(widest, right - left) / k;
+
+    /* A hair over, so rounding never wraps a row a word early. */
+    if (widest + 2 < laid) wrap.style.width = (widest + 2) / em + 'em';
+  }
+
   /* ---- the typewriter bound to a box ------------------------------------ */
 
   /* Returns a function(text) that types into this one box. A line that
@@ -177,6 +220,7 @@
       morphBox(o.box, ghost.textContent.length > 0, function () {
         wordSpans(ghost, text);
         words = wordSpans(txt, text);
+        if (o.fit) fitWidth(wrap, ghost);
       });
 
       /* Pacing starts when this is CALLED, not when the line was laid out --
@@ -201,6 +245,7 @@
       gen++;
       ghost.textContent = '';
       txt.textContent = '';
+      if (o.fit) wrap.style.width = '';
     };
 
     return say;

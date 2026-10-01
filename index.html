@@ -10,6 +10,8 @@
   <link rel="stylesheet" href="css/segments.css" />
   <link rel="stylesheet" href="css/sectors.css" />
   <link rel="stylesheet" href="css/quiz.css" />
+  <link rel="stylesheet" href="css/arclen.css" />
+  <link rel="stylesheet" href="css/circum.css" />
   <link rel="stylesheet" href="css/animations.css" />
   <link rel="stylesheet" href="css/responsive.css" />
 </head>
@@ -535,6 +537,40 @@
                    over everything. -->
               <g class="qz-burst" id="qzBurst" aria-hidden="true"></g>
             </g>
+
+            <!-- ---- Skill 2, section 1: identify the arcs (js/arclen.js) --
+                 The second skill's own circle, for the reason every section
+                 has one: what this skill does to it is done to this group,
+                 and the sections before hold their circles by name. Nothing
+                 on it is picked by the learner -- the two points are fixed
+                 -- so the group carries only the marks: the rim, its pen,
+                 the two pieces of the circumference and the two points,
+                 all wearing section 2's classes so they are visibly the
+                 same marks. What depends on the cut is written by
+                 arclen.js. -->
+            <g class="figure__arclen" id="arclen" hidden>
+              <path class="figure__rim" id="alRim"
+                    d="M500 52 A158 158 0 0 1 500 368 A158 158 0 0 1 500 52" />
+              <circle class="rim-tip" id="alTip" cx="500" cy="52" r="7" />
+              <path class="arc-piece arc-piece--major" id="alMajor" d="" />
+              <path class="arc-piece arc-piece--minor" id="alMinor" d="" />
+              <circle class="arc-dot" id="alDotA" cx="500" cy="52" r="6.5" />
+              <circle class="arc-dot" id="alDotB" cx="500" cy="52" r="6.5" />
+            </g>
+
+            <!-- ---- Skill 2, section 2: circumference formula (js/circum.js)
+                 Its own circle, for the reason every section has one. Nothing
+                 on it is picked by the learner and nothing hangs off it: the
+                 question stands in the right pane (see #cfPane below), so the
+                 group carries only the drawing itself -- the wash, the rim and
+                 its pen, all wearing section 1's classes so they are visibly
+                 the same circle. -->
+            <g class="figure__cf" id="cf" hidden>
+              <circle class="figure__disc" id="cfDisc" cx="500" cy="210" r="158" />
+              <path class="figure__rim" id="cfRim"
+                    d="M500 52 A158 158 0 0 1 500 368 A158 158 0 0 1 500 52" />
+              <circle class="rim-tip" id="cfTip" cx="500" cy="52" r="7" />
+            </g>
           </svg>
 
           <!-- The right half of the board, for the beats where the circle
@@ -574,6 +610,59 @@
                 </svg>
               </div>
             </div>
+          </div>
+
+          <!-- The fill-the-blank card (js/arclen.js): the right half of the
+               stage while skill 2's circle stands left, one sentence with an
+               empty slot in it and the names in a row beneath. The name is
+               dragged into the slot, so the slot and the names are the only
+               live things in the pane -- and only while a round is open
+               (see .is-live in arclen.css). -->
+          <!-- The words either side of the slot are in spans of their own,
+               not bare text, on purpose: GSAP measures the slot while the
+               pane is display:none by re-parenting it and putting it back
+               before its next ELEMENT sibling -- a slot followed by bare
+               text would be put back at the end of the sentence. -->
+          <div class="ask-pane" id="alAsk" hidden>
+            <p class="ask-line" id="alLine"><span>This is the</span>
+              <span class="ask-slot" id="alSlot" role="button" tabindex="-1"
+                    aria-label="Empty slot. Drop a name here."><span
+                    class="ask-slot__text" id="alSlotText"></span></span>
+              <span>of the circle.</span></p>
+            <!-- The names, under the sentence they answer: the tray's own
+                 pills (see .chip in style.css), built here by arclen.js. -->
+            <div class="ask-opts" id="alOpts" aria-label="Names to drag"></div>
+          </div>
+
+          <!-- Skill 2, section 2 (js/circum.js): the right half of the stage
+               while the circle stands left. The bird lands in the pane and
+               asks from the box above its head -- bubble-02, drawn as the
+               definition card is (rim, face, shadows, tail), recoloured green
+               for a right answer and red for a wrong one. It is its OWN
+               element: bubble-01 -- the definition card on #bubbleAside -- is
+               another section's and is not touched. The three answers stand
+               in a row beneath. -->
+          <div class="cf-pane" id="cfPane" hidden>
+            <div class="slot slot--cf" id="slotCf">
+              <div class="bubble bubble--cf" id="bubbleCf" hidden>
+                <span class="type-wrap" id="cfType">
+                  <span class="type-ghost"></span>
+                  <span class="type" aria-live="polite"><span class="txt"></span></span>
+                </span>
+                <!-- The tail: the hero bubble's drawing, stamped again, so the
+                     box reads as the same object wherever the bird speaks. -->
+                <svg class="bubble-tail" viewBox="0 0 44 42" aria-hidden="true">
+                  <path d="M4 0 H42 V8 C36 20 24 30 2 42 C8 32 8 20 4 8 Z"
+                        fill="var(--bubble-bg)" />
+                  <path d="M42 8 C36 20 24 30 2 42 C8 32 8 20 4 8" fill="none"
+                        stroke="var(--note-edge)" stroke-width="4"
+                        stroke-linecap="round" stroke-linejoin="round"
+                        vector-effect="non-scaling-stroke" />
+                </svg>
+              </div>
+            </div>
+            <div class="cf-opts" id="cfOpts" role="group"
+                 aria-label="Choose the correct formula"></div>
           </div>
         </div>
 
@@ -642,6 +731,15 @@
   <script src="js/segments.js"></script>
   <script src="js/sectors.js"></script>
   <script src="js/quiz.js"></script>
+  <!-- Skill 2: length of an arc of a sector. Same board, same bird, same
+       clock; only the mathematics is new. To split the skills apart later,
+       this line and js/arclen.js (with css/arclen.css) are the whole of it. -->
+  <script src="js/arclen.js"></script>
+  <!-- Skill 2, section 2: the circumference formula. Same board, same bird;
+       its question is asked from bubble-02 in the right pane (#cfPane). To
+       split it out later, this line, js/circum.js, css/circum.css and the
+       two blocks in index.html (#cf and #cfPane) are the whole of it. -->
+  <script src="js/circum.js"></script>
   <script src="js/script.js"></script>
   <!-- TEMPORARY: the Back / Skip / Replay level bar. Delete this line
        and js/devnav.js to remove it; nothing else refers to it. -->

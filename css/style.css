@@ -128,6 +128,18 @@
   --button-bg: var(--board-decoration);
   --button-text: var(--text-primary);
 
+  /* ---- derived: the pills -------------------------------------------------
+     One face, one rim and one wall for every pill in the game -- the names
+     in the tray, the names under a sentence, the answers to a question,
+     and the name pills drawn in the picture -- so the same object reads
+     the same wherever it stands. The face is a lavender tint rather than
+     the board's near-white, and the rim the palette's full lavender ink:
+     a white-on-white pill sinks into the board's pale wash. */
+  --pill-border: var(--lavender-border);
+  --pill-face-mid: color-mix(in srgb, var(--lavender-fill) 20%, #FFFFFF);
+  --pill-face-low: color-mix(in srgb, var(--lavender-fill) 38%, #FFFFFF);
+  --pill-wall: color-mix(in srgb, var(--lavender-border) 78%, var(--horizon));
+
   /* ---- derived: the round Next disc --------------------------------------
      The disc artwork from the spacecraft game (index.html, #nextBtn): a rim,
      a face lit from the top, and a rounded arrow. Read by the SVG itself, so
@@ -827,11 +839,11 @@ body {
   -webkit-user-select: none;
 
   padding: .32em 1.1em .38em;
-  border: 3px solid var(--board-highlight);
+  border: 3px solid var(--pill-border);
   border-radius: 999px;
-  background: linear-gradient(180deg, var(--board-highlight) 0%, var(--button-bg) 62%, var(--board-decoration) 100%);
+  background: linear-gradient(180deg, #FFFFFF 0%, var(--pill-face-mid) 55%, var(--pill-face-low) 100%);
   box-shadow:
-    0 var(--edge) 0 var(--horizon),
+    0 var(--edge) 0 var(--pill-wall),
     0 calc(var(--edge) + 3px) 10px var(--shadow-soft);
 
   font-family: var(--font-display);
@@ -860,14 +872,14 @@ body {
   cursor: grabbing;
   z-index: 5;
   box-shadow:
-    0 var(--edge) 0 var(--horizon),
+    0 var(--edge) 0 var(--pill-wall),
     0 16px 28px var(--shadow-deep);
 }
 /* Picked up by a tap and waiting for its box. */
 .chip.is-picked {
   border-color: var(--lavender-border);
   box-shadow:
-    0 var(--edge) 0 var(--horizon),
+    0 var(--edge) 0 var(--pill-wall),
     0 0 0 4px color-mix(in srgb, var(--lavender-fill) 45%, transparent),
     0 calc(var(--edge) + 3px) 10px var(--shadow-soft);
 }
@@ -895,11 +907,11 @@ body {
   -webkit-user-select: none;
 
   padding: .3em 1.5em .36em;
-  border: 3px solid var(--board-highlight);
+  border: 3px solid var(--pill-border);
   border-radius: 999px;
-  background: linear-gradient(180deg, var(--board-highlight) 0%, var(--button-bg) 62%, var(--board-decoration) 100%);
+  background: linear-gradient(180deg, #FFFFFF 0%, var(--pill-face-mid) 55%, var(--pill-face-low) 100%);
   box-shadow:
-    0 var(--edge) 0 var(--horizon),
+    0 var(--edge) 0 var(--pill-wall),
     0 calc(var(--edge) + 3px) 10px var(--shadow-soft);
 
   font-family: var(--font-display);

@@ -51,12 +51,12 @@
 .qz-card * { pointer-events: none; }
 
 /* ---- The names under the three circles ----------------------------------
-   The Start button, drawn in the picture: a pill with the same gradient
-   face, the same white rim, standing on the same wall -- so the three
-   read as buttons to press and not as labels. Pressed, the face drops
-   onto its wall, as every raised control in the game does. Off the board
-   until optsIn brings it on; live -- a hand over it, a press on it --
-   only while the question is open. */
+   The game's one pill, drawn in the picture: the same tinted face, the
+   same lavender rim, standing on the same wall as a name in the tray --
+   so the three read as buttons to press and not as labels. Pressed, the
+   face drops onto its wall, as every raised control in the game does. Off
+   the board until optsIn brings it on; live -- a hand over it, a press on
+   it -- only while the question is open. */
 .qz-opt {
   opacity: 0;
   outline: none;
@@ -74,18 +74,20 @@
 .figure__qz.is-asking .qz-opt.is-right,
 .figure__qz.is-asking .qz-opt.is-wrong { pointer-events: none; cursor: default; }
 
-/* the gradient's three stops (see #qzOptGrad in index.html) */
-.qz-opt-grad__top { stop-color: var(--board-highlight); }
-.qz-opt-grad__mid { stop-color: var(--button-bg); }
-.qz-opt-grad__low { stop-color: var(--board-decoration); }
+/* the gradient's three stops (see #qzOptGrad in index.html): the game's
+   one pill face (--pill-* in style.css), so these read as the same pills
+   the tray holds */
+.qz-opt-grad__top { stop-color: #FFFFFF; }
+.qz-opt-grad__mid { stop-color: var(--pill-face-mid); }
+.qz-opt-grad__low { stop-color: var(--pill-face-low); }
 
 .qz-opt__wall {
-  fill: var(--horizon);
+  fill: var(--pill-wall);
   transition: fill .25s ease;
 }
 .qz-opt__face {
   fill: url(#qzOptGrad);
-  stroke: var(--board-highlight);
+  stroke: var(--pill-border);
   stroke-width: 3.5;
   transition: fill .25s ease, stroke .25s ease, transform .08s ease-out;
 }
@@ -101,7 +103,8 @@
 .qz-opt.is-down .qz-opt__text { transform: translateY(var(--qz-edge)); }
 .qz-opt.is-down { filter: drop-shadow(0 2px 3px var(--shadow-soft)); }
 
-.qz-opt:focus-visible .qz-opt__face { stroke: var(--lavender-border); }
+/* The rim is lavender at rest now, so focus thickens it instead. */
+.qz-opt:focus-visible .qz-opt__face { stroke: var(--lavender-border); stroke-width: 5; }
 
 /* Answered. The green is a state the pill stays in; the red is held for
    a beat by optWrong and then taken off again. The wall takes the

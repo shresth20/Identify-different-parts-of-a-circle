@@ -1,0 +1,137 @@
+/* ==========================================================================
+   Skill 2 -- length of an arc of a sector
+   Section 1's own marks: the fill-the-blank card that stands in the right
+   half of the stage while the circle stands left -- one sentence with an
+   empty slot in it -- and the slot's four states: waiting, reached for,
+   refused, answered. Everything on the circle itself wears section 2's
+   classes (arcs.css), and everything here is picked out of the palette in
+   style.css, so splitting the skill into its own folder later means moving
+   this file, js/arclen.js and the two blocks in index.html, nothing else.
+   ========================================================================== */
+:root {
+  /* The slot's resting edge: the activity boxes' dashed lavender, at the
+     same whisper the tray's spent slots use. */
+  --al-slot-edge: color-mix(in srgb, var(--lavender-border) 55%, transparent);
+}
+
+/* ---- The pane -------------------------------------------------------------
+   The right half of the stage, as .aside is (arcs.css): the sentence is
+   said BESIDE the circle, where the bird's explanations stand in the other
+   sections. The pane itself is glass -- only the slot is ever live, and
+   only while a round is open. */
+.ask-pane {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  left: 50%;
+  width: 50%;
+  z-index: 2;                        /* over the figure, which has no level */
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+  gap: 7cqh;
+  pointer-events: none;
+  container-type: size;
+}
+.ask-pane[hidden] { display: none; }
+
+/* ---- The names ------------------------------------------------------------
+   The tray's own pills (see .chip in style.css), standing in a row under
+   the sentence they answer. Only the pills are live -- the row itself is
+   glass, like the pane -- and a pill that has gone into the slot keeps its
+   place invisibly, as it does in the tray, so the others do not shuffle
+   under the learner's hand. */
+.ask-opts {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  gap: clamp(8px, 2.4cqw, 22px);
+  pointer-events: none;
+}
+.ask-opts .chip { pointer-events: auto; }
+.ask-opts .chip.is-docked { pointer-events: none; }
+/* The pills' stronger face, rim and wall are the game-wide --pill-* tokens
+   in style.css -- one design for every pill, wherever it stands. */
+
+/* ---- The sentence ---------------------------------------------------------
+   The board's own display voice, sized against the pane so it keeps its
+   measure at every board size. The line-height leaves room for the slot
+   pill standing in the middle of the line. */
+.ask-line {
+  margin: 0;
+  padding: 0 4cqw;
+  text-align: center;
+  font-family: var(--font-display);
+  font-weight: 700;
+  font-size: clamp(14px, 5.8cqw, 32px);
+  line-height: 1.85;
+  letter-spacing: .3px;
+  color: var(--text-primary);
+}
+
+/* ---- The slot -------------------------------------------------------------
+   A name box from the activities (see .q-box in style.css), set into the
+   sentence: dashed and empty while it waits, solid green with the word in
+   it once it is answered, red for a beat when it is given the wrong one.
+   The states are classes because they are states it stays in -- the
+   movement that goes with each is arclen.js's. */
+.ask-slot {
+  display: inline-flex;
+  justify-content: center;
+  align-items: center;
+  vertical-align: middle;
+  min-width: 4.9em;
+  min-height: 1.45em;
+  padding: .02em .5em .08em;
+  margin: 0 .1em;
+  border: .085em dashed var(--al-slot-edge);
+  border-radius: 999px;
+  background: var(--board-highlight);
+  outline: none;
+  cursor: default;
+  transition: border-color .25s ease, background .25s ease,
+              box-shadow .25s ease;
+}
+/* Live only while a round is open: a spent slot is a label, not a control. */
+.ask-pane.is-live .ask-slot { pointer-events: auto; cursor: pointer; }
+.ask-pane.is-live .ask-slot.is-right { pointer-events: none; cursor: default; }
+
+/* A name being carried over it. */
+.ask-slot.is-over {
+  background: color-mix(in srgb, var(--lavender-fill) 24%, #FFFFFF);
+  border-color: var(--lavender-border);
+}
+.ask-slot.is-right {
+  border-style: solid;
+  border-color: var(--right-border);
+  background: color-mix(in srgb, var(--right-fill) 28%, #FFFFFF);
+}
+.ask-slot.is-wrong {
+  border-style: solid;
+  border-color: var(--wrong-border);
+  background: color-mix(in srgb, var(--wrong-fill) 30%, #FFFFFF);
+}
+.ask-slot:focus-visible {
+  border-color: var(--lavender-border);
+  box-shadow: 0 0 0 .14em color-mix(in srgb, var(--lavender-fill) 45%, transparent);
+}
+
+/* The word, once it is in: the answer in the verdict's own ink. */
+.ask-slot__text {
+  font-size: .82em;
+  line-height: 1.2;
+  white-space: nowrap;
+  color: var(--right-border);
+}
+
+/* ---- The circle -----------------------------------------------------------
+   Nothing on skill 2's circle is a target: the name goes to the slot,
+   never onto the picture. */
+.figure__arclen,
+.figure__arclen * { pointer-events: none; }
+
+/* ---- Reduced motion ------------------------------------------------------- */
+@media (prefers-reduced-motion: reduce) {
+  .ask-slot { transition: none !important; }
+}

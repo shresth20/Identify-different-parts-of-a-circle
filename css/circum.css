@@ -1,0 +1,216 @@
+/* ==========================================================================
+   Skill 2, section 2 -- the circumference formula
+   The right half of the stage while the circle stands left: bubble-02 high
+   in the pane, the bird under it, and the three answers in a row beneath --
+   one column, centred on the circle beside it. Everything is picked out of
+   the palette in style.css, so splitting the section into its own folder
+   later means moving this file, js/circum.js and the two blocks in
+   index.html, nothing else.
+
+   bubble-02 is the message box the question and its verdicts are said
+   from, drawn as bubble-01 is -- the definition card on #bubbleAside
+   (.aside--message in arcs.css): the lavender rim deepening toward the
+   foot, the white face with its bevel and gloss, the three soft shadows
+   lifting card and tail together -- with only the hue changing with the
+   verdict: the question in the lesson's lavender, a right answer's
+   sentence in green, a wrong one's in red, rim and tail and words together.
+   It is a second element with its own copy of that drawing, NOT a
+   restyling of bubble-01, which this section never touches.
+   ========================================================================== */
+
+/* ---- The pane -------------------------------------------------------------
+   The right half of the stage, as .aside and .ask-pane are: a container, so
+   the bird, the box and the answers are measured against THIS half (cqw /
+   cqh) and fit it with the header open or closed, at every board size. The
+   pane itself is glass -- only the answers are ever live. */
+.cf-pane {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  left: 50%;
+  width: 50%;
+  z-index: 2;                        /* over the figure, which has no level */
+  pointer-events: none;
+  container-type: size;
+}
+.cf-pane[hidden] { display: none; }
+
+/* The bird's spot: a little above the pane's middle, between the question
+   over its head and the answers under its feet, and smaller than the
+   aside's bird -- it is beside the question, not the whole of it. Square,
+   as every slot is, so the bubble's tail anchoring (percentages of the
+   cell) reads straight off it. */
+.slot--cf {
+  left: 10cqw;
+  bottom: 39cqh;
+  height: 29cqh;
+  aspect-ratio: 1;
+}
+
+/* ---- bubble-02 ------------------------------------------------------------
+   The verdict hues, registered as colours: a gradient cannot be
+   transitioned, but the colours it is drawn from can, so a change of
+   verdict eases across rim, face, tail and shadow together. Where
+   @property is not understood the recolour is a cut, and nothing else
+   changes. The initial values are bubble-01's own. */
+@property --cf-rim      { syntax: '<color>'; inherits: true; initial-value: #c7aef5; }
+@property --cf-rim-low  { syntax: '<color>'; inherits: true; initial-value: #a586e6; }
+@property --cf-face     { syntax: '<color>'; inherits: true; initial-value: #efe5ff; }
+@property --cf-face-mid { syntax: '<color>'; inherits: true; initial-value: #fbf8ff; }
+@property --cf-lip      { syntax: '<color>'; inherits: true; initial-value: #9673dbb3; }
+@property --cf-shade    { syntax: '<color>'; inherits: true; initial-value: #b190e638; }
+
+/* bubble-01's drawing, at this pane's scale, over the hero bubble's frame
+   (.bubble in style.css), which still does the anchoring and the type.
+   Allowed to wrap: a question or a verdict is a sentence beside the figure
+   with half the stage to live in, and held to one row it would run off the
+   board. */
+.bubble--cf {
+  --cf-rim:      #c7aef5;
+  --cf-rim-low:  #a586e6;
+  --cf-face:     #efe5ff;              /* the fill at the foot, and the tail's */
+  --cf-face-mid: #fbf8ff;
+  --cf-lip:      #9673dbb3;            /* the rounded underside */
+  --cf-shade:    #b190e638;            /* the shade drawn in at either side */
+  --cf-border:   .075em;
+  /* The tail stands clear of the big corner, so the rim it opens is a
+     straight stretch of foot. */
+  --cf-tail-left: 1.3em;
+  --bubble-bg: var(--cf-face);
+  --note-edge: var(--cf-rim-low);
+
+  /* Placed by the tail's tip, as every bubble is: over the upper right of
+     the bird's head, 80% across the cell and 21% down it. The box is set
+     back from that point by where the tip falls inside it -- across, the
+     rim, the tail's offset and the 2/44 of its 1.4em that the tip sits in
+     from its left edge; down, the tail's 1.3364em height less the .2545em
+     it is lifted into the rim (see .bubble-tail below). */
+  --bub-tip-x: 80%;
+  --bub-tip-y: 79%;
+  left: calc(var(--bub-tip-x) - var(--cf-border) - var(--cf-tail-left) - .0636em);
+  bottom: calc(var(--bub-tip-y) + 1.0818em);
+  max-width: 66cqw;
+
+  padding: .62em 1.05em .7em;
+  border: var(--cf-border) solid transparent;
+  border-radius: 1.45em;
+  /* A rim deepening toward the foot, drawn round a white card. The fill is
+     flat at the tail's colour for its last stretch, because the tail's top
+     reaches up into it and has to vanish there. */
+  background:
+    linear-gradient(180deg, #ffffff 0%, var(--cf-face-mid) 40%, var(--cf-face) 84%) padding-box,
+    linear-gradient(180deg, var(--cf-rim) 0%, var(--cf-rim-low) 100%) border-box;
+  /* A white bevel just inside the rim, a gloss across the top, and a little
+     shade at either side, so the face reads as curved. */
+  box-shadow: inset 0 0 0 .05em #ffffffe6,
+              inset 0 .22em .3em -.12em #ffffff,
+              inset .16em 0 .26em -.12em var(--cf-shade),
+              inset -.16em 0 .26em -.12em var(--cf-shade);
+  /* Lifted in three soft layers -- the rounded underside, a contact shadow,
+     a wide cast one -- as drop-shadows, so they follow card and tail as one
+     silhouette. */
+  filter: drop-shadow(0 .1em .07em var(--cf-lip))
+          drop-shadow(0 .25em .22em #5b3fa547)
+          drop-shadow(0 .75em .9em #3f2a8a52);
+  font-size: clamp(13px, 5cqw, 30px);
+  /* The verdict is a colour that comes and goes, not a shape: the box is
+     repainted in place, so the recolour is eased and nothing moves. The
+     transform is GSAP's (the pop in and out) and is left alone. */
+  transition: color .35s ease, --cf-rim .35s ease, --cf-rim-low .35s ease,
+              --cf-face .35s ease, --cf-face-mid .35s ease,
+              --cf-lip .35s ease, --cf-shade .35s ease;
+}
+/* bubble-01 has no catch-light: the gloss inside the rim is its shine. */
+.bubble--cf::before { display: none; }
+/* The tail at bubble-01's size and weight. Its stroke starts 8 of its 44
+   units down (index.html), so it is lifted until that point sits on the
+   rim's outer edge -- 8 units of 1.4em is .2545em -- and the fill closes
+   the rim across the opening. The stroke is as thick as the rim, in the
+   tail's own units (2.36 of 44 across 1.4em), and scales with it. */
+.bubble--cf .bubble-tail {
+  left: var(--cf-tail-left);
+  top: calc(100% + var(--cf-border) - .2545em);
+  width: 1.4em;
+}
+.bubble--cf .bubble-tail path:last-child {
+  stroke-width: 2.36;
+  vector-effect: none;
+}
+/* Three classes deep, as the aside's copy of this rule is: animations.css
+   centres and nowraps `.bubble .type` and is loaded after this file, so the
+   plainer selector would lose. pre-wrap rather than normal because each
+   word carries its own trailing spaces (see wordCuts in typer.js), and the
+   ghost underneath breaks at the same words. */
+.bubble.bubble--cf .type,
+.bubble.bubble--cf .type-ghost {
+  white-space: pre-wrap;
+  text-align: center;
+}
+/* Rows of even length rather than a full row and a stray word, so the box
+   that closes round them (`fit`, js/circum.js) is a card, not a ragged
+   block. On the two block containers the rows are broken in -- the
+   ghost's wrapper and the live line -- so both break at the same words. */
+.bubble--cf .type-wrap,
+.bubble.bubble--cf .type { text-wrap: balance; }
+
+/* The verdicts: bubble-01's drawing in the verdict's hue. The rim's foot
+   is read by the tail's stroke too (--note-edge), and the face's foot by
+   the tail's fill (--bubble-bg, index.html), so each hue change repaints
+   the whole drawing as one. The words go to the verdict's own ink with
+   it. */
+.bubble--cf.is-ok {
+  --cf-rim:      color-mix(in srgb, var(--right-border) 50%, #FFFFFF);
+  --cf-rim-low:  var(--right-border);
+  --cf-face:     color-mix(in srgb, var(--right-fill) 22%, #FFFFFF);
+  --cf-face-mid: color-mix(in srgb, var(--right-fill) 8%, #FFFFFF);
+  --cf-lip:      color-mix(in srgb, var(--right-border) 60%, transparent);
+  --cf-shade:    color-mix(in srgb, var(--right-border) 18%, transparent);
+  color: var(--right-border);
+}
+.bubble--cf.is-bad {
+  --cf-rim:      color-mix(in srgb, var(--wrong-border) 50%, #FFFFFF);
+  --cf-rim-low:  var(--wrong-border);
+  --cf-face:     color-mix(in srgb, var(--wrong-fill) 22%, #FFFFFF);
+  --cf-face-mid: color-mix(in srgb, var(--wrong-fill) 8%, #FFFFFF);
+  --cf-lip:      color-mix(in srgb, var(--wrong-border) 60%, transparent);
+  --cf-shade:    color-mix(in srgb, var(--wrong-border) 18%, transparent);
+  color: var(--wrong-border);
+}
+
+/* ---- The answers -----------------------------------------------------------
+   The yes/no question's own pills (see .choice in style.css), in a row
+   under the bird. Only the pills are live -- the row itself is glass, like
+   the pane. */
+.cf-opts {
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 21cqh;
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  align-items: center;
+  gap: clamp(6px, 1.6cqw, 14px);
+  padding: 0 1.5cqw;
+  pointer-events: none;
+}
+.cf-opts .choice {
+  pointer-events: auto;
+  /* Sized against the pane rather than the viewport, as everything in it
+     is. As big as three formulas can be and still stand in ONE row across
+     the half-stage: the type nearly fills it, so the sides are snugger
+     than the footer's pills. */
+  font-size: clamp(12px, 4cqw, 26px);
+  padding: .36em 1.05em .42em;
+}
+
+/* ---- The circle -----------------------------------------------------------
+   Nothing on this section's circle is a target: the answer is a press on a
+   pill, never a touch on the picture. */
+.figure__cf,
+.figure__cf * { pointer-events: none; }
+
+/* ---- Reduced motion ------------------------------------------------------- */
+@media (prefers-reduced-motion: reduce) {
+  .bubble--cf { transition: none !important; }
+}

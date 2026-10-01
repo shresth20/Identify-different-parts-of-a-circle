@@ -943,7 +943,10 @@
 
   function tailOrigin(bubble) {
     var style = getComputedStyle(bubble);
-    if (bubble.closest('.aside--message')) {
+    /* The speech card, and bubble-02 drawn as it: tails placed off their
+       own em and container units rather than the hero's sum below. */
+    if (bubble.closest('.aside--message') ||
+        bubble.classList.contains('bubble--cf')) {
       /* Read resolved pixels: GSAP splits transform-origin on spaces, so a
          raw calc() containing container units cannot be passed through. */
       var tail = getComputedStyle(bubble.querySelector('.bubble-tail'));
