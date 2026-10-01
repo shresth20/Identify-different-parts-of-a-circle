@@ -32,18 +32,27 @@
   z-index: 2;                        /* over the figure, which has no level */
   pointer-events: none;
   container-type: size;
+
+  /* Where the bird stands and how big it is, and the right edge the box may
+     grow to -- the row of answers' own -- named once, because the box's
+     widest reach is worked out from all three (see .bubble--cf). */
+  --cf-bird-left: -2cqw;
+  --cf-bird-size: 29cqh;
+  --cf-reach: 97cqw;
 }
 .cf-pane[hidden] { display: none; }
 
-/* The bird's spot: a little above the pane's middle, between the question
-   over its head and the answers under its feet, and smaller than the
-   aside's bird -- it is beside the question, not the whole of it. Square,
-   as every slot is, so the bubble's tail anchoring (percentages of the
-   cell) reads straight off it. */
+/* The bird's spot: at the pane's left, its wing in line with the first
+   answer, a little above the middle -- between the question over its head
+   and the answers under its feet -- and smaller than the aside's bird: it
+   is beside the question, not the whole of it. Standing left leaves the box
+   the width of the pane to grow across. Square, as every slot is, so the
+   bubble's tail anchoring (percentages of the cell) reads straight off
+   it. */
 .slot--cf {
-  left: 10cqw;
+  left: var(--cf-bird-left);
   bottom: 39cqh;
-  height: 29cqh;
+  height: var(--cf-bird-size);
   aspect-ratio: 1;
 }
 
@@ -62,9 +71,9 @@
 
 /* bubble-01's drawing, at this pane's scale, over the hero bubble's frame
    (.bubble in style.css), which still does the anchoring and the type.
-   Allowed to wrap: a question or a verdict is a sentence beside the figure
-   with half the stage to live in, and held to one row it would run off the
-   board. */
+   Wide before it is tall: a sentence runs out along one row until the box
+   reaches the answers' right edge, and only then wraps and grows upward,
+   so a short line is a short box and a long one fills the pane's width. */
 .bubble--cf {
   --cf-rim:      #c7aef5;
   --cf-rim-low:  #a586e6;
@@ -76,20 +85,30 @@
   /* The tail stands clear of the big corner, so the rim it opens is a
      straight stretch of foot. */
   --cf-tail-left: 1.3em;
+  /* A step smaller than bubble-01's 1.4em: on this smaller bird a card-
+     sized tail crowded the crest. */
+  --cf-tail-w: 1.1em;
   --bubble-bg: var(--cf-face);
   --note-edge: var(--cf-rim-low);
 
-  /* Placed by the tail's tip, as every bubble is: over the upper right of
-     the bird's head, 80% across the cell and 21% down it. The box is set
-     back from that point by where the tip falls inside it -- across, the
-     rim, the tail's offset and the 2/44 of its 1.4em that the tip sits in
-     from its left edge; down, the tail's 1.3364em height less the .2545em
-     it is lifted into the rim (see .bubble-tail below). */
-  --bub-tip-x: 80%;
-  --bub-tip-y: 79%;
-  left: calc(var(--bub-tip-x) - var(--cf-border) - var(--cf-tail-left) - .0636em);
-  bottom: calc(var(--bub-tip-y) + 1.0818em);
-  max-width: 66cqw;
+  /* Placed by the tail's tip, as every bubble is: just over the bird's
+     head, a little clear of its crest, 62% across the cell and 15% down
+     it. The box is set back from that point by where the tip falls inside
+     it -- across, the rim, the tail's offset and the 2/44 of its width that
+     the tip sits in from its left edge; down, the tail's height (42/44 of
+     its width) less the 8/44 it is lifted into the rim (see .bubble-tail
+     below). */
+  --cf-tip-x: .62;
+  --cf-set-back: calc(var(--cf-border) + var(--cf-tail-left) + var(--cf-tail-w) * 2 / 44);
+  --bub-tip-x: calc(var(--cf-tip-x) * 100%);
+  --bub-tip-y: 85%;
+  left: calc(var(--bub-tip-x) - var(--cf-set-back));
+  bottom: calc(var(--bub-tip-y) + var(--cf-tail-w) * 34 / 44);
+  /* As wide as the pane allows: from the box's own left edge -- the bird's
+     spot, the tip's share of the cell, less the set-back -- to --cf-reach.
+     In pane units, so it holds at every board size. */
+  max-width: calc(var(--cf-reach) - var(--cf-bird-left)
+                  - var(--cf-tip-x) * var(--cf-bird-size) + var(--cf-set-back));
 
   padding: .62em 1.05em .7em;
   border: var(--cf-border) solid transparent;
@@ -112,7 +131,8 @@
   filter: drop-shadow(0 .1em .07em var(--cf-lip))
           drop-shadow(0 .25em .22em #5b3fa547)
           drop-shadow(0 .75em .9em #3f2a8a52);
-  font-size: clamp(13px, 5cqw, 30px);
+  /* Sized so the question stands on one row across the pane. */
+  font-size: clamp(13px, 4.3cqw, 28px);
   /* The verdict is a colour that comes and goes, not a shape: the box is
      repainted in place, so the recolour is eased and nothing moves. The
      transform is GSAP's (the pop in and out) and is left alone. */
@@ -122,18 +142,18 @@
 }
 /* bubble-01 has no catch-light: the gloss inside the rim is its shine. */
 .bubble--cf::before { display: none; }
-/* The tail at bubble-01's size and weight. Its stroke starts 8 of its 44
-   units down (index.html), so it is lifted until that point sits on the
-   rim's outer edge -- 8 units of 1.4em is .2545em -- and the fill closes
-   the rim across the opening. The stroke is as thick as the rim, in the
-   tail's own units (2.36 of 44 across 1.4em), and scales with it. */
+/* The tail, drawn as bubble-01's. Its stroke starts 8 of its 44 units down
+   (index.html), so it is lifted until that point sits on the rim's outer
+   edge and the fill closes the rim across the opening. The stroke is as
+   thick as the rim, in the tail's own units -- .075em is 3 of 44 across
+   1.1em, so it changes with --cf-tail-w -- and scales with it. */
 .bubble--cf .bubble-tail {
   left: var(--cf-tail-left);
-  top: calc(100% + var(--cf-border) - .2545em);
-  width: 1.4em;
+  top: calc(100% + var(--cf-border) - var(--cf-tail-w) * 8 / 44);
+  width: var(--cf-tail-w);
 }
 .bubble--cf .bubble-tail path:last-child {
-  stroke-width: 2.36;
+  stroke-width: 3;
   vector-effect: none;
 }
 /* Three classes deep, as the aside's copy of this rule is: animations.css
@@ -146,12 +166,13 @@
   white-space: pre-wrap;
   text-align: center;
 }
-/* Rows of even length rather than a full row and a stray word, so the box
-   that closes round them (`fit`, js/circum.js) is a card, not a ragged
-   block. On the two block containers the rows are broken in -- the
-   ghost's wrapper and the live line -- so both break at the same words. */
+/* Rows filled to the box's full width, the box then closing round the
+   widest (`fit`, js/circum.js) -- but never a last row of one stray word:
+   `pretty` takes a word down from the row above instead. On the two block
+   containers the rows are broken in -- the ghost's wrapper and the live
+   line -- so both break at the same words. */
 .bubble--cf .type-wrap,
-.bubble.bubble--cf .type { text-wrap: balance; }
+.bubble.bubble--cf .type { text-wrap: pretty; }
 
 /* The verdicts: bubble-01's drawing in the verdict's hue. The rim's foot
    is read by the tail's stroke too (--note-edge), and the face's foot by
@@ -203,6 +224,9 @@
   font-size: clamp(12px, 4cqw, 26px);
   padding: .36em 1.05em .42em;
 }
+/* A spent pill -- refused, or passed over once the answer is in -- is not
+   a control: restated here, because the rule above outranks style.css's. */
+.cf-opts .choice.is-done { pointer-events: none; }
 
 /* ---- The circle -----------------------------------------------------------
    Nothing on this section's circle is a target: the answer is a press on a

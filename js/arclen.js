@@ -58,7 +58,8 @@
 
     sectorNo:  'A sector is the region enclosed by two radii and an arc.',
     segmentNo: 'A segment is the region enclosed by a chord and an arc.',
-    minorNo:   'A minor arc is the smaller arc, but this is the larger piece of the circle.'
+    minorNo:   ['A minor arc is the smaller arc.',
+                'But this is the larger piece of the circle.']
   };
 
   var BEAT = K.BEAT, SHORT = K.SHORT;
@@ -254,13 +255,14 @@
   }
 
   /* ---- the bird's verdicts ------------------------------------------------
-     Two lines, said on the header: the word ("Try again!" / "Correct!") and
-     then the why. The bird comes UP for the first verdict and stays for
-     every one after -- a wrong drop never sends it away -- and only the
-     round itself sends it back down, after the right answer's why.
+     Said on the header: the word ("Try again!" / "Correct!") and then the
+     why -- one sentence or several, each said in turn. The bird comes UP
+     for the first verdict and stays for every one after -- a wrong drop
+     never sends it away -- and only the round itself sends it back down,
+     after the right answer's why.
        A newer verdict takes the header over: `saying` is bumped at the
      start, and an older chain that wakes up to find itself outvoted stops
-     between its two lines rather than talking over the new one. */
+     between its lines rather than talking over the new one. */
   function verdict(word, why, mood) {
     var mine = ++saying;
     var opening;
@@ -270,12 +272,11 @@
       up = true;
       opening = K.arriveSaying(word, mood).then(function () { mascot.settle(); });
     }
-    return opening
-      .then(function () { return Flow.wait(SHORT); })
-      .then(function () {
-        if (mine !== saying) return;
-        return K.speak(why, mood);
-      });
+    return [].concat(why).reduce(function (chain, line) {
+      return chain
+        .then(function () { if (mine === saying) return Flow.wait(SHORT); })
+        .then(function () { if (mine === saying) return K.speak(line, mood); });
+    }, opening);
   }
 
   /* ======================================================================

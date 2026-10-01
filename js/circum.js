@@ -22,8 +22,8 @@
  *   and stays red, and the box turns red with it to say "Not quite!" and
  *   then, in the sentence that replaces it, WHY it is wrong -- and the
  *   learner tries again for as long as it takes. The right one turns
- *   green, the box turns green with "Correct!" and then the formula, and
- *   Next arrives. The bird stays beside its
+ *   green, the other pills fade back, the box turns green with "Correct!"
+ *   and then the formula, and Next arrives. The bird stays beside its
  *   verdict until Next is PRESSED -- only then does it drop away with the
  *   box, the pills and the circle.
  *
@@ -48,15 +48,18 @@
      teaches nothing. A verdict is said a sentence at a time, each one
      replacing the last: the call on its own first, then the reason.
        A formula is one thing to read, so its spaces are non-breaking and
-     the box's balanced rows never split one -- nor start a row with "=". */
+     the box's rows never split one -- nor start a row with "=". And a
+     sentence long enough to wrap keeps its last two words together, so its
+     last row is never one stray word. */
   var NB = ' ';
   function whole(s) { return s.replace(/ /g, NB); }
+  function tie(s) { return s.replace(/ (\S+)$/, NB + '$1'); }
   var LINES = {
-    ask:   'Correct formula of Circumference is',
+    ask:   tie('Correct formula of Circumference is'),
     right: ['Correct!', 'Circumference' + NB + '= ' + whole('π × diameter.')],
     wrong: {
-      'π × radius':    ['Not quite!', whole('π × radius') + ' gives only half the circumference.'],
-      'π × (radius)²': ['Not quite!', whole('π × (radius)²') + ' is the area of a circle, not its circumference.']
+      'π × radius':    ['Not quite!', tie(whole('π × radius') + ' gives only half the circumference.')],
+      'π × (radius)²': ['Not quite!', tie(whole('π × (radius)²') + ' is the area of a circle, not its circumference.')]
     }
   };
 
@@ -300,7 +303,16 @@
           }
         });
       })
-      .then(function () { return verdict(LINES.right, 'happy', 'is-ok'); })
+      /* The answer stands alone: the other pills -- spent, no longer
+         controls -- step back to a faint 0.4 while the box says why, so the
+         green one is what the eye is left on. */
+      .then(function () {
+        var right = opts.filter(function (b) { return b.dataset.name === ANSWER; })[0];
+        return Promise.all([
+          verdict(LINES.right, 'happy', 'is-ok'),
+          Flow.anim(M.focus(right, opts, { opacity: 0.4 }))
+        ]);
+      })
       .then(function () { return Flow.wait(BEAT); })
 
       /* ---- Next -- and only its PRESS sends the bird away ------------------
