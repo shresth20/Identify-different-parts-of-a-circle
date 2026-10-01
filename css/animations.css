@@ -81,9 +81,18 @@
 
 /* The centre dot, asking to be tapped. Opacity and transform only, so the
    whole loop runs off the main thread; the halo is a separate circle under
-   the dot, so the dot itself never softens. */
+   the dot, so the dot itself never softens.
+     The loop is led in by a fade of its own, up to exactly the loop's first
+   frame: the halo rests at nothing, and the glow starting should read as a
+   light coming on rather than a ring switched in. The loop waits out the
+   fade and so takes over from the very value it stopped on. */
 .figure__centre.is-calling .centre__glow {
-  animation: dot-glow 1.5s ease-in-out infinite;
+  animation: dot-glow-in .7s ease-out,
+             dot-glow 1.5s ease-in-out .7s infinite;
+}
+@keyframes dot-glow-in {
+  from { opacity: 0;   transform: scale(.72); }
+  to   { opacity: .30; transform: scale(.72); }
 }
 @keyframes dot-glow {
   0%, 100% { opacity: .30; transform: scale(.72); }
@@ -153,6 +162,32 @@
 .centre__dot.is-pulsing { --pulse-ink: var(--part-centre); }
 .end-dot.is-pulsing     { --pulse-ink: var(--part-point); }
 
+/* The circumference, held lit. Not the pulse above: the rim stays lit from
+   the moment it is named until the callout on it has been looked at, which
+   is longer than three breaths and not known in advance, so the light is a
+   loop of its own that runs while .is-lit is on. Slower than the pulse --
+   this is a light left on, not a nudge. Opacity only, on the blurred circle
+   inside the group; the group's own opacity is the beats' to fade, which is
+   what lets the light go out gently whatever point of a breath it is at. */
+.rim-light.is-lit .rim-light__glow {
+  animation: rim-breathe 1.4s ease-in-out infinite;
+}
+@keyframes rim-breathe {
+  0%, 100% { opacity: .38; }
+  50%      { opacity: .85; }
+}
+
+/* The radius, held lit while it is named. Its light breathes by its WIDTH:
+   the opacity is the beats' to fade in and out (lineLight / lineUnlight in
+   animations.js), and a CSS loop on the same property would outrank them. */
+.line-glow.is-lit {
+  animation: line-breathe 1.4s ease-in-out infinite;
+}
+@keyframes line-breathe {
+  0%, 100% { stroke-width: 9; }
+  50%      { stroke-width: 16; }
+}
+
 /* A name picked up by a tap, waiting for its box: it breathes so it is
    plainly the one in hand. */
 .chip.is-picked { animation: chip-pick 1.3s ease-in-out infinite; }
@@ -211,6 +246,9 @@
     opacity: .6;
     transform: scale(1);
   }
+  /* The same for the lit rim: lit, steadily. */
+  .rim-light.is-lit .rim-light__glow { animation: none !important; }
+  .line-glow.is-lit { animation: none !important; }
   .chip.is-picked { animation: none !important; }
   /* The pulse is a highlight before it is a motion: the part still has to be
      picked out, so the bloom is left standing for as long as the beat holds

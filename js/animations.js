@@ -209,6 +209,84 @@
     return tl;
   }
 
+  /* ---- the circumference, lit ------------------------------------------
+     The rim lit as it is named, and held lit under its callout, then put out
+     when the scene has finished pointing at it. How long that is depends on
+     the speech, so it is two beats and not one timeline: a timeline hands
+     its writes back when it ENDS, and this light has to outlast its own
+     fade-in. `light` is the #rimLight group; the breathing inside it is CSS
+     (.rim-light.is-lit), as every loop of unknown length in this game is.
+     The rim swells to a held weight under the light and comes back with it. */
+  var RIM_W = 2.6;                  /* .figure__rim's stroke-width           */
+  var RIM_LIT_W = 4.4;
+
+  function rimLight(rim, light) {
+    light.classList.add('is-lit');
+    var tl = M.timeline({ willChange: light, willChangeValue: 'opacity' });
+    tl.fromTo(light, { opacity: 0 },
+              { opacity: 1, duration: M.dur(0.5), ease: 'power2.out' }, 0)
+      .to(rim, { strokeWidth: RIM_LIT_W, duration: M.dur(0.5), ease: 'power2.out' }, 0);
+    return tl;
+  }
+
+  function rimUnlight(rim, light) {
+    var tl = M.timeline({
+      willChange: light, willChangeValue: 'opacity',
+      revert: function () {
+        light.classList.remove('is-lit');
+        M.set(light, { clearProps: 'opacity' });
+        M.set(rim, { clearProps: 'strokeWidth' });
+      }
+    });
+    tl.to(light, { opacity: 0, duration: M.dur(0.6), ease: 'power2.inOut' }, 0)
+      .to(rim, { strokeWidth: RIM_W, duration: M.dur(0.6), ease: 'power2.inOut' }, 0);
+    return tl;
+  }
+
+  /* A light run once round the rim -- the distance all the way around,
+     travelled -- set off from twelve o'clock and going clockwise, the way
+     the pen went, so it ends where it began. Every layer of `run` (see
+     #rimRun in index.html) is shown as a single dash whose FRONT is the
+     head of the light: `data-tail` is the dash's length, and the gap after
+     it is longer than the rim, so no second dash ever comes round. Placing
+     a dash that ends at `h` along the rim is an offset of tail - h. At h = 0
+     every dash lies before the path's start and nothing shows, so the light
+     comes out of the point the circle was drawn from.
+       One proxy drives every layer, so the head and its trail cannot drift
+     apart; the ease is gentle at both ends and even through the middle,
+     which is what reads as something travelling rather than being thrown. */
+  function rimRun(run, seconds) {
+    var paths = Array.prototype.slice.call(run.querySelectorAll('path'));
+    var len = pathLength(paths[0]) || 1;
+    var tails = paths.map(function (p) {
+      return parseFloat(p.getAttribute('data-tail')) || 1;
+    });
+    function place(h) {
+      paths.forEach(function (p, i) { p.style.strokeDashoffset = tails[i] - h; });
+    }
+    paths.forEach(function (p, i) {
+      p.style.strokeDasharray = tails[i] + ' ' + (len + tails[i]);
+    });
+    place(0);
+
+    var head = { h: 0 };
+    var tl = M.timeline({
+      revert: function () {
+        undash(paths);
+        M.set(run, { clearProps: 'opacity' });
+      }
+    });
+    tl.set(run, { opacity: 1 }, 0)
+      .to(head, {
+        h: len, duration: M.dur(seconds), ease: 'sine.inOut',
+        onUpdate: function () { place(head.h); }
+      }, 0)
+      /* back at twelve: the light goes out where it came in */
+      .to(run, { opacity: 0, duration: M.dur(0.45), ease: 'power2.in' },
+          M.gap(seconds - 0.15));
+    return tl;
+  }
+
   /* ======================================================================
    * The centre
    * ====================================================================== */
@@ -225,8 +303,18 @@
     group.removeAttribute('hidden');
     group.classList.toggle('is-quiet', quiet);
     var tl = M.plotPoint(dot, null, { duration: quiet ? 0.28 : 0.34 });
-    if (!quiet) tl.add(function () { group.classList.add('is-calling'); });
+    if (!quiet) tl.add(function () { callCentre(group); });
     return tl;
+  }
+
+  /* A dot planted quietly, asked for after all: the halo fades up into its
+     loop (the fade is the loop's own first step, see .is-calling in
+     animations.css) and the dot becomes tappable. A class swap and not a
+     tween, for the reason the loop is CSS -- it runs for as long as the
+     learner takes. */
+  function callCentre(group) {
+    group.classList.remove('is-quiet');
+    group.classList.add('is-calling');
   }
 
   /* Tapped. The halo settles out of its loop (CSS again, on .is-found) and
@@ -268,8 +356,13 @@
      eye skips.
        The head starts while the shaft still has a few frames to run: a pen
      does not stop at the tip and start again, and that overlap is what makes
-     the two read as one gesture rather than as two marks. */
-  function callout(group, arrow, head, label) {
+     the two read as one gesture rather than as two marks.
+       `opts.pace` stretches the whole gesture by that factor, for a name
+     that is put on as a beat of its own rather than over a line being
+     said. A slow word is given a gentler overshoot: the same pop drawn out
+     reads as a wobble. */
+  function callout(group, arrow, head, label, opts) {
+    var k = (opts && opts.pace) || 1;
     group.removeAttribute('hidden');
     M.set([arrow, head], { opacity: 1 });
     M.set(label, { opacity: 0, scale: 0.72, transformOrigin: '0% 60%' });
@@ -278,12 +371,12 @@
       willChange: label, willChangeValue: 'transform, opacity',
       revert: function () { undash([arrow, head]); }
     });
-    stroke(tl, arrow, 0, 0.46, 'power2.inOut');
-    stroke(tl, head, 0.38, 0.16, 'power2.out');
+    stroke(tl, arrow, 0, 0.46 * k, 'power2.inOut');
+    stroke(tl, head, 0.38 * k, 0.16 * k, 'power2.out');
     tl.to(label, {
       opacity: 1, scale: 1,
-      duration: M.dur(0.32), ease: 'back.out(1.7)'
-    }, M.gap(0.5));
+      duration: M.dur(0.32 * k), ease: k > 1 ? 'back.out(1.2)' : 'back.out(1.7)'
+    }, M.gap(0.5 * k));
     return tl;
   }
 
@@ -299,26 +392,6 @@
       }
     });
     tl.to(parts, { opacity: 0, duration: M.dur(0.3), ease: 'power2.in' });
-    return tl;
-  }
-
-  /* The arrow alone coming off a callout, its word left standing -- and,
-     given `text`, the word changed as it goes. Once there are several of a
-     thing on the circle, an arrow at one of them says "this one"; the word
-     on its own, made plural, says "these".
-       No revert: a timeline's revert runs when it COMPLETES, and handing the
-     arrow's opacity back there would put the arrow straight back on screen.
-     The group stays up; calloutOut takes the word off later and clears the
-     arrow with it, and the next callout() sets the arrow to 1 before it
-     draws. */
-  function arrowOut(parts, label, text) {
-    var tl = M.timeline({ willChange: parts, willChangeValue: 'opacity' });
-    tl.to(parts, { opacity: 0, duration: M.dur(0.3), ease: 'power2.in' }, 0);
-    if (label && text) {
-      tl.to(label, { opacity: 0, duration: M.dur(0.16), ease: 'power2.in' }, 0)
-        .call(function () { label.textContent = text; }, null, M.gap(0.16))
-        .to(label, { opacity: 1, duration: M.dur(0.26), ease: 'power2.out' }, M.gap(0.16));
-    }
     return tl;
   }
 
@@ -370,19 +443,109 @@
    * Points and lines
    * ====================================================================== */
 
-  /* A point going onto the diagram. */
-  function plotDot(dot) {
+  /* A point going onto the diagram. `seconds` slows the pop for a point
+     that is its own beat -- the same overshoot, drawn out, is what reads as
+     slow motion rather than as a slower fade. */
+  function plotDot(dot, seconds) {
     M.set(dot, { opacity: 1 });
-    var tl = M.plotPoint(dot, null, { duration: 0.3 });
+    var tl = M.plotPoint(dot, null, { duration: seconds ? M.dur(seconds) : 0.3 });
     tl.call(pop, null, 0);
     return tl;
   }
 
-  /* A segment, drawn from the start of its own path to its end. */
-  function growLine(line, seconds) {
+  /* A segment, drawn from the start of its own path to its end. A slow one
+     is given an ease that is gentle at both ends, so it is seen to set off
+     and to arrive rather than to be flung out and brake. */
+  function growLine(line, seconds, ease) {
     M.set(line, { opacity: 1 });
     var tl = M.timeline({ revert: function () { undash([line]); } });
-    stroke(tl, line, 0, seconds || 0.55, 'power2.out');
+    stroke(tl, line, 0, seconds || 0.55, ease || 'power2.out');
+    return tl;
+  }
+
+  /* ---- a line, lit ---------------------------------------------------
+     The radius lit as it is named and kept lit while its name is written,
+     then put out: the circumference's light (rimLight), for a line. Two
+     beats for the same reason that is: the light has to outlast its own
+     fade-in. `glow` is one of the .line-glow paths under the halves; its
+     breathing is CSS (.line-glow.is-lit), by width, so the fades here have
+     the opacity to themselves. */
+  var LINE_LIT = 0.85;
+
+  function lineLight(glow) {
+    glow.classList.add('is-lit');
+    var tl = M.timeline({ willChange: glow, willChangeValue: 'opacity' });
+    tl.fromTo(glow, { opacity: 0 },
+              { opacity: LINE_LIT, duration: M.dur(0.5), ease: 'power2.out' });
+    return tl;
+  }
+
+  function lineUnlight(glow) {
+    var tl = M.timeline({
+      willChange: glow, willChangeValue: 'opacity',
+      revert: function () {
+        glow.classList.remove('is-lit');
+        M.set(glow, { clearProps: 'opacity' });
+      }
+    });
+    tl.to(glow, { opacity: 0, duration: M.dur(0.6), ease: 'power2.inOut' });
+    return tl;
+  }
+
+  /* ---- the radius, swept round -----------------------------------------
+     "From the centre to ANY point on the circle", acted out: a copy of the
+     radius just named is swept once round the centre, clockwise from three
+     o'clock, and wherever it passes one of `ghosts` -- radii laid in
+     advance to points spaced round the rim -- that one is left behind,
+     faint. By the time the arm is home the circle is full of radii, and
+     every one of them is the same line turned.
+       The arm is turned by a rotate() about the centre written straight to
+     its transform attribute: one angle about one fixed point, with none of
+     GSAP's origin arithmetic in it (see paint() in quiz.js for why that
+     matters on a group that also slides). Each ghost is timed off the same
+     ease the arm turns by, so it lands the moment the arm reaches it.
+       The ghosts are left standing when the sweep ends -- they are the
+     picture the sentence is about -- and marksOut takes them off. */
+  var GHOST_REST = 0.38;
+
+  function radiusSweep(arm, ghosts, cx, cy, seconds) {
+    var turn = { a: 0 };
+    function place() {
+      arm.setAttribute('transform',
+                       'rotate(' + turn.a.toFixed(2) + ' ' + cx + ' ' + cy + ')');
+    }
+    var tl = M.timeline({
+      willChange: ghosts, willChangeValue: 'opacity',
+      revert: function () {
+        arm.removeAttribute('transform');
+        M.set(arm, { clearProps: 'opacity' });
+      }
+    });
+    tl.set(arm, { opacity: 1 }, 0)
+      .to(turn, {
+        a: 360, duration: M.dur(seconds), ease: 'sine.inOut', onUpdate: place
+      }, 0);
+    ghosts.forEach(function (g) {
+      /* where sine.inOut reaches this angle: its inverse, (1 - cos(pi t)) / 2 */
+      var p = (parseFloat(g.getAttribute('data-angle')) || 0) / 360;
+      var at = seconds * Math.acos(1 - 2 * p) / Math.PI;
+      tl.to(g, { opacity: GHOST_REST, duration: M.dur(0.35), ease: 'power2.out' },
+            M.gap(at));
+    });
+    /* home: the arm lies on the named radius again, which hides it */
+    tl.set(arm, { opacity: 0 }, M.gap(seconds));
+    return tl;
+  }
+
+  /* Marks a beat left standing on the figure -- the swept radii, the names
+     under the diameter, the rule -- taken off together and handed back to
+     their resting state, which for every one of them is invisible. */
+  function marksOut(els) {
+    var tl = M.timeline({
+      willChange: els, willChangeValue: 'opacity',
+      revert: function () { M.set(els, { clearProps: 'opacity' }); }
+    });
+    tl.to(els, { opacity: 0, duration: M.dur(0.3), ease: 'power2.in' });
     return tl;
   }
 
@@ -433,20 +596,22 @@
     return tl;
   }
 
-  /* Two radii become one diameter. The halves take the diameter's colour
-     together (a class -- the stylesheet transitions the stroke), the
-     two names slide in to meet at the middle as they fade, and the whole
-     line's name is set down where they meet. That is "two of these make one
-     of that" made into a movement. */
-  function becomeDiameter(o) {
-    M.set(o.name, { opacity: 0, scale: 0.7, transformOrigin: 'center center' });
-    var tl = M.timeline({ willChange: o.names.concat(o.name), willChangeValue: 'transform, opacity' });
+  /* Two radii joined into one diameter: the diameter's colour run along the
+     whole line, end to end and through the centre, over the two halves --
+     the joining and the change of colour as one stroke. `join` is the whole
+     diameter's own path, in its colour, and it stays drawn. The halves take
+     the same colour under it as it lands (a class -- the stylesheet
+     transitions the stroke), out of sight, so the line is one colour all
+     through whichever of them is on top. */
+  var JOIN_TIME = 1.4;
+
+  function joinDiameter(join, halves) {
+    M.set(join, { opacity: 1 });
+    var tl = M.timeline({ revert: function () { undash([join]); } });
+    stroke(tl, join, 0, JOIN_TIME, 'sine.inOut');
     tl.call(function () {
-      o.halves.forEach(function (h) { h.classList.add('is-dia'); });
-    }, null, 0);
-    tl.to(o.names[0], { x: o.meet, opacity: 0, duration: M.dur(0.5), ease: 'power2.inOut' }, M.gap(0.1));
-    tl.to(o.names[1], { x: -o.meet, opacity: 0, duration: M.dur(0.5), ease: 'power2.inOut' }, M.gap(0.1));
-    tl.to(o.name, { opacity: 1, scale: 1, duration: M.dur(0.42), ease: 'back.out(1.7)' }, M.gap(0.44));
+      halves.forEach(function (h) { h.classList.add('is-dia'); });
+    }, null, M.gap(JOIN_TIME));
     return tl;
   }
 
@@ -723,7 +888,15 @@
   var TAIL_BORDER = 4;                 /* and the border it is measured from */
 
   function tailOrigin(bubble) {
-    var em = parseFloat(getComputedStyle(bubble).fontSize) || 16;
+    var style = getComputedStyle(bubble);
+    if (bubble.closest('.aside--message')) {
+      /* Read resolved pixels: GSAP splits transform-origin on spaces, so a
+         raw calc() containing container units cannot be passed through. */
+      var tail = getComputedStyle(bubble.querySelector('.bubble-tail'));
+      return (parseFloat(style.borderLeftWidth) + parseFloat(tail.left) +
+              parseFloat(tail.width) / 2) + 'px 100%';
+    }
+    var em = parseFloat(style.fontSize) || 16;
     /* The border counts. --bub-tail-x is an offset into the PADDING box,
        and a transform-origin is measured from the BORDER box, so leaving
        the 4px out put the origin a few pixels left of the tail and the
@@ -1172,7 +1345,9 @@
   }
 
   /* The circle carried to one side of the board, or back: a slide of the
-     whole group, so nothing in it moves relative to anything else. */
+     whole group -- or, for section 1's circle, which is not one group, of
+     every piece of it in one tween -- so nothing in it moves relative to
+     anything else. */
   function slideArcs(group, x) {
     var tl = M.timeline({ willChange: group, willChangeValue: 'transform' });
     tl.to(group, { x: x, duration: M.dur(0.8), ease: 'power2.inOut' });
@@ -1581,21 +1756,28 @@
     /* the circle */
     drawRim: drawRim,
     fillDisc: fillDisc,
+    rimLight: rimLight,
+    rimUnlight: rimUnlight,
+    rimRun: rimRun,
     /* the centre */
     plantCentre: plantCentre,
+    callCentre: callCentre,
     confirmCentre: confirmCentre,
     quietCentre: quietCentre,
     /* the callout */
     callout: callout,
     calloutOut: calloutOut,
-    arrowOut: arrowOut,
     partPulse: partPulse,
     /* points and lines */
     plotDot: plotDot,
     growLine: growLine,
+    lineLight: lineLight,
+    lineUnlight: lineUnlight,
+    radiusSweep: radiusSweep,
+    marksOut: marksOut,
     copyRadius: copyRadius,
     glowLine: glowLine,
-    becomeDiameter: becomeDiameter,
+    joinDiameter: joinDiameter,
     showRule: showRule,
     drawChords: drawChords,
     /* the activity */

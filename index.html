@@ -89,12 +89,13 @@
                    not a wider stroke laid under a narrower one -- a stack of
                    hard-edged strokes reads as rings, however translucent each
                    is.
-                     The radius and diameter are horizontal lines: their box
-                   has no height, so a filter region measured against it
-                   collapses to nothing. This one is measured in the picture's
-                   own units instead, over the strip the lines lie in. -->
+                     The radius, the diameter and the first chord are
+                   horizontal lines: their box has no height, so a filter
+                   region measured against it collapses to nothing. This one
+                   is measured in the picture's own units instead, over the
+                   circle the lines lie in. -->
               <filter id="neonLine" filterUnits="userSpaceOnUse"
-                      x="300" y="140" width="400" height="140">
+                      x="300" y="30" width="400" height="360">
                 <feGaussianBlur stdDeviation="5" />
               </filter>
 
@@ -117,12 +118,28 @@
                   <feMergeNode in="SourceGraphic" />
                 </feMerge>
               </filter>
+
+              <!-- The soft light on the circumference while it is being
+                   named, and the halo of the light that runs round it. Both
+                   are the rim's own circle, so the region can be measured
+                   against a real box, as #arcGlowBlur's is. -->
+              <filter id="rimGlowBlur" x="-12%" y="-12%" width="124%" height="124%">
+                <feGaussianBlur stdDeviation="5" />
+              </filter>
             </defs>
 
-            <!-- No wash inside this circle: section 1 is about the parts drawn
-                 ON the circle -- rim, centre, radius, diameter, chord -- and
-                 an open ring keeps every one of them the strongest thing on
-                 the board. The sections about areas draw their own discs. -->
+            <!-- The colour inside the circle, poured in once the rim is
+                 drawn. First in document order so the rim always draws on
+                 top of it. -->
+            <circle class="figure__disc" id="disc" cx="500" cy="210" r="158" />
+
+            <!-- The rim held lit while it is named: a wide stroke of its own
+                 ink, blurred away, under the line. The group is what fades in
+                 and out; the circle inside it breathes for as long as the
+                 light is on (see .rim-light in animations.css). -->
+            <g class="rim-light" id="rimLight" aria-hidden="true">
+              <circle class="rim-light__glow" cx="500" cy="210" r="158" />
+            </g>
 
             <!-- The rim is a path, not a <circle>, for one reason: a stroke
                  unrolls from wherever its path starts, and a circle's starts
@@ -131,6 +148,27 @@
                  arcs, so no rotation is needed to get it there. -->
             <path class="figure__rim" id="rim"
                   d="M500 52 A158 158 0 0 1 500 368 A158 158 0 0 1 500 52" />
+
+            <!-- The light that runs once round the rim as the bird says what
+                 a circumference is: the rim's own path again, five times,
+                 each shown as ONE dash that rides round it (see rimRun in
+                 animations.js). Every dash ends at the same point -- the head
+                 of the light -- and `data-tail` is how far back along the rim
+                 that layer reaches, so the longer layers, fainter and
+                 thinner, are the trail it leaves. The blurred halo is first,
+                 so the bright core is drawn over it. -->
+            <g class="rim-run" id="rimRun" aria-hidden="true">
+              <path class="rim-run__halo" data-tail="70"
+                    d="M500 52 A158 158 0 0 1 500 368 A158 158 0 0 1 500 52" />
+              <path class="rim-run__trail rim-run__trail--far" data-tail="210"
+                    d="M500 52 A158 158 0 0 1 500 368 A158 158 0 0 1 500 52" />
+              <path class="rim-run__trail rim-run__trail--mid" data-tail="120"
+                    d="M500 52 A158 158 0 0 1 500 368 A158 158 0 0 1 500 52" />
+              <path class="rim-run__trail" data-tail="50"
+                    d="M500 52 A158 158 0 0 1 500 368 A158 158 0 0 1 500 52" />
+              <path class="rim-run__head" data-tail="1"
+                    d="M500 52 A158 158 0 0 1 500 368 A158 158 0 0 1 500 52" />
+            </g>
             <!-- The pen. A dot that pops in at twelve o'clock and rides the
                  tip of the stroke all the way round, so the circle is seen
                  to be drawn FROM a point rather than to appear along a line.
@@ -151,6 +189,13 @@
             <g class="figure__dia" id="dia" hidden>
               <path class="line-glow" id="glowRight" d="M500 210 L658 210" />
               <path class="line-glow" id="glowLeft"  d="M500 210 L342 210" />
+              <path class="line-glow line-glow--dia" id="glowDia" d="M342 210 L658 210" />
+              <!-- The radius swept once round the centre as the bird says
+                   what a radius is, and the faint radii it leaves at the
+                   points it passes. Built by pages.js (see buildSweep);
+                   under the halves, so the named radius hides the arm where
+                   the two lie on each other. -->
+              <g class="rad-sweep" id="radSweep" aria-hidden="true"></g>
               <path class="dia__half" id="halfRight" d="M500 210 L658 210" />
               <path class="dia__half" id="halfLeft"  d="M500 210 L342 210" />
               <!-- The copy: the right half's own path once more, faint, and
@@ -159,14 +204,16 @@
                    it is seen to be lifted OFF the radius rather than out from
                    under it. -->
               <path class="dia__ghost" id="halfGhost" d="M500 210 L658 210" />
+              <!-- The two radii joined: the whole diameter in its own
+                   colour, run from end to end over the halves (see
+                   joinDiameter in animations.js). -->
+              <path class="dia__join" id="diaJoin" d="M342 210 L658 210" />
               <circle class="end-dot" id="endRight" cx="658" cy="210" r="4.4" />
               <circle class="end-dot" id="endLeft"  cx="342" cy="210" r="4.4" />
               <text class="figure-label dia__r" id="rLabelRight"
                     x="579" y="246" text-anchor="middle">Radius</text>
               <text class="figure-label dia__r" id="rLabelLeft"
                     x="421" y="246" text-anchor="middle">Radius</text>
-              <text class="figure-label dia__name" id="diaName"
-                    x="500" y="246" text-anchor="middle">Diameter</text>
               <!-- The rule the merge has just shown, set under the circle
                    once the halves are one line. Each name in the colour of
                    the line it names -- the diameter's blue, the radius's
@@ -490,8 +537,10 @@
             </g>
           </svg>
 
-          <!-- The right half of the board, for the beat in section 2 where
-               the circle stands aside and the bird speaks beside it. Its own
+          <!-- The right half of the board, for the beats where the circle
+               stands aside and the bird speaks beside it -- what a
+               circumference, a radius and a diameter are, in section 1,
+               and the arcs, in section 2. Its own
                bubble, because the hero one is parked on the field outside
                the board. Sized as a container so the bird and its bubble are
                measured against THIS half and not the viewport -- see .aside
@@ -499,7 +548,19 @@
           <div class="aside" id="aside" hidden>
             <div class="slot slot--aside" id="slotAside">
               <div class="bubble bubble--aside" id="bubbleAside" hidden>
+                <svg class="message-sparks" viewBox="0 0 36 40" aria-hidden="true">
+                  <path d="M25 13 L19 3 M13 23 L3 19 M14 34 L5 36"
+                        fill="none" stroke="#ffd16b" stroke-width="6"
+                        stroke-linecap="round" />
+                </svg>
                 <span class="type-wrap" id="asideType">
+                  <span class="type-ghost"></span>
+                  <span class="type" aria-live="polite"><span class="txt"></span></span>
+                </span>
+                <!-- A second line under the first, for a note that is added
+                   to rather than replaced (the diameter's). Out of the
+                   layout until a line is reserved in it. -->
+                <span class="type-wrap type-wrap--more" id="asideMore" hidden>
                   <span class="type-ghost"></span>
                   <span class="type" aria-live="polite"><span class="txt"></span></span>
                 </span>

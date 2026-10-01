@@ -447,6 +447,47 @@ body {
   opacity: 0;
 }
 
+/* The light held on the rim while it is named: the rim's own ink, wide and
+   blurred away, so the line reads as lit rather than as thicker. The group
+   rests invisible and is faded in and out by the beats; the breathing is
+   the circle's own (animations.css). */
+.rim-light { opacity: 0; pointer-events: none; }
+.rim-light__glow {
+  fill: none;
+  stroke: var(--part-circle);
+  stroke-width: 16;
+  opacity: .6;
+  filter: url(#rimGlowBlur);
+}
+
+/* The light that runs round the rim once: a white core riding ON the line,
+   in a halo of the rim's hue lifted toward the light -- on a pale board a
+   glow has to be a colour, since white on white is nothing. The trail
+   behind the core thins and fades in three steps, so it reads as the light
+   moving rather than as a bead. Every layer is one dash, placed by rimRun
+   in animations.js; round caps are what taper each one off. */
+.rim-run { opacity: 0; pointer-events: none; }
+.rim-run path {
+  fill: none;
+  stroke-linecap: round;
+}
+.rim-run__halo {
+  stroke: color-mix(in srgb, var(--part-circle) 55%, var(--blue-fill));
+  stroke-width: 22;
+  stroke-opacity: .9;
+  filter: url(#rimGlowBlur);
+}
+.rim-run__trail {
+  stroke: var(--board-highlight);
+  stroke-width: 4.2;
+}
+.rim-run__trail--mid { stroke-width: 3.4; stroke-opacity: .6; }
+.rim-run__trail--far { stroke-width: 2.8; stroke-opacity: .3; }
+.rim-run__head {
+  stroke: var(--board-highlight);
+  stroke-width: 7;
+}
+
 /* ---- The centre dot ----------------------------------------------------- */
 .centre__dot  { fill: var(--part-centre); }
 .centre__glow {
@@ -531,6 +572,29 @@ body {
   stroke-linecap: round;
   opacity: 0;
 }
+/* The radius swept round (see radiusSweep in animations.js): the arm is the
+   radius's own line and point once more, and each ghost it leaves is the
+   same again at a point it passes. Every group rests at nothing until the
+   beat shows it, and the points inside are shown by their group, so they
+   are taken out of the end-dot's own rest. */
+.rad-sweep__arm,
+.rad-sweep__ghost { opacity: 0; }
+.rad-sweep__line {
+  fill: none;
+  stroke: var(--part-radius);
+  stroke-width: var(--part-weight);
+  stroke-linecap: round;
+}
+.rad-sweep .end-dot { opacity: 1; }
+/* The two radii joined into one line: the whole diameter, in its colour,
+   at the halves' own weight, resting at nothing until it is run along them. */
+.dia__join {
+  fill: none;
+  stroke: var(--part-diameter);
+  stroke-width: var(--part-weight);
+  stroke-linecap: round;
+  opacity: 0;
+}
 /* The light that picks out one half at a time: the same segment under it,
    wider and blurred (see #neonLine in index.html), in a gold between the
    line's two yellows so it reads as the line's own light rather than as a
@@ -543,16 +607,15 @@ body {
   opacity: 0;
   filter: url(#neonLine);
 }
+/* ...and the whole diameter's light, in the diameter's colour. */
+.line-glow--dia { stroke: var(--part-diameter); }
+/* ...and the first chord's, in the chord's. */
+.line-glow--chord { stroke: var(--part-chord); }
 /* The names set under the lines, with no arrow between them: each in its
    own line's colour, so the word and the mark read as one thing. */
 .dia__r {
   fill: var(--part-radius);
   font-size: 22px;
-  opacity: 0;
-}
-.dia__name {
-  fill: var(--part-diameter);
-  font-size: 24px;
   opacity: 0;
 }
 /* "Diameter = 2 x Radius", under the circle. The two names borrow the ink of

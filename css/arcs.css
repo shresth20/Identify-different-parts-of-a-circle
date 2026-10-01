@@ -264,3 +264,83 @@
    after this file, so the plainer selector would lose. */
 .bubble.bubble--aside .type,
 .bubble.bubble--aside .type-ghost { text-align: left; }
+/* And allowed to wrap. The header's line is held to one row (nowrap on
+   .type, animations.css), but a line in the pane is a sentence set beside
+   the figure and has only half the stage: held to one row it runs off the
+   board. pre-wrap rather than normal because each word carries its own
+   trailing spaces (see wordCuts in typer.js), and the ghost underneath
+   breaks at the same words. */
+.bubble.bubble--aside .type { white-space: pre-wrap; }
+/* The second line, under the first: a block of its own, a little apart, so
+   a note added to reads as two sentences rather than one run-on. Its
+   [hidden] is restated because the block rule would otherwise outrank the
+   browser's own. */
+.bubble--aside .type-wrap--more { display: block; margin-top: .55em; }
+.bubble--aside .type-wrap--more[hidden] { display: none; }
+
+/* Opt-in speech card, first used by the Circumference explanation.
+   All dimensions follow the aside so the card and bird stay together. */
+.aside--message .slot--aside {
+  left: 12cqw;
+  bottom: 22cqh;
+  height: 36cqh;
+}
+.aside--message .bubble--aside {
+  --bubble-bg: #f4ecff;
+  --note-edge: #ffffff;
+  --message-edge-low: #d5beeF;
+  left: -7cqw;
+  bottom: calc(100% + 1.6cqh);
+  width: 88cqw;
+  max-width: none;
+  padding: .85em 1.05em .95em;
+  border: .09em solid transparent;
+  border-radius: 1.45em;
+  /* White light along the upper rim fades into the lavender lower edge.
+     The fill settles to the tail's colour before it reaches their join. */
+  background:
+    linear-gradient(180deg, #fffaff 0%, #f9f3ff 46%, var(--bubble-bg) 88%) padding-box,
+    linear-gradient(165deg, var(--note-edge) 12%, #fcf8ff 42%, var(--message-edge-low) 92%) border-box;
+  box-shadow: inset 0 .06em .12em #ffffffcc,
+              inset 0 -.06em .1em #b594d933;
+  /* Shadow the combined card-and-tail silhouette, so the pointer belongs
+     to the same raised surface instead of sitting over a rectangular shadow. */
+  filter: drop-shadow(0 .1em .08em #a784cf66)
+          drop-shadow(0 .35em .65em #8054b352);
+  font-size: 4.8cqw;
+  line-height: 1.38;
+  letter-spacing: 0;
+  text-align: left;
+}
+.aside--message .bubble-tail {
+  display: block;
+  left: calc(1cqw + 18cqh - .7em);
+  top: calc(100% - .09em);
+  width: 1.4em;
+  transform: scaleX(-1);
+}
+.aside--message .bubble-tail path:last-child {
+  stroke: var(--message-edge-low);
+  stroke-width: 2;
+}
+/* Apply the same keyword metrics to the invisible layout copy. */
+.aside--message #asideType .type-ghost { white-space: pre-wrap; }
+.aside--message #asideType .wd:first-child {
+  display: inline-block;
+  padding: 0 .38em .04em;
+  margin: 0 .05em .08em -.12em;
+  border-radius: 999px;
+  background: linear-gradient(180deg, #e9dcff, #d8c1ff);
+  box-shadow: 0 .07em .1em #b997e64d, inset 0 .04em .06em #ffffff80;
+  white-space: nowrap;
+}
+.message-sparks { display: none; }
+.aside--message .message-sparks {
+  display: block;
+  position: absolute;
+  width: 1.18em;
+  height: 1.3em;
+  left: .25em;
+  top: .27em;
+  overflow: visible;
+}
