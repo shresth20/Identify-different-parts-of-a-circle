@@ -35,7 +35,11 @@
  * The `gen` guard is the second line of defence -- it stops an orphaned line
  * from writing into a box a newer line now owns.
  *
- * Load order: js/flow.js -> js/typer.js
+ * A fraction in a line (½ in a formula) is stood up -- numerator over
+ * denominator -- by mathtext.js, which every word is written through when
+ * it is loaded; the Typer stands alone without it.
+ *
+ * Load order: js/flow.js -> js/mathtext.js -> js/typer.js
  * ========================================================================== */
 (function (global) {
   'use strict';
@@ -70,6 +74,14 @@
     return cuts;
   }
 
+  /* A word into its span: plain text, unless a fraction is in it -- then
+     the fraction is stood up (see mathtext.js), and the span holds text
+     round a .frac element rather than one text node. */
+  function write(el, s) {
+    if (global.MathText) global.MathText.write(el, s);
+    else el.textContent = s;
+  }
+
   /* Lay a line out whole: a span per word, each remembering its cut (its end
      offset into the text) so the reveal can be paced per character. */
   function wordSpans(root, text) {
@@ -79,7 +91,7 @@
     wordCuts(text).forEach(function (cut) {
       var sp = document.createElement('span');
       sp.className = 'wd';
-      sp.textContent = text.slice(from, cut);
+      write(sp, text.slice(from, cut));
       root.appendChild(sp);
       words.push({ el: sp, cut: cut });
       from = cut;
@@ -159,6 +171,27 @@
      is left out. Measured through whatever scale an ancestor wears (a
      bubble arming at .15) by the wrapper's drawn-to-laid-out ratio, and set
      in em, so a board resized under a standing line keeps its rows. */
+
+  /* `range` set round a word's glyphs: all of the span but the spaces that
+     trail its last text node. From the span's first CHILD, not its first
+     character, because a word with a fraction in it is text round a .frac
+     element (see write above). False when there is nothing to measure -- a
+     span that is spaces only. */
+  function glyphs(range, sp) {
+    var last = sp.lastChild;
+    if (!last) return false;
+    range.setStart(sp, 0);
+    if (last.nodeType === 3) {
+      var n = last.data.replace(/\s+$/, '').length;
+      if (n) range.setEnd(last, n);
+      else if (last.previousSibling) range.setEndBefore(last);
+      else return false;
+    } else {
+      range.setEndAfter(last);
+    }
+    return true;
+  }
+
   function fitWidth(wrap, ghost) {
     wrap.style.width = '';
     var cs = getComputedStyle(wrap);
@@ -172,11 +205,7 @@
     var words = ghost.querySelectorAll('.wd');
     var widest = 0, top = null, left = 0, right = 0;
     for (var i = 0; i < words.length; i++) {
-      var node = words[i].firstChild;
-      var n = node ? node.data.replace(/\s+$/, '').length : 0;
-      if (!n) continue;
-      range.setStart(node, 0);
-      range.setEnd(node, n);
+      if (!glyphs(range, words[i])) continue;
       var r = range.getBoundingClientRect();
       if (top === null || r.top > top + r.height / 2) {
         if (top !== null) widest = Math.max(widest, right - left);

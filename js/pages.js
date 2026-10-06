@@ -15,8 +15,8 @@
  * Only the end-of-scene ones are the scene boundaries below, which is what
  * the level bar leans on.
  *
- * Load order: motion.js -> flow.js -> typer.js -> mascot.js -> animations.js
- *             -> pages.js
+ * Load order: motion.js -> flow.js -> mathtext.js -> typer.js -> mascot.js
+ *             -> animations.js -> pages.js
  * ========================================================================== */
 (function (global) {
   'use strict';
@@ -526,14 +526,19 @@
   }
 
   /* The answers to a yes/no question, as buttons in the same band the names
-     use. Real buttons, so Enter and Space work without a line of code. */
+     use. Real buttons, so Enter and Space work without a line of code.
+       The label is written through mathtext.js, so a formula's ½ stands up
+     as 1 over 2 on the pill -- and is kept as data on it, because a stacked
+     fraction reads back out of the element as "12". A caller that needs to
+     know which pill was pressed asks dataset.name, never textContent. */
   function buildChoices(host, labels) {
     host.textContent = '';
     return labels.map(function (text) {
       var b = document.createElement('button');
       b.type = 'button';
       b.className = 'choice';
-      b.textContent = text;
+      global.MathText.write(b, text);
+      b.dataset.name = text;
       host.appendChild(b);
       return b;
     });
@@ -799,7 +804,21 @@
      the bird out from under it. */
   var speaking = 0;
 
+  /* A line may come keyed -- {text, vo}, as circum.js's said() builds one:
+     the words to type and the key the recording is filed under (js/
+     i18n.js). The clip starts as the words do, so a bird that has a jump
+     to make first is not heard from the air; a key with no recording yet
+     is silence. A plain string is a line with no clip. */
+  function lineOf(text) {
+    if (text && typeof text === 'object') return text;
+    return { text: String(text), vo: null };
+  }
+  function voiceOf(line) {
+    if (line.vo && global.I18n) quiet(global.I18n.say(line.vo));
+  }
+
   function speak(text, mood) {
+    var line = lineOf(text);
     var mine = ++speaking;
     var has = dom.promptLine.textContent.trim().length > 0;
     var gone = has ? Flow.anim(Beats.lineOut(dom.promptLine)) : Promise.resolve();
@@ -811,7 +830,8 @@
          replaces the line in place. */
       M.set(dom.promptLine, { clearProps: 'opacity,transform,filter' });
       mascot.state(mood || 'talking');
-      return sayInHeader(text);
+      voiceOf(line);
+      return sayInHeader(line.text);
     }).then(function () {
       if (mine === speaking) mascot.settle();
     });
@@ -981,10 +1001,12 @@
      whatever the bird is showing, and a bird chattering its way through the
      air is talking to the ceiling. */
   function arriveSaying(text, mood) {
+    var line = lineOf(text);
     speaking++;
-    var reveal = sayPrompt.reserve(text);
+    var reveal = sayPrompt.reserve(line.text);
     return mascotJumpIn().then(function () {
       mascot.state(mood || 'talking');
+      voiceOf(line);
       return reveal();
     });
   }
@@ -2654,6 +2676,11 @@
      init() has run are handed over as functions. */
   var kit = {
     LINES: LINES, BEAT: BEAT, SHORT: SHORT, HOLD_ASK: HOLD_ASK, TAP_SLOP: TAP_SLOP,
+    /* skill 1's pace -- the pen once round, the point, the line, and the
+       holds between them -- for a later page that draws a circle and wants
+       to be watched at the same speed as the first one was */
+    DRAW_TIME: DRAW_TIME, DRAWN_HOLD: DRAWN_HOLD, DOT_TIME: DOT_TIME,
+    DOT_HOLD: DOT_HOLD, LINE_TIME: LINE_TIME, DIA_HOLD: DIA_HOLD,
     CX: CX, CY: CY, RR: RR, VB_W: VB_W, VB_H: VB_H, BOX_W: BOX_W, BOX_H: BOX_H,
     dom: function () { return dom; },
     mascot: function () { return mascot; },

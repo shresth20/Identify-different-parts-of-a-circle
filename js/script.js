@@ -79,9 +79,21 @@
     global.skip = function () { return global.Flow.skip(); };
   }
 
+  /* The words are read in first (js/i18n.js): a scene asks for its lines
+     by key, and the static ones in the markup are filled in before the
+     lesson is shown. A locale that cannot be read still boots -- the keys
+     show instead, to be fixed in locales/locales.json. */
+  function start() {
+    if (!global.I18n) { boot(); return; }
+    global.I18n.load(function () {
+      global.I18n.applyStatic();
+      boot();
+    });
+  }
+
   if (document.readyState === 'loading') {
-    document.addEventListener('DOMContentLoaded', boot);
+    document.addEventListener('DOMContentLoaded', start);
   } else {
-    boot();
+    start();
   }
 })(window);

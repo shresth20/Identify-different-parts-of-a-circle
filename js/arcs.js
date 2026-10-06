@@ -488,7 +488,11 @@
    * [first, second] -- and `c.done`, which is handed the cut the two
    * points make, as {a, span, origin} (the shape `arc` keeps), the moment
    * the second is down. This section's own is pickCtx(); the section
-   * after it hands over the same shape for its circle.
+   * after it hands over the same shape for its circle. A section whose
+   * lesson needs a different stretch between the points -- a central
+   * angle wants only that the two be clearly apart -- says so with
+   * `c.minSpan` and `c.maxSpan`, in degrees; left out, they are this
+   * section's own MIN_SPAN and MAX_SPAN.
    *
    * Resolves once both points are down. Waits on the lesson's gate, so a
    * retired scene cancels it.
@@ -503,6 +507,8 @@
     var live = true;
     var nudge = null;               /* the hand's loop, while it is showing */
     var idle = 0;                   /* which wait for the hand is the current one */
+    var minSpan = c.minSpan != null ? c.minSpan : MIN_SPAN;
+    var maxSpan = c.maxSpan != null ? c.maxSpan : MAX_SPAN;
 
     group.classList.add('is-picking');
     band.setAttribute('tabindex', '0');
@@ -532,11 +538,11 @@
     function allowed(deg) {
       if (!picked.length) return deg;
       var d = norm(deg - picked[0]);
-      if (d >= MIN_SPAN && d <= MAX_SPAN) return deg;
-      if (d >= 360 - MAX_SPAN && d <= 360 - MIN_SPAN) return deg;
+      if (d >= minSpan && d <= maxSpan) return deg;
+      if (d >= 360 - maxSpan && d <= 360 - minSpan) return deg;
       /* outside both stretches: the nearest edge of either */
-      var best = MIN_SPAN, gap = 361;
-      [MIN_SPAN, MAX_SPAN, 360 - MAX_SPAN, 360 - MIN_SPAN].forEach(function (e) {
+      var best = minSpan, gap = 361;
+      [minSpan, maxSpan, 360 - maxSpan, 360 - minSpan].forEach(function (e) {
         var g = Math.abs(norm180(d - e));
         if (g < gap) { gap = g; best = e; }
       });

@@ -1,0 +1,212 @@
+/* ==========================================================================
+   Skill 2, section 4 -- the arc length, worked and asked
+   The fourth section's own marks, on two pages: a figure made for each --
+   the sector tinted with its arc lit, the two radii, the angle and its
+   measure, the length beside a radius -- and, on the first, the working
+   beside it: four lines of it, one under the other, each with the box the
+   learner fills and the three values to fill it with. Each mark wears the
+   colour its letter wore on the formula page (--cl-s, --cl-r, --cl-th,
+   central.css), so the figure points back at the formula. Everything is
+   picked out of the palette in style.css. To split the section into its
+   own folder later, this file, js/practice.js, the two groups in the
+   figure (#pa and #pb) and #psPane in index.html are the whole of it.
+   ========================================================================== */
+
+/* ---- The two figures ---------------------------------------------------
+   Nothing on either circle is a target: the answer is a press on a pill,
+   never a touch on the picture. Every mark rests unseen; the beats reveal
+   them. */
+.figure__pa,
+.figure__pa *,
+.figure__pb,
+.figure__pb * { pointer-events: none; }
+
+/* The sector: the lit arc's own yellow, faint, as every tinted sector in
+   the skill is. */
+.pr-sector {
+  fill: color-mix(in srgb, var(--part-arc-minor) 30%, #FFFFFF);
+  opacity: 0;
+}
+/* Its arc, in the arc's blue -- the s of the formula -- over the rim. */
+.pr-arc {
+  fill: none;
+  stroke: var(--cl-s);
+  stroke-width: 5;
+  stroke-linecap: round;
+  opacity: 0;
+}
+/* The radii in the radius's green, the angle in the angle's pink. */
+.pr-radius,
+.pr-angle {
+  fill: none;
+  stroke-width: 3.4;
+  stroke-linecap: round;
+  opacity: 0;
+}
+.pr-radius { stroke: var(--cl-r); }
+.pr-angle  { stroke: var(--cl-th); }
+.pr-centre {
+  fill: var(--part-centre);
+  stroke: var(--board-highlight);
+  stroke-width: 2;
+  opacity: 0;
+}
+/* The measure in the angle's colour, the length in the radius's -- each
+   label the colour of the mark it names -- with a thin white edge under
+   the ink, so a label set over the rim stays clear of it. */
+.pr-label {
+  opacity: 0;
+  paint-order: stroke;
+  stroke: var(--board-highlight);
+  stroke-width: 5;
+  stroke-linejoin: round;
+}
+.pr-deg { fill: var(--cl-th); }
+.pr-len { fill: var(--cl-r); }
+
+/* ---- The working (page 1) ------------------------------------------------
+   The right half of the stage, as .ff-pane is -- a container, so the type
+   is measured against this half -- with the lines of working stacked
+   from the top, left-aligned on one edge so each reads as the one above
+   rewritten, and the values to choose from in a row under the last.
+   Glass throughout: only the pills are ever live. */
+.ps-pane {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  left: 50%;
+  width: 50%;
+  z-index: 2;
+  pointer-events: none;
+  container-type: size;
+  box-sizing: border-box;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  justify-content: flex-start;
+  gap: 6cqh;
+  padding: 8cqh 3cqw 0 4cqw;
+}
+.ps-pane[hidden] { display: none; }
+
+.ps-lines {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: .55em;
+  font-family: var(--font-display);
+  font-weight: 800;
+  font-size: clamp(15px, 5.2cqw, 38px);
+  line-height: 1.2;
+  letter-spacing: .3px;
+  color: var(--text-primary);
+}
+/* A line rests out of the layout until its step, and unseen until it has
+   risen into place -- practice.js brings it up. */
+.ps-line {
+  margin: 0;
+  display: flex;
+  align-items: center;
+  gap: .3em;
+  white-space: nowrap;
+  opacity: 0;
+}
+.ps-line[hidden] { display: none; }
+.ps-t { display: inline-block; }
+
+/* The fraction, stood up as on paper: the numerator over a bar over the
+   denominator, the bar its own element so it runs the width of the wider
+   half. */
+.ps-frac {
+  display: inline-flex;
+  flex-direction: column;
+  align-items: center;
+  font-size: .82em;
+  line-height: 1.1;
+}
+.ps-n,
+.ps-d { display: block; padding: 0 .16em; }
+.ps-bar {
+  display: block;
+  align-self: stretch;
+  height: .11em;
+  margin: .1em 0;
+  border-radius: .06em;
+  background: currentColor;
+}
+
+/* The box the learner fills: an empty, dashed cell in the line's own
+   type, breathing a little while a value is wanted. Filled, it is a box
+   no longer -- its edge and its fill fade, and its width is let go so the
+   line closes up round the plain number (Flip plays that, practice.js);
+   nothing moves here but colour. */
+.ps-slot {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  box-sizing: border-box;
+  min-width: 2.4em;
+  min-height: 1.3em;
+  padding: 0 .3em;
+  border: .09em dashed var(--lavender-border);
+  border-radius: .4em;
+  background: color-mix(in srgb, var(--lavender-fill) 22%, #FFFFFF);
+  transition: border-color .45s ease, background-color .45s ease;
+}
+.ps-slot.is-live { animation: ps-invite 1.6s ease-in-out infinite; }
+@keyframes ps-invite {
+  0%, 100% { transform: scale(1); }
+  50%      { transform: scale(1.06); }
+}
+.ps-slot.is-filled {
+  min-width: 0;
+  min-height: 0;
+  padding: 0;
+  border-color: transparent;
+  background: transparent;
+}
+.ps-slot__v { display: inline-block; }
+
+/* Line 3 solves itself: a cell that is being simplified is lit in its
+   colour (the class -- transitioned here, as every recolour in the
+   figure is), then taken out of the layout, and the cell that replaces
+   it comes in wearing that colour from the start. The angle's share in
+   the angle's pink, the circumference's product in the rim's own orange,
+   as the formula page coloured them. */
+.ps-k--th,
+.ps-k--c { transition: color .5s ease; }
+.ps-k--th.is-on,
+.ps-new.ps-k--th { color: var(--cl-th); }
+.ps-k--c.is-on,
+.ps-new.ps-k--c  { color: var(--part-circle); }
+.ps-new { display: none; }
+.ps-new.is-in { display: inline-flex; }
+.ps-t.is-gone { display: none; }
+
+/* The values, in a row under the working: the yes/no question's own
+   pills (see .choice in style.css), sized against the pane as everything
+   in it is. Only the pills are live -- the row itself is glass. */
+.ps-opts {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: flex-start;
+  align-items: center;
+  gap: clamp(6px, 1.6cqw, 14px);
+  pointer-events: none;
+}
+.ps-opts .choice {
+  pointer-events: auto;
+  font-size: clamp(12px, 4.2cqw, 27px);
+  padding: .36em 1.05em .42em;
+}
+/* A spent pill -- refused, or passed over once the value is in -- is not
+   a control: restated here, because the rule above outranks style.css's. */
+.ps-opts .choice.is-done { pointer-events: none; }
+
+/* ---- Reduced motion ------------------------------------------------------- */
+@media (prefers-reduced-motion: reduce) {
+  .ps-slot.is-live { animation: none; }
+  .ps-slot,
+  .ps-k--th,
+  .ps-k--c { transition: none !important; }
+}

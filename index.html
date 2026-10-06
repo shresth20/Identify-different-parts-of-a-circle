@@ -12,6 +12,8 @@
   <link rel="stylesheet" href="css/quiz.css" />
   <link rel="stylesheet" href="css/arclen.css" />
   <link rel="stylesheet" href="css/circum.css" />
+  <link rel="stylesheet" href="css/central.css" />
+  <link rel="stylesheet" href="css/practice.css" />
   <link rel="stylesheet" href="css/animations.css" />
   <link rel="stylesheet" href="css/responsive.css" />
 </head>
@@ -573,24 +575,322 @@
             </g>
 
             <!-- ---- Skill 2, section 2, page 2: the semicircle's arc length
-                 (js/circum.js). Its own circle again: the wash, the rim and
-                 its pen, the diameter that cuts it in two, the upper half lit
-                 as the semicircle -- and, once the formula is answered, the
-                 straight angle at the centre with its "180°". Nothing here is
-                 a target; the answer is a press on a pill in #cfPane. -->
+                 (js/circum.js). Its own circle again -- an outline only, no
+                 wash, so nothing competes with the rim: the rim and its pen,
+                 the small dot at the centre, the thin dashed diameter that
+                 cuts it in two, the upper half lit as the semicircle while
+                 the lower half goes soft -- and, once the formula is
+                 answered, the straight angle at the centre with its "180°".
+                 Dashed line, angle and "180°" share one ink -- the text's
+                 dark blue (--cs-ink, circum.css); the dot keeps the centre's
+                 pink. Nothing here is a target; the answer is a press on a
+                 pill in #cfPane. -->
             <g class="figure__cf" id="cs" hidden>
-              <circle class="figure__disc" id="csDisc" cx="500" cy="210" r="158" />
+              <defs>
+                <!-- The blur the lower half of the rim is put behind once
+                     the upper half is lit. Measured in the picture's own
+                     units, as #neonLine is, over the circle. -->
+                <filter id="csSoft" filterUnits="userSpaceOnUse"
+                        x="300" y="30" width="400" height="360">
+                  <feGaussianBlur stdDeviation="2.4" />
+                </filter>
+                <!-- The mask the dashed diameter is drawn through: the same
+                     line, solid and wider, grown out from the centre by
+                     circum.js -- the dash trick cannot draw a dashed line
+                     (see boxIn in animations.js). The whole picture is its
+                     region: a level line's own box has no height. -->
+                <mask id="csDiaMask" maskUnits="userSpaceOnUse"
+                      x="0" y="0" width="1000" height="420">
+                  <path class="cs-dia-mask" id="csDiaPen" d="M342 210 L658 210" />
+                </mask>
+              </defs>
+              <!-- The lower half, from nine o'clock under the bottom to
+                   three: the rim's own line, blurred. It takes over from
+                   the rim below the diameter once the upper half is lit. -->
+              <path class="cs-lower" id="csLower" d="M342 210 A158 158 0 0 0 658 210" />
               <path class="figure__rim" id="csRim"
                     d="M500 52 A158 158 0 0 1 500 368 A158 158 0 0 1 500 52" />
               <circle class="rim-tip" id="csTip" cx="500" cy="52" r="7" />
-              <path class="cs-dia" id="csDia" d="M342 210 L658 210" />
+              <path class="cs-dia" id="csDia" d="M342 210 L658 210" mask="url(#csDiaMask)" />
               <!-- The upper half, from three o'clock over the top to nine. -->
               <path class="arc-piece arc-piece--minor" id="csArc"
                     d="M658 210 A158 158 0 0 0 342 210" />
               <path class="cs-angle" id="csAngle" d="M542 210 A42 42 0 0 0 458 210" />
-              <circle class="cs-centre" id="csCentre" cx="500" cy="210" r="6.5" />
+              <circle class="cs-centre" id="csCentre" cx="500" cy="210" r="5" />
               <text class="figure-label cs-deg" id="csDeg" x="500" y="152"
                     text-anchor="middle">180°</text>
+            </g>
+
+            <!-- ---- Skill 2, section 2, page 3: the quadrant's arc length
+                 (js/circum.js). Its own circle once more, outlined as the
+                 semicircle's was: the rim and its pen, the small dot at the
+                 centre, the vertical radius up to twelve o'clock and the
+                 horizontal one out to three, the quarter between them
+                 tinted in with its own piece of the rim lit, and the right
+                 angle at the centre with its "90°". Radii, angle and "90°"
+                 share page 2's ink (--cs-ink, circum.css); the dot keeps the
+                 centre's pink. The burst goes up off the lit quarter when
+                 the right formula is pressed. Nothing here is a target; the
+                 answer is a press on a pill in #cfPane. -->
+            <g class="figure__cf" id="cq" hidden>
+              <path class="cq-sector" id="cqSector" d="" />
+              <path class="figure__rim" id="cqRim"
+                    d="M500 52 A158 158 0 0 1 500 368 A158 158 0 0 1 500 52" />
+              <circle class="rim-tip" id="cqTip" cx="500" cy="52" r="7" />
+              <!-- The quarter of the rim, from twelve o'clock round to three. -->
+              <path class="arc-piece arc-piece--minor" id="cqArc"
+                    d="M500 52 A158 158 0 0 1 658 210" />
+              <!-- Both radii grow out of the centre. -->
+              <path class="cq-radius" id="cqRadV" d="M500 210 L500 52" />
+              <path class="cq-radius" id="cqRadH" d="M500 210 L658 210" />
+              <path class="cs-angle" id="cqAngle" d="M500 168 A42 42 0 0 1 542 210" />
+              <circle class="cs-centre" id="cqCentre" cx="500" cy="210" r="5" />
+              <text class="figure-label cs-deg" id="cqDeg" x="566" y="160"
+                    text-anchor="middle" data-i18n="p21Deg">90°</text>
+              <g class="qz-burst" id="cqBurst" aria-hidden="true"></g>
+            </g>
+
+            <!-- ---- Skill 2, section 3, page 1: the central angle
+                 (js/central.js). Its own circle, for the reason every
+                 section has one: the rim and its pen, the small dot at the
+                 centre, and the two points the learner puts on the rim --
+                 section 2's own marks (the band, the ghost, the points,
+                 the hand), wearing its classes, but the points in red: the
+                 ends of two radii, not a piece of the rim. What depends on
+                 the two points -- a radius to each, the angle between them
+                 at the centre, and where "θ" sits -- is written by
+                 central.js; what is fixed is here. Radii, angle and "θ"
+                 share the skill's ink, the text's dark blue (--ca-ink,
+                 central.css); the dot keeps the centre's pink. -->
+            <g class="figure__ca" id="ca" hidden>
+              <defs id="caDefs">
+                <filter id="caGlowBlur" x="-12%" y="-12%" width="124%" height="124%">
+                  <feGaussianBlur stdDeviation="5" />
+                </filter>
+              </defs>
+              <circle class="ca-glow" id="caGlow" cx="500" cy="210" r="158" />
+              <path class="figure__rim" id="caRim"
+                    d="M500 52 A158 158 0 0 1 500 368 A158 158 0 0 1 500 52" />
+              <circle class="rim-tip" id="caTip" cx="500" cy="52" r="7" />
+              <circle class="arc-band" id="caBand" cx="500" cy="210" r="158"
+                      tabindex="-1" role="button"
+                      data-i18n-attr="aria-label:a11yBand"
+                      aria-label="The edge of the circle. Tap it to place a point." />
+              <!-- Both radii grow out of the centre; the angle is drawn
+                   from one to the other. -->
+              <path class="ca-radius" id="caRadA" d="" />
+              <path class="ca-radius" id="caRadB" d="" />
+              <path class="ca-angle" id="caAngle" d="" />
+              <circle class="ca-centre" id="caCentre" cx="500" cy="210" r="5" />
+              <text class="figure-label ca-theta" id="caTheta" x="0" y="0"
+                    text-anchor="middle" data-i18n="lblTheta">θ</text>
+              <circle class="arc-ghost" id="caGhost" cx="500" cy="52" r="7" />
+              <g class="arc-point" id="caPointA">
+                <circle class="arc-dot" cx="500" cy="52" r="6.5" />
+                <circle class="arc-dot__hit" cx="500" cy="52" r="30" tabindex="-1" role="button"
+                        data-i18n-attr="aria-label:a11yPoint"
+                        aria-label="A point on the circle." />
+              </g>
+              <g class="arc-point" id="caPointB">
+                <circle class="arc-dot" cx="500" cy="52" r="6.5" />
+                <circle class="arc-dot__hit" cx="500" cy="52" r="30" tabindex="-1" role="button"
+                        data-i18n-attr="aria-label:a11yPoint"
+                        aria-label="A point on the circle." />
+              </g>
+              <g class="arc-nudges" id="caNudges" hidden aria-hidden="true"></g>
+            </g>
+
+            <!-- ---- Skill 2, section 3, page 2: the angle on the protractor
+                 (js/central.js), and the two pages after it, which keep
+                 this figure on the board. Its own circle once more, and
+                 everything on it is fixed, so every coordinate here is
+                 written by central.js from its own numbers. The protractor rises past
+                 the top of the picture's box, into the room the box has
+                 above it while the header is closed. First the protractor, under
+                 everything, so every mark paints over it: the rim and its
+                 pen, the piece of the rim between the two points picked
+                 out in the skill's ink, the dashed line from each point to
+                 the centre (each drawn through its own mask, as the
+                 semicircle page's diameter is), the angle at the centre,
+                 the dot, the two red points, one "r" beside a dashed line
+                 (both are radii; one label says so for both), "θ" in the
+                 angle, and the measure that takes θ's place once the angle
+                 has been read. Nothing
+                 here is a target; the answer is a press on a pill in
+                 #cfPane. -->
+            <g class="figure__cm" id="cm" hidden>
+              <defs id="cmDefs">
+                <mask id="cmRadAMask" maskUnits="userSpaceOnUse"
+                      x="0" y="0" width="1000" height="420">
+                  <path class="cm-pen" id="cmRadAPen" d="" />
+                </mask>
+                <mask id="cmRadBMask" maskUnits="userSpaceOnUse"
+                      x="0" y="0" width="1000" height="420">
+                  <path class="cm-pen" id="cmRadBPen" d="" />
+                </mask>
+              </defs>
+              <image class="cm-protractor" id="cmProt" href="assets/image/protractor.png"
+                     x="0" y="0" width="0" height="0" preserveAspectRatio="xMidYMid meet"
+                     role="img" data-i18n-attr="aria-label:a11yProtractor"
+                     aria-label="A protractor laid on the circle, its center on the center of the circle." />
+              <path class="figure__rim" id="cmRim" d="" />
+              <circle class="rim-tip" id="cmTip" cx="500" cy="52" r="7" />
+              <path class="cm-arc" id="cmArc" d="" />
+              <path class="cm-dash" id="cmRadA" d="" mask="url(#cmRadAMask)" />
+              <path class="cm-dash" id="cmRadB" d="" mask="url(#cmRadBMask)" />
+              <path class="ca-angle" id="cmAngle" d="" />
+              <circle class="ca-centre" id="cmCentre" cx="500" cy="210" r="5" />
+              <circle class="arc-dot" id="cmDotA" cx="0" cy="0" r="6.5" />
+              <circle class="arc-dot" id="cmDotB" cx="0" cy="0" r="6.5" />
+              <text class="figure-label cm-label cm-r" id="cmR" x="0" y="0"
+                    text-anchor="middle" data-i18n="lblR">r</text>
+              <!-- "s", beside the middle of the arc, for the page that
+                   names the three: it rests unseen until then. -->
+              <text class="figure-label cm-label cm-s" id="cmS" x="0" y="0"
+                    text-anchor="middle" data-i18n="lblS">s</text>
+              <text class="figure-label cm-label cm-theta" id="cmTheta" x="0" y="0"
+                    text-anchor="middle" data-i18n="lblTheta">θ</text>
+              <text class="figure-label cm-label" id="cmMeasure" x="0" y="0"
+                    text-anchor="start"></text>
+            </g>
+
+            <!-- ---- Skill 2, section 3, page 4: the angle explored
+                 (js/central.js). Its own circle once more: the rim and its
+                 pen, the small dot at the centre, one radius fixed at three
+                 o'clock, and a second radius whose end is a handle the
+                 learner carries round the circle -- the
+                 sector between the two tinted in, the angle drawn at the
+                 centre and its reading set to the right of the circle,
+                 all rewritten from the handle's angle every frame by
+                 central.js. The handle stops at nothing and at the whole
+                 turn, so the circle is seen to hold 360°. The handle is the
+                 one target; the hand that shows the gesture lives last, so
+                 it is over the point it is about. -->
+            <g class="figure__ce" id="ce" hidden>
+              <path class="ce-sector" id="ceSector" d="" />
+              <path class="figure__rim" id="ceRim"
+                    d="M500 52 A158 158 0 0 1 500 368 A158 158 0 0 1 500 52" />
+              <circle class="rim-tip" id="ceTip" cx="500" cy="52" r="7" />
+              <path class="ca-radius" id="ceFixed" d="M500 210 L658 210" />
+              <path class="ca-radius" id="ceRadius" d="" />
+              <path class="ca-angle" id="ceAngle" d="" />
+              <circle class="ca-centre" id="ceCentre" cx="500" cy="210" r="5" />
+              <g class="arc-point ce-handle" id="ceHandle">
+                <circle class="arc-dot" cx="500" cy="52" r="8" />
+                <circle class="arc-dot__hit" cx="500" cy="52" r="30" tabindex="-1"
+                        role="slider" aria-valuemin="0" aria-valuemax="360" aria-valuenow="60"
+                        data-i18n-attr="aria-label:a11yHandle"
+                        aria-label="The movable end of a radius. Drag it around the circle to change the angle." />
+              </g>
+              <text class="figure-label ce-readout" id="ceReadout" x="712" y="222"
+                    text-anchor="start" aria-live="polite"></text>
+              <g class="arc-nudges" id="ceNudges" hidden aria-hidden="true"></g>
+            </g>
+
+            <!-- ---- Skill 2, section 3, page 6: the whole turn
+                 (js/central.js). Its own circle once more: the rim and its
+                 pen, one radius out to three o'clock, a copy of it (the
+                 arm) that is turned once right round the centre, the
+                 360° angle it leaves behind with an arrowhead on its end,
+                 the small dot, "r" on the radius, and "360°". Nothing here
+                 is a target; the answer is a press on a pill in #cfPane. -->
+            <g class="figure__cz" id="cz" hidden>
+              <path class="figure__rim" id="czRim"
+                    d="M500 52 A158 158 0 0 1 500 368 A158 158 0 0 1 500 52" />
+              <circle class="rim-tip" id="czTip" cx="500" cy="52" r="7" />
+              <path class="ca-radius" id="czRadius" d="M500 210 L658 210" />
+              <path class="ca-radius" id="czArm" d="M500 210 L658 210" />
+              <path class="ca-angle" id="czAngle" d="" />
+              <path class="cz-head" id="czHead" d="" />
+              <circle class="ca-centre" id="czCentre" cx="500" cy="210" r="5" />
+              <text class="figure-label cz-label" id="czR" x="0" y="0"
+                    text-anchor="middle" data-i18n="lblR">r</text>
+              <text class="figure-label cz-label" id="czDeg" x="0" y="0"
+                    text-anchor="middle" data-i18n="lbl360">360°</text>
+            </g>
+
+            <!-- ---- Skill 2, section 3, page 7: the arc-length formula
+                 (js/central.js). Its own circle once more, finished before
+                 a word is said: two radii, the piece of rim between their
+                 ends and the angle between them at the centre, each in
+                 the colour its letter in #ffPane will wear. Under each
+                 mark lies its glow -- the same line, wide and soft, in the
+                 same colour -- which central.js pulses as the mark is
+                 named and its label pops in. Every coordinate is written
+                 by central.js. Nothing here is a target. -->
+            <g class="figure__cv" id="cv" hidden>
+              <defs id="cvDefs">
+                <filter id="cvGlowBlur" x="-12%" y="-12%" width="124%" height="124%">
+                  <feGaussianBlur stdDeviation="3.5" />
+                </filter>
+              </defs>
+              <path class="figure__rim" id="cvRim"
+                    d="M500 52 A158 158 0 0 1 500 368 A158 158 0 0 1 500 52" />
+              <circle class="rim-tip" id="cvTip" cx="500" cy="52" r="7" />
+              <path class="cv-glow cv-glow--s" id="cvArcGlow" d="" />
+              <path class="cv-glow cv-glow--r" id="cvRadAGlow" d="" />
+              <path class="cv-glow cv-glow--r" id="cvRadBGlow" d="" />
+              <path class="cv-glow cv-glow--th" id="cvAngleGlow" d="" />
+              <path class="cv-arc" id="cvArc" d="" />
+              <path class="ca-radius cv-radius" id="cvRadA" d="" />
+              <path class="ca-radius cv-radius" id="cvRadB" d="" />
+              <path class="ca-angle cv-angle" id="cvAngle" d="" />
+              <circle class="ca-centre" id="cvCentre" cx="500" cy="210" r="5" />
+              <text class="figure-label cv-label cv-s" id="cvS" x="0" y="0"
+                    text-anchor="middle" data-i18n="lblS">s</text>
+              <text class="figure-label cv-label cv-theta" id="cvTheta" x="0" y="0"
+                    text-anchor="middle" data-i18n="lblTheta">θ</text>
+              <text class="figure-label cv-label cv-r" id="cvR" x="0" y="0"
+                    text-anchor="middle" data-i18n="lblR">r</text>
+            </g>
+
+            <!-- ---- Skill 2, section 4, page 1: the arc length, worked
+                 (js/practice.js). Its own circle: the rim and its pen, the
+                 small dot at the centre, two radii a quarter turn apart,
+                 the quarter between them tinted with its piece of the rim
+                 lit, the right angle at the centre with its "90°", and
+                 "7 cm" beside the vertical radius. Each mark wears the
+                 colour its letter wore on the formula page (--cl-s, --cl-r,
+                 --cl-th, central.css). Every coordinate is written by
+                 practice.js from its own numbers. Nothing here is a target;
+                 the values are pressed in #psPane. -->
+            <g class="figure__pa" id="pa" hidden>
+              <path class="pr-sector" id="paSector" d="" />
+              <path class="figure__rim" id="paRim"
+                    d="M500 52 A158 158 0 0 1 500 368 A158 158 0 0 1 500 52" />
+              <circle class="rim-tip" id="paTip" cx="500" cy="52" r="7" />
+              <path class="pr-arc" id="paArc" d="" />
+              <path class="pr-radius" id="paRadA" d="" />
+              <path class="pr-radius" id="paRadB" d="" />
+              <path class="pr-angle" id="paAngle" d="" />
+              <circle class="pr-centre" id="paCentre" cx="500" cy="210" r="5" />
+              <text class="figure-label pr-label pr-deg" id="paDeg" x="0" y="0"
+                    text-anchor="middle" data-i18n="val90">90°</text>
+              <text class="figure-label pr-label pr-len" id="paLen" x="0" y="0"
+                    text-anchor="middle" data-i18n="val7cm">7 cm</text>
+            </g>
+
+            <!-- ---- Skill 2, section 4, page 2: the arc length, asked
+                 (js/practice.js). The same figure made again with other
+                 numbers: two radii 120° apart astride twelve o'clock, the
+                 sector between them tinted with its arc lit, the angle
+                 with its "120°", and "21 cm" beside the right-hand radius.
+                 Nothing here is a target; the answer is a press on a pill
+                 in #cfPane. -->
+            <g class="figure__pb" id="pb" hidden>
+              <path class="pr-sector" id="pbSector" d="" />
+              <path class="figure__rim" id="pbRim"
+                    d="M500 52 A158 158 0 0 1 500 368 A158 158 0 0 1 500 52" />
+              <circle class="rim-tip" id="pbTip" cx="500" cy="52" r="7" />
+              <path class="pr-arc" id="pbArc" d="" />
+              <path class="pr-radius" id="pbRadA" d="" />
+              <path class="pr-radius" id="pbRadB" d="" />
+              <path class="pr-angle" id="pbAngle" d="" />
+              <circle class="pr-centre" id="pbCentre" cx="500" cy="210" r="5" />
+              <text class="figure-label pr-label pr-deg" id="pbDeg" x="0" y="0"
+                    text-anchor="middle" data-i18n="val120">120°</text>
+              <text class="figure-label pr-label pr-len" id="pbLen" x="0" y="0"
+                    text-anchor="middle" data-i18n="val21cm">21 cm</text>
             </g>
           </svg>
 
@@ -680,6 +980,145 @@
             <div class="cf-opts" id="cfOpts" role="group"
                  aria-label="Choose the correct formula"></div>
           </div>
+
+          <!-- Skill 2, section 3 (js/central.js): the legend of the
+               arc-length page. The right half of the stage, as #cfPane is:
+               the three names arrive one by one under the bird, where the
+               answers usually stand, each in the colour of the mark it
+               names, and move to the middle of the half once the bird has
+               gone. Glass throughout -- nothing here is a control. -->
+          <div class="cl-pane" id="clPane" hidden>
+            <ul class="cl-legend" id="clLegend">
+              <li class="cl-item cl-item--s" id="clS" data-i18n="p25LegendS">s = Arc Length</li>
+              <li class="cl-item cl-item--r" id="clR" data-i18n="p25LegendR">r = Radius</li>
+              <li class="cl-item cl-item--th" id="clTh" data-i18n="p25LegendTheta">θ = Central Angle</li>
+            </ul>
+          </div>
+
+          <!-- Skill 2, section 3 (js/central.js): the arc-length formula.
+               The right half of the stage, as #clPane is: the formula in
+               words, then a copy of it under it whose words are turned one
+               by one into the letters, each letter in the colour of the
+               mark it names on the figure. Every term is its own span so
+               it can arrive and be swapped on its own; in the second line
+               each cell that becomes a letter keeps both the word and the
+               letter, and central.js shows one or the other. The "r" of
+               2πr is its own span, so it alone can wear the radius's
+               colour. Glass throughout -- nothing here is a control. -->
+          <div class="ff-pane" id="ffPane" hidden>
+            <div class="ff-lines" id="ffLines">
+              <p class="ff-line" id="ffLine1">
+                <span class="ff-t"><span class="ff-word" data-i18n="ffArcLength">Arc length</span></span>
+                <span class="ff-t ff-op" data-i18n="symEq">=</span>
+                <span class="ff-t ff-frac">
+                  <span class="ff-n"><span class="ff-word" data-i18n="ffAngle">Angle</span></span>
+                  <span class="ff-bar"></span>
+                  <span class="ff-d" data-i18n="lbl360">360°</span>
+                </span>
+                <span class="ff-t ff-op" data-i18n="symTimes">×</span>
+                <span class="ff-t"><span class="ff-word" data-i18n="ffCircumference">circumference</span></span>
+              </p>
+              <p class="ff-line ff-line--2" id="ffLine2">
+                <span class="ff-t ff-k--s" data-k="s"><span class="ff-word" data-i18n="ffArcLength">Arc length</span><span class="ff-sym" data-i18n="lblS">s</span></span>
+                <span class="ff-t ff-op" data-i18n="symEq">=</span>
+                <span class="ff-t ff-frac">
+                  <span class="ff-n ff-k--th" data-k="th"><span class="ff-word" data-i18n="ffAngle">Angle</span><span class="ff-sym" data-i18n="lblTheta">θ</span></span>
+                  <span class="ff-bar"></span>
+                  <span class="ff-d" data-i18n="lbl360">360°</span>
+                </span>
+                <span class="ff-t ff-op" data-i18n="symTimes">×</span>
+                <span class="ff-t ff-k--c" data-k="c"><span class="ff-word" data-i18n="ffCircumference">circumference</span><span class="ff-sym"><span data-i18n="sym2Pi">2π</span><span class="ff-r" data-i18n="lblR">r</span></span></span>
+              </p>
+            </div>
+          </div>
+
+          <!-- Skill 2, section 4 (js/practice.js): the arc length, worked.
+               The right half of the stage, as #ffPane is: four lines of
+               working, one under the other, left-aligned on one edge, and
+               the three values to choose from in a row under the last.
+               Every term is its own span so it can be lit, swapped or
+               moved on its own; a box (.ps-slot) is the one empty cell of
+               a line, filled by the value pressed. Line 3 keeps both the
+               cells it starts with and the cells that replace them
+               (.ps-new), and practice.js turns them over one at a time.
+               Only the pills are ever live. -->
+          <div class="ps-pane" id="psPane" hidden>
+            <div class="ps-lines" id="psLines" aria-live="polite">
+              <p class="ps-line" id="psLine1" hidden>
+                <span class="ps-t" data-i18n="lblS">s</span>
+                <span class="ps-t ps-op" data-i18n="symEq">=</span>
+                <span class="ps-t ps-frac">
+                  <span class="ps-n"><span class="ps-slot" id="psSlot1" role="img"
+                        data-i18n-attr="aria-label:a11ySlot"
+                        aria-label="An empty box for the value to choose."><span class="ps-slot__v"></span></span></span>
+                  <span class="ps-bar"></span>
+                  <span class="ps-d" data-i18n="lbl360">360°</span>
+                </span>
+                <span class="ps-t ps-op" data-i18n="symTimes">×</span>
+                <span class="ps-t" data-i18n="lbl2PiR">2πr</span>
+              </p>
+              <p class="ps-line" id="psLine2" hidden>
+                <span class="ps-t" data-i18n="lblS">s</span>
+                <span class="ps-t ps-op" data-i18n="symEq">=</span>
+                <span class="ps-t ps-frac">
+                  <span class="ps-n" data-i18n="val90">90°</span>
+                  <span class="ps-bar"></span>
+                  <span class="ps-d" data-i18n="lbl360">360°</span>
+                </span>
+                <span class="ps-t ps-op" data-i18n="symTimes">×</span>
+                <span class="ps-t" data-i18n="num2">2</span>
+                <span class="ps-t ps-op" data-i18n="symTimes">×</span>
+                <span class="ps-t ps-frac">
+                  <span class="ps-n" data-i18n="num22">22</span>
+                  <span class="ps-bar"></span>
+                  <span class="ps-d" data-i18n="num7">7</span>
+                </span>
+                <span class="ps-t ps-op" data-i18n="symTimes">×</span>
+                <span class="ps-t"><span class="ps-slot" id="psSlot2" role="img"
+                      data-i18n-attr="aria-label:a11ySlot"
+                      aria-label="An empty box for the value to choose."><span class="ps-slot__v"></span></span></span>
+              </p>
+              <!-- Line 3: line 2 with its value in, and the cells it is
+                   solved into -- ¼ for the angle's fraction, 22 cm for
+                   22⁄7 × 7 cm, 44 cm for 2 × 22 cm -- each placed where
+                   it will stand. -->
+              <p class="ps-line" id="psLine3" hidden>
+                <span class="ps-t" data-i18n="lblS">s</span>
+                <span class="ps-t ps-op" data-i18n="symEq">=</span>
+                <span class="ps-t ps-frac ps-k--th" data-k="frac">
+                  <span class="ps-n" data-i18n="val90">90°</span>
+                  <span class="ps-bar"></span>
+                  <span class="ps-d" data-i18n="lbl360">360°</span>
+                </span>
+                <span class="ps-t ps-frac ps-k--th ps-new" data-k="quarter">
+                  <span class="ps-n" data-i18n="num1">1</span>
+                  <span class="ps-bar"></span>
+                  <span class="ps-d" data-i18n="num4">4</span>
+                </span>
+                <span class="ps-t ps-op" data-i18n="symTimes">×</span>
+                <span class="ps-t ps-k--c" data-k="two" data-i18n="num2">2</span>
+                <span class="ps-t ps-op ps-k--c" data-k="x2" data-i18n="symTimes">×</span>
+                <span class="ps-t ps-frac ps-k--c" data-k="pi">
+                  <span class="ps-n" data-i18n="num22">22</span>
+                  <span class="ps-bar"></span>
+                  <span class="ps-d" data-i18n="num7">7</span>
+                </span>
+                <span class="ps-t ps-op ps-k--c" data-k="x3" data-i18n="symTimes">×</span>
+                <span class="ps-t ps-k--c" data-k="r" data-i18n="val7cm">7 cm</span>
+                <span class="ps-t ps-k--c ps-new" data-k="twentytwo" data-i18n="val22cm">22 cm</span>
+                <span class="ps-t ps-k--c ps-new" data-k="circ" data-i18n="val44cm">44 cm</span>
+              </p>
+              <p class="ps-line" id="psLine4" hidden>
+                <span class="ps-t" data-i18n="lblS">s</span>
+                <span class="ps-t ps-op" data-i18n="symEq">=</span>
+                <span class="ps-t"><span class="ps-slot" id="psSlot4" role="img"
+                      data-i18n-attr="aria-label:a11ySlot"
+                      aria-label="An empty box for the value to choose."><span class="ps-slot__v"></span></span></span>
+              </p>
+            </div>
+            <div class="ps-opts" id="psOpts" role="group"
+                 data-i18n-attr="aria-label:a11yAnswers" aria-label="Choose your answer"></div>
+          </div>
         </div>
 
         <!-- The footer holds the five names the learner drags onto the
@@ -737,8 +1176,16 @@
 
   <script src="libs/gsap.min.js"></script>
   <script src="libs/Flip.min.js"></script>
+  <!-- Words by key (js/i18n.js, T('key')) from locales/locales.json; the
+       .js copy of it is read in first so file:// works too. -->
+  <script src="locales/locales.js"></script>
+  <script src="js/i18n.js"></script>
   <script src="js/motion.js"></script>
   <script src="js/flow.js"></script>
+  <!-- A fraction in a line of type (½ in a formula) stood up as 1 over 2,
+       wherever a pill or a box is written: before typer.js and pages.js,
+       which write through it. -->
+  <script src="js/mathtext.js"></script>
   <script src="js/typer.js"></script>
   <script src="js/mascot.js"></script>
   <script src="js/animations.js"></script>
@@ -756,6 +1203,19 @@
        split it out later, this line, js/circum.js, css/circum.css and the
        two blocks in index.html (#cf and #cfPane) are the whole of it. -->
   <script src="js/circum.js"></script>
+  <!-- Skill 2, section 3: the central angle. Same board, same bird; its
+       two points are section 2's interaction, and its questions are asked
+       from section 2 of the skill's bubble-02. To split it out later, this
+       line, js/central.js, css/central.css, the five groups in the
+       figure (#ca, #cm, #ce, #cz and #cv), #clPane and #ffPane are the
+       whole of it. -->
+  <script src="js/central.js"></script>
+  <!-- Skill 2, section 4: the arc length, worked and asked. Same board,
+       same bird; its first page is answered on the header and in #psPane,
+       its second asked from bubble-02. To split it out later, this line,
+       js/practice.js, css/practice.css, the two groups in the figure (#pa
+       and #pb) and #psPane are the whole of it. -->
+  <script src="js/practice.js"></script>
   <script src="js/script.js"></script>
   <!-- TEMPORARY: the Back / Skip / Replay level bar. Delete this line
        and js/devnav.js to remove it; nothing else refers to it. -->

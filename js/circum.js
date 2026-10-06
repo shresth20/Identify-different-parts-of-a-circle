@@ -29,14 +29,36 @@
  *
  * Page 2 -- the semicircle's arc length. The same ask, on a new circle:
  *
- *   The board opens blank. A circle is drawn, the diameter cuts it in two,
- *   and the upper half is lit. The bird comes up onto the header to say
- *   "This is the semicircle.", then springs away as the circle slides to
- *   the left half, and lands in the right pane to ask, from bubble-02, for
- *   the formula of the semicircle's arc length. Three formulas, one by one;
- *   a wrong press is refused with why, as on page 1. The right one shows,
- *   at once, the straight angle at the centre -- 180° -- while the box
- *   turns green to say so, and Next arrives.
+ *   The board opens blank. A circle is drawn -- the outline only, no wash,
+ *   at skill 1's own pace -- a small dot goes on its centre, and a thin
+ *   dashed line grows out of the dot both ways to the rim and cuts the
+ *   circle in two. The upper half is lit, and as it is the lower half of
+ *   the rim goes soft behind a blur, so the eye is kept on the upper
+ *   border. The bird comes up onto the header to say "This is the
+ *   semicircle.", then springs away as the circle slides to the left half,
+ *   and lands in the right pane to ask, from bubble-02, for the formula of
+ *   the semicircle's arc length. Three formulas, one by one; a wrong press
+ *   is refused with why, as on page 1. The right one shows, at once, the
+ *   straight angle at the centre -- 180°, in the dashed line's own ink,
+ *   the text's dark blue -- while the box turns green to say so, and Next
+ *   arrives.
+ *
+ * Page 3 -- the quadrant's arc length. Two pills this time:
+ *
+ *   The board opens blank. A circle is outlined at skill 1's pace and a
+ *   small dot goes on its centre. The vertical radius grows up out of the
+ *   dot to twelve o'clock, then the horizontal one out to three, and the
+ *   quarter between them is swept in -- tinted, with its own piece of the
+ *   rim lit -- one-fourth of the whole circle. The right angle at the
+ *   centre is drawn and "90°" lands inside it. The figure slides smoothly
+ *   to the left half, and the bird comes up in the right pane to ask for
+ *   the quarter's arc length. Two formulas arrive one by one, each with
+ *   its fraction stood up as on paper; a wrong press is refused with why,
+ *   and the right one lights the quarter once more and puts skill 1's
+ *   small burst up off it while the box turns green to say so.
+ *     Its words are the first in the game read by key (T('key'), js/
+ *   i18n.js) from locales/locales.json, and each line is voiced by the
+ *   same key (I18n.say) once a recording is there.
  *
  * Load order: js/pages.js -> ... -> js/arclen.js -> js/circum.js
  * ========================================================================== */
@@ -83,17 +105,54 @@
     }
   };
 
+  /* page 3 -- the quadrant's arc length. Read by key at the moment the
+     scene starts (the locale is in by then -- see start() in script.js),
+     each line carrying its key so it can be voiced. The fractions are
+     spelled with U+2044 in the locale and stood up by mathtext.js. */
+  function T(key, repl) { return global.T ? global.T(key, repl) : key; }
+  function said(key, text) { return { text: text, vo: key }; }
+  function quadLines() {
+    var half = T('p21OptHalf');
+    var quarter = T('p21OptQuarter');
+    var wrong = {};
+    wrong[quarter] = [said('fbNotQuite', T('fbNotQuite')),
+                      said('p21WrongQuarter', tie(T('p21WrongQuarter', { f: whole(quarter) })))];
+    return {
+      ask:     said('p21Ask', tie(T('p21Ask'))),
+      options: [half, quarter],
+      answer:  half,
+      wrong:   wrong,
+      right:   [said('fbCorrect', T('fbCorrect')), said('p21Right', tie(T('p21Right')))]
+    };
+  }
+
   var OPTIONS = ['π × radius', 'π × diameter', 'π × (radius)²'];
   var ANSWER  = 'π × diameter';
 
+  /* ½ is spelled with the glyph here, as data, and DRAWN as 1 over 2 --
+     numerator, bar, denominator -- wherever it is shown: on the pills
+     (buildChoices, pages.js) and in the box's sentences (typer.js), both
+     written through mathtext.js. */
   var SEMI_OPTIONS = ['½ × 2π × radius', '2π × radius', '½ × π × (radius)²'];
   var SEMI_ANSWER  = '½ × 2π × radius';
 
   var BEAT = K.BEAT, SHORT = K.SHORT;
+  /* Page 2 draws its circle at skill 1's pace (pages.js): the same slow
+     pen once round, the same point and line, the same holds between them,
+     so the second circle the learner watches being made is made at the
+     speed of the first. */
+  var DRAW_TIME  = K.DRAW_TIME,  DRAWN_HOLD = K.DRAWN_HOLD;
+  var DOT_TIME   = K.DOT_TIME,   DOT_HOLD   = K.DOT_HOLD;
+  var LINE_TIME  = K.LINE_TIME,  DIA_HOLD   = K.DIA_HOLD;
+  var SOFT = 0.55;         /* how much of the lower half is left to see once
+                              it has gone behind its blur */
   var READ = 700;          /* ms a verdict's sentence stands, once typed,
                               before the next one takes the box */
   var SHIFT = -250;        /* the circle's slide to the left half -- the same
                               stand-aside every section uses, picture units */
+  var R = 158;             /* the circle's radius, picture units          */
+  var BURST_WAIT = 360;    /* ms from the right press to the burst -- skill
+                              1's, from the name landing to its burst      */
 
   /* ---- the elements ------------------------------------------------------ */
   var dom = null;          /* pages.js's, with this section's own on top */
@@ -118,14 +177,27 @@
     dom.cfOpts   = $('cfOpts');
 
     dom.cs       = $('cs');
-    dom.csDisc   = $('csDisc');
     dom.csRim    = $('csRim');
+    dom.csLower  = $('csLower');
     dom.csTip    = $('csTip');
     dom.csDia    = $('csDia');
+    dom.csDiaPen = $('csDiaPen');
     dom.csArc    = $('csArc');
     dom.csAngle  = $('csAngle');
     dom.csCentre = $('csCentre');
     dom.csDeg    = $('csDeg');
+
+    dom.cq       = $('cq');
+    dom.cqSector = $('cqSector');
+    dom.cqRim    = $('cqRim');
+    dom.cqTip    = $('cqTip');
+    dom.cqArc    = $('cqArc');
+    dom.cqRadV   = $('cqRadV');
+    dom.cqRadH   = $('cqRadH');
+    dom.cqAngle  = $('cqAngle');
+    dom.cqCentre = $('cqCentre');
+    dom.cqDeg    = $('cqDeg');
+    dom.cqBurst  = $('cqBurst');
 
     /* fit: the box closes round each line's own rows, so the question and
        every verdict get a box their own size, eased from one to the next. */
@@ -138,9 +210,10 @@
    * bubble-02 -- this section's own beats
    * ====================================================================== */
 
-  /* The pane put away, emptied and shut, so the next run that opens it is
-     not opening a box still wearing the last one's verdict. */
-  function restorePane() {
+  /* The pane emptied: the box shut, cleared and wearing no verdict, the
+     pills gone -- so the next question asked from it is not asked from a
+     box still wearing the last one's colour. */
+  function emptyPane() {
     dom.cfBubble.classList.remove('is-ok', 'is-bad');
     sayCf.clear();
     dom.cfBubble.setAttribute('hidden', '');
@@ -148,7 +221,75 @@
     dom.cfOpts.textContent = '';
     opts = [];
     dom.cfPane.classList.remove('is-long');
+  }
+  /* And put away: emptied and shut. */
+  function restorePane() {
+    emptyPane();
     dom.cfPane.setAttribute('hidden', '');
+  }
+
+  /* The question taken away but the pane kept: the box shuts and the pills
+     go while the bird stays where it stands, for a page that asks again
+     from the same spot (the sector-fraction page, central.js). */
+  function clearAsk() {
+    saying++;                     /* no verdict owns the box any more */
+    if (global.I18n) global.I18n.stop();
+    return Promise.all([
+      Flow.anim(Beats.bubbleOut(dom.cfBubble)),
+      Flow.anim(optsOut(opts))
+    ]).then(emptyPane);
+  }
+
+  /* The bird, already in the pane, saying its piece from bubble-02: the
+     box opened if it is shut, each line typed in turn and read for a
+     moment, and the bird settled at the end. `on(i, line)`, if given, is
+     called as line i starts -- for a mark on the board that should land
+     with the words naming it (the arc-length page, central.js). No verdict
+     hue: the box keeps the question's own. */
+  function explain(lines, on) {
+    var mine = ++saying;
+    function live() { return mine === saying; }
+    dom.cfBubble.classList.remove('is-ok', 'is-bad');
+    var arm = dom.cfBubble.hasAttribute('hidden');
+    mascot.state('talking');
+    return [].concat(lines).reduce(function (chain, line, i) {
+      return chain
+        .then(function () { if (i && live()) return Flow.wait(READ); })
+        .then(function () {
+          if (!live()) return;
+          if (on) on(i, line);
+          if (i === 0 && arm) {
+            /* Ghost before live, and before the box is shown -- see the
+               ask above for why. */
+            Beats.bubbleArm(dom.cfBubble);
+            var said = speak(line);
+            Beats.bubbleIn(dom.cfBubble);
+            return said;
+          }
+          return speak(line);
+        });
+    }, Promise.resolve()).then(function () {
+      if (live()) mascot.settle();
+    });
+  }
+
+  /* Whether the bird is standing in the pane now, and so can simply ask
+     its next question there rather than having to come up to ask it. */
+  function birdInPane() {
+    var el = mascot.el;
+    return el.parentNode === dom.slotCf && !el.hidden && !el.classList.contains('is-away');
+  }
+
+  /* The pane as a page that asks from it expects to FIND it, written
+     straight in with no animation: open, with the bird standing in it --
+     for a page staged from the level bar on a board the bird never left
+     (see stage in central.js). */
+  function seatBird() {
+    dom.cfPane.removeAttribute('hidden');
+    mascot.el.hidden = false;
+    mascot.el.classList.remove('is-away');
+    mascot.placeIn(dom.slotCf);
+    mascot.idle();
   }
 
   /* A verdict said from the box, in its colour -- or in none, for the
@@ -169,10 +310,19 @@
     return [].concat(lines).reduce(function (chain, line, i) {
       return chain
         .then(function () { if (i && live()) return Flow.wait(READ); })
-        .then(function () { if (live()) return sayCf(line); });
+        .then(function () { if (live()) return speak(line); });
     }, Promise.resolve()).then(function () {
       if (live()) mascot.settle();
     });
+  }
+
+  /* One line into the box: a plain string, or {text, vo} -- a line read by
+     key (page 3), voiced by the same key as it is typed. A key with no
+     recording yet is silence (I18n.say). */
+  function speak(line) {
+    if (typeof line === 'string') return sayCf(line);
+    if (line.vo && global.I18n) K.quiet(global.I18n.say(line.vo));
+    return sayCf(line.text);
   }
 
   /* The three formulas, one by one: the tray's own entrance with the
@@ -197,6 +347,33 @@
       opacity: 0, y: 10, scale: 0.94, duration: M.dur(0.3), ease: 'power2.in',
       stagger: M.gap(0.08)
     });
+    return tl;
+  }
+
+  /* ---- page 2's own marks ------------------------------------------------
+     The dashed diameter, grown out of the centre dot both ways at once. A
+     dashed line cannot be drawn with the dash trick -- the trick IS a dash
+     pattern -- so it shows through a mask (see #csDiaMask in index.html):
+     a solid path over the same line, widened from nothing about the centre,
+     and the dashes appear wherever the mask has reached. Scale is the one
+     thing animated, and it is handed back when the timeline ends, however
+     it ends -- a mask at rest is the whole line, uncovered. */
+  function dashedFromCentre(line, pen, seconds) {
+    M.set(line, { opacity: 1 });
+    M.set(pen, { scaleX: 0, svgOrigin: K.CX + ' ' + K.CY });
+    var tl = M.timeline({ revert: function () { M.set(pen, { clearProps: 'transform' }); } });
+    tl.to(pen, { scaleX: 1, duration: M.dur(seconds), ease: 'sine.inOut' });
+    return tl;
+  }
+
+  /* The lower half put out of focus once the upper half is lit: the sharp
+     rim goes as its blurred lower half comes up in its place, one cross-
+     fade. The upper half of the sharp rim is under the lit arc by then, so
+     the only change the eye can see is below the diameter. */
+  function softenLower(rim, lower) {
+    var tl = M.timeline({ willChange: [rim, lower], willChangeValue: 'opacity' });
+    tl.to(rim,   { opacity: 0,    duration: M.dur(0.6), ease: 'power2.inOut' }, 0)
+      .to(lower, { opacity: SOFT, duration: M.dur(0.6), ease: 'power2.out' }, 0);
     return tl;
   }
 
@@ -314,28 +491,33 @@
     /* ---- the bird, and the question from bubble-02 -------------------------
        The pane opens first so the slot has a box to be measured by, the
        bird comes up onto it, and the box unfolds from its head with the
-       question typing in -- the greeting's own entrance, on the board. */
+       question typing in -- the greeting's own entrance, on the board. A
+       bird already standing in the pane -- a second question on the same
+       board -- simply asks from where it is. */
     dom.cfPane.removeAttribute('hidden');
-    return K.mascotJumpIn(dom.slotCf)
+    var up = birdInPane() ? Promise.resolve() : K.mascotJumpIn(dom.slotCf);
+    return up
       .then(function () {
         mascot.state('talking');
         /* Ghost before live, and before the box is shown: the box has to be
            laid out and measurable when the line goes into it, or it would
            open at the wrong size and resize a beat later. */
         Beats.bubbleArm(dom.cfBubble);
-        var said = sayCf(spec.ask);
+        var asked = speak(spec.ask);
         Beats.bubbleIn(dom.cfBubble);
-        return said;
+        return asked;
       })
       .then(function () {
         mascot.settle();
         return Flow.wait(SHORT);
       })
 
-      /* ---- the three formulas, one by one --------------------------------- */
+      /* ---- the three formulas, one by one ----------------------------------
+         Each pill keeps its formula as data (buildChoices, pages.js): the
+         ½ on two of them is drawn stacked, so the element's own text is
+         not the label. */
       .then(function () {
         opts = K.buildChoices(dom.cfOpts, K.shuffle(spec.options));
-        opts.forEach(function (b) { b.dataset.name = b.textContent; });
         return Flow.anim(optsIn(opts));
       })
 
@@ -377,6 +559,7 @@
     return K.handOver(dom.nextBtn)
       .then(function () {
         saying++;                     /* no verdict owns the box any more */
+        if (global.I18n) global.I18n.stop();
         return Promise.all([
           Flow.anim(Beats.bubbleOut(dom.cfBubble)),
           Flow.anim(optsOut(opts)),
@@ -394,37 +577,51 @@
   }
 
   /* ======================================================================
-   * Page 2 -- the semicircle's arc length. A blank board, the circle made
-   * and cut in two by its diameter, the upper half lit and named from the
-   * header; then the circle stands aside, the bird crosses to the pane and
-   * asks for the formula, and the right answer shows the straight angle
-   * the semicircle stands on: 180°.
+   * Page 2 -- the semicircle's arc length. A blank board, the circle
+   * outlined at skill 1's pace, the small dot at its centre, the dashed
+   * line grown out of the dot that cuts it in two, the upper half lit and
+   * the lower half softened, and the half named from the header; then the
+   * circle stands aside, the bird crosses to the pane and asks for the
+   * formula, and the right answer shows the straight angle the semicircle
+   * stands on: 180°.
    * ====================================================================== */
   function sceneSemicircle() {
     return K.wipeBoard()
       .then(function () { return Flow.wait(BEAT); })
 
-      /* ---- the circle: the pen round the rim, the colour poured in ------- */
+      /* ---- the circle: the slow pen once round, and the ring left to
+         stand -- an outline only, nothing poured in, so the rim is all
+         there is to look at ---------------------------------------------- */
       .then(function () {
         dom.cs.removeAttribute('hidden');
-        return Flow.anim(Beats.drawRim(dom.csRim, dom.csTip));
+        return Flow.anim(Beats.drawRim(dom.csRim, dom.csTip, { time: DRAW_TIME }));
       })
-      .then(function () { return Flow.wait(SHORT); })
-      .then(function () { return Flow.anim(Beats.fillDisc(dom.csDisc)); })
-      .then(function () { return Flow.wait(SHORT); })
+      .then(function () { return Flow.wait(DRAWN_HOLD); })
 
-      /* ---- cut in two: the diameter drawn across, edge to edge ------------ */
-      .then(function () {
-        return Flow.anim(Beats.growLine(dom.csDia, 0.7, 'power2.inOut'));
-      })
-      .then(function () { return Flow.wait(SHORT); })
+      /* ---- the small dot at the centre ------------------------------------ */
+      .then(function () { return Flow.anim(Beats.plotDot(dom.csCentre, DOT_TIME)); })
+      .then(function () { return Flow.wait(DOT_HOLD); })
 
-      /* ---- and the upper half lit: swept over the top, then swelling once */
+      /* ---- cut in two: the dashed line out of the dot, both ways at once,
+         to the rim ---------------------------------------------------------- */
       .then(function () {
-        return Flow.anim(Beats.growLine(dom.csArc, 0.9, 'power2.inOut'));
+        return Flow.anim(dashedFromCentre(dom.csDia, dom.csDiaPen, LINE_TIME));
       })
-      .then(function () { return Flow.anim(Beats.arcPulse([dom.csArc])); })
-      .then(function () { return Flow.wait(SHORT); })
+      .then(function () { return Flow.wait(DIA_HOLD); })
+
+      /* ---- the upper half lit: swept over the top at the line's own pace,
+         then the lower half put behind its blur as the lit half swells once,
+         so what is left sharp is the half being talked about -------------- */
+      .then(function () {
+        return Flow.anim(Beats.growLine(dom.csArc, LINE_TIME, 'sine.inOut'));
+      })
+      .then(function () {
+        return Promise.all([
+          Flow.anim(softenLower(dom.csRim, dom.csLower)),
+          Flow.anim(Beats.arcPulse([dom.csArc]))
+        ]);
+      })
+      .then(function () { return Flow.wait(DIA_HOLD); })
 
       /* ---- named from the header ------------------------------------------ */
       .then(function () { return K.arriveSaying(LINES.semiIs); })
@@ -459,14 +656,115 @@
       .then(function () { return closeOut(dom.cs); });
   }
 
-  /* The straight angle at the centre: the dot, the half-turn drawn over
-     it, and its "180°". */
+  /* The straight angle at the centre: the half-turn drawn over the dot
+     that has been there since the circle was made, and its "180°" -- both
+     in the dashed line's own ink, the text's dark blue. */
   function showAngle() {
-    return Flow.anim(Beats.plotDot(dom.csCentre))
-      .then(function () {
-        return Flow.anim(Beats.growLine(dom.csAngle, 0.6, 'power2.inOut'));
-      })
+    return Flow.anim(Beats.growLine(dom.csAngle, 0.6, 'power2.inOut'))
       .then(function () { return Flow.anim(Beats.labelIn(dom.csDeg)); });
+  }
+
+  /* ======================================================================
+   * Page 3 -- the quadrant's arc length. A blank board, the circle outlined
+   * at skill 1's pace, the small dot at its centre, the two radii grown out
+   * of it -- up, then across -- and the quarter between them swept in with
+   * its piece of the rim lit; the right angle and its "90°"; then the
+   * figure stands aside and the bird asks from the pane. Two formulas, one
+   * by one. The right one lights the quarter again and puts up skill 1's
+   * burst off it.
+   * ====================================================================== */
+
+  /* The quarter at t of its sweep, 0 to 1: from the vertical radius,
+     clockwise round to the horizontal one. */
+  function quarterWedge(t) {
+    var a = (-90 + 90 * t) * Math.PI / 180;
+    var x = K.CX + R * Math.cos(a);
+    var y = K.CY + R * Math.sin(a);
+    return 'M' + K.CX + ' ' + K.CY + ' L' + K.CX + ' ' + (K.CY - R) +
+           ' A' + R + ' ' + R + ' 0 0 1 ' + x.toFixed(2) + ' ' + y.toFixed(2) + ' Z';
+  }
+
+  function sceneQuadrant() {
+    var lines = quadLines();
+    return K.wipeBoard()
+      .then(function () { return Flow.wait(BEAT); })
+
+      /* ---- the circle: the slow pen once round, an outline only ---------- */
+      .then(function () {
+        dom.cq.removeAttribute('hidden');
+        return Flow.anim(Beats.drawRim(dom.cqRim, dom.cqTip, { time: DRAW_TIME }));
+      })
+      .then(function () { return Flow.wait(DRAWN_HOLD); })
+
+      /* ---- the small dot at the centre ------------------------------------ */
+      .then(function () { return Flow.anim(Beats.plotDot(dom.cqCentre, DOT_TIME)); })
+      .then(function () { return Flow.wait(DOT_HOLD); })
+
+      /* ---- the two radii out of the dot: up to twelve o'clock, then out to
+         three -- each at the line's own slow pace, so the right angle is
+         seen being made one arm at a time --------------------------------- */
+      .then(function () {
+        return Flow.anim(Beats.growLine(dom.cqRadV, LINE_TIME, 'sine.inOut'));
+      })
+      .then(function () { return Flow.wait(SHORT); })
+      .then(function () {
+        return Flow.anim(Beats.growLine(dom.cqRadH, LINE_TIME, 'sine.inOut'));
+      })
+      .then(function () { return Flow.wait(SHORT); })
+
+      /* ---- the quarter between them: tint swept round from one radius to
+         the other with its piece of the rim lit at the same pace, then the
+         lit piece swells once -- one-fourth of the whole circle ------------ */
+      .then(function () {
+        return Promise.all([
+          Flow.anim(Beats.secFill(dom.cqSector, quarterWedge, LINE_TIME)),
+          Flow.anim(Beats.growLine(dom.cqArc, LINE_TIME, 'power2.inOut'))
+        ]);
+      })
+      .then(function () { return Flow.anim(Beats.arcPulse([dom.cqArc])); })
+      .then(function () { return Flow.wait(SHORT); })
+
+      /* ---- the right angle at the centre, and its "90°" ------------------ */
+      .then(function () {
+        return Flow.anim(Beats.growLine(dom.cqAngle, 0.6, 'power2.inOut'));
+      })
+      .then(function () { return Flow.anim(Beats.labelIn(dom.cqDeg)); })
+      .then(function () { return Flow.wait(BEAT); })
+
+      /* ---- and the figure stands aside -------------------------------------
+         As on page 1: there is no bird on the header, so it closes while
+         the figure slides smoothly to the left half. */
+      .then(function () {
+        return Promise.all([
+          Flow.anim(K.collapseHeader(true)),
+          Flow.anim(Beats.slideArcs(dom.cq, SHIFT))
+        ]);
+      })
+      .then(function () { return Flow.wait(SHORT); })
+      .then(function () {
+        return askFormula({
+          ask: lines.ask, options: lines.options, answer: lines.answer,
+          wrong: lines.wrong, right: lines.right,
+          reveal: celebrateQuarter
+        });
+      })
+      .then(function () { return closeOut(dom.cq); });
+  }
+
+  /* The right formula pressed: the quarter's piece of the rim swells once
+     more, and skill 1's small burst goes up off the middle of it -- in the
+     figure's own units, inside the slid group, so it rises from the arc
+     wherever the figure stands. */
+  function celebrateQuarter() {
+    var mid = -45 * Math.PI / 180;
+    var x = K.CX + R * Math.cos(mid);
+    var y = K.CY + R * Math.sin(mid);
+    return Promise.all([
+      Flow.anim(Beats.arcPulse([dom.cqArc])),
+      Flow.wait(BURST_WAIT).then(function () {
+        return Flow.anim(Beats.confetti(dom.cqBurst, x, y));
+      })
+    ]);
   }
 
   /* ======================================================================
@@ -475,7 +773,7 @@
 
   /* What this section has on the figure: one group per page, each faded
      as a whole. */
-  function parts() { return [dom.cf, dom.cs]; }
+  function parts() { return [dom.cf, dom.cs, dom.cq]; }
 
   /* And what it keeps outside the figure: the pane, if a wipe catches the
      question still up. */
@@ -500,6 +798,10 @@
     saying++;
     dom.cf.setAttribute('hidden', '');
     dom.cs.setAttribute('hidden', '');
+    dom.cq.setAttribute('hidden', '');
+    dom.cqSector.setAttribute('d', '');
+    dom.cqBurst.textContent = '';
+    if (global.I18n) global.I18n.stop();
     restorePane();
   }
 
@@ -512,7 +814,8 @@
     name: 'Circumference formula',
     scenes: [
       { name: 'Circumference formula', play: sceneFormula },
-      { name: 'Semicircle arc length', play: sceneSemicircle }
+      { name: 'Semicircle arc length', play: sceneSemicircle },
+      { name: 'Quadrant arc length',   play: sceneQuadrant }
     ],
     build: build,
     parts: parts,
@@ -522,10 +825,20 @@
   });
 
   /* What a section after this one might want: the question's own box, for
-     later asks to speak through. */
+     later asks to speak through -- the whole ask (the bird up in the pane,
+     the question, the pills, the verdict) and the close-out that takes it
+     all away on Next, so a later page asks with the same voice. The pane
+     stays this section's: its wipe and reset hooks put it away whoever
+     spoke from it last. */
   global.Circum = {
     LINES: LINES,
     verdict: verdict,
-    armChoices: armChoices
+    armChoices: armChoices,
+    ask: askFormula,
+    explain: explain,
+    closeOut: closeOut,
+    clearAsk: clearAsk,
+    putAway: restorePane,
+    seatBird: seatBird
   };
 })(window);

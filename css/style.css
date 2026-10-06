@@ -975,6 +975,71 @@ body {
 /* Spent: the question has been answered and neither is a control any more. */
 .choice.is-done { cursor: default; pointer-events: none; }
 
+/* ---- A fraction stood up ----------------------------------------------------
+   ½ in a formula, written the way it is written on paper: the numerator
+   over the denominator with the bar between -- the span mathtext.js lays
+   out wherever text goes into a pill or a box. The digits are .7 of the
+   line's size and a step heavier than its words (800, the heaviest the
+   face carries): two small figures at the line's own weight read lighter
+   than the full-size letters beside them, and the extra weight brings
+   them level (user, 2026-10-06). The bar is a border in the line's ink,
+   so a verdict's colour takes the whole stack with the words.
+     The span itself is .9em tall -- a hair inside the shortest line it
+   stands in (the pills' 1.1, less the little the face's descent falls
+   short of its ascent) -- hung on the line's middle (vertical-align)
+   where the × either side of it sits, with the stack centred inside it
+   and allowed to overshoot top and bottom. So the pill or box it stands
+   in is no taller for it than its neighbours. One flex column, so it can
+   never break between its halves; the bar runs the width of the wider
+   half and a hair past it. */
+.frac {
+  display: inline-flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: stretch;
+  vertical-align: middle;
+  height: .9em;
+  margin: 0 .1em 0 .04em;
+  font-weight: 800;
+  line-height: 1;
+  letter-spacing: 0;
+  text-align: center;
+  white-space: nowrap;
+}
+.frac__n,
+.frac__d { display: block; padding: 0 .14em; font-size: .7em; }
+.frac__n { padding-bottom: .06em; }
+.frac__d {
+  padding-top: .08em;
+  border-top: .14em solid currentColor;
+}
+.frac__n { padding-bottom: .08em; }
+.frac__d {
+  padding-top: .1em;
+  border-top: .12em solid currentColor;
+}
+
+/* A fraction held in brackets -- "(radius⁄2)" on the quadrant page --
+   written as LaTeX's \left( \frac{radius}{2} \right): the brackets drawn
+   as tall as the stack, lighter than the figures so they frame rather than
+   compete. Stretched with a static transform, so the line box the group
+   stands in is no taller than its neighbours'. One unbreakable span. */
+.frac-group {
+  display: inline-flex;
+  align-items: center;
+  vertical-align: middle;
+  height: .9em;
+  white-space: nowrap;
+}
+.frac-group .frac { margin: 0 .02em; }
+.frac-paren {
+  display: inline-block;
+  font-weight: 400;
+  line-height: 1;
+  transform: scaleY(1.55);
+  transform-origin: 50% 55%;
+}
+
 /* ---- Next ---------------------------------------------------------------
    Anchored to the frame's bottom-right corner, which IS the board's
    bottom-right corner, whether or not the board is there yet. */

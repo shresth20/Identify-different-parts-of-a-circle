@@ -239,19 +239,47 @@
 .figure__cf * { pointer-events: none; }
 
 /* ---- The semicircle page's marks --------------------------------------------
-   The diameter that cuts the circle in two, in the colour section 1 taught
-   it in; the straight angle at the centre and its "180°" in the centre's
-   pink. All rest invisible; the beats reveal them. */
+   One ink for the thin dashed diameter that divides the circle, the straight
+   angle and its "180°", so the three read as one thing: the half-turn at the
+   centre. The ink is the lesson's own dark blue -- the text's -- named once
+   here so they can never drift apart (user, 2026-10-06). The small dot keeps
+   the centre's pink, the colour skill 1 gave the centre. The rim stays the
+   circumference's orange, and its lower half is blurred once the upper half
+   is lit, so the eye is kept on the upper border. All rest invisible; the
+   beats reveal them. */
+.figure__cf { --cs-ink: var(--text-primary); }
+
+/* The dashed divider: thin, butt-capped so the dashes are plain bars, drawn
+   through #csDiaMask (index.html), which circum.js grows out from the
+   centre -- a dashed line cannot be drawn with the dash trick itself. */
 .cs-dia {
   fill: none;
-  stroke: var(--part-diameter);
-  stroke-width: var(--part-weight);
+  stroke: var(--cs-ink);
+  stroke-width: 2;
+  stroke-dasharray: 6 7;
+  stroke-linecap: butt;
+  opacity: 0;
+}
+.cs-dia-mask {
+  fill: none;
+  stroke: #FFFFFF;
+  stroke-width: 10;
+}
+/* The lower half of the rim, put behind a blur: the rim's own line and
+   weight, softened. It rests invisible under the sharp rim and is brought
+   up as the sharp rim below the diameter is taken away (softenLower,
+   circum.js). */
+.cs-lower {
+  fill: none;
+  stroke: var(--part-circle);
+  stroke-width: 2.6;
   stroke-linecap: round;
+  filter: url(#csSoft);
   opacity: 0;
 }
 .cs-angle {
   fill: none;
-  stroke: var(--part-centre);
+  stroke: var(--cs-ink);
   stroke-width: 3.4;
   stroke-linecap: round;
   opacity: 0;
@@ -259,11 +287,31 @@
 .cs-centre {
   fill: var(--part-centre);
   stroke: var(--board-highlight);
-  stroke-width: 2.2;
+  stroke-width: 2;
   opacity: 0;
 }
 .cs-deg {
-  fill: var(--part-centre);
+  fill: var(--cs-ink);
+  opacity: 0;
+}
+
+/* ---- The quadrant page's marks ---------------------------------------------
+   Page 2's ink again for both radii, as for its dashed diameter -- with the
+   angle and its "90°" (.cs-angle, .cs-deg, shared) -- so the two arms and
+   the right angle between them read as one thing. Solid and a little
+   heavier than the dashed divider: these are the radii themselves. The
+   quarter between them is tinted with the lit arc's own yellow, faint, so
+   the piece of the rim it is bounded by stays the strongest mark. All rest
+   invisible; the beats reveal them. */
+.cq-radius {
+  fill: none;
+  stroke: var(--cs-ink);
+  stroke-width: 3.4;
+  stroke-linecap: round;
+  opacity: 0;
+}
+.cq-sector {
+  fill: color-mix(in srgb, var(--part-arc-minor) 30%, #FFFFFF);
   opacity: 0;
 }
 
