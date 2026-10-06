@@ -69,25 +69,47 @@
     idle:    { start: null,          loop: 'blinking', stop: null        }
   };
 
+  /* The frame the idle is ENTERED on. The idle sheet opens on its blink --
+     frames 1-4 are the eyes closing and opening again -- so a bird dropped
+     into it at frame 0 blinks the instant it settles, and the instant it is
+     first revealed. Frame 10 is the same open-eyed pose as frame 0 (and as
+     the last frame of every *_stop clip), so entering there is seamless and
+     the first blink falls a natural second and a half later. */
+  var IDLE_ENTRY = 10;
+  /* clip -> the frame a loop of it is entered on, when not frame 0 */
+  var ENTRY = { blinking: IDLE_ENTRY };
+
   function url(clip) { return BASE + clip + SUFFIX; }
 
   /* ---- preloading -------------------------------------------------------
-     Decoding a 60KB sheet mid-animation shows one blank frame, which on a
-     character reads as a flicker. Everything the lesson uses is fetched up
-     front; a sheet that fails to load resolves anyway, because a missing
-     bird must not stop the lesson. */
-  var loaded = Object.create(null);
+     These sheets are big -- the idle alone is 3584x3072, ~44MB decoded --
+     and a background-image switched to a sheet that is still downloading,
+     or not yet decoded, paints NOTHING until it is: the bird blinks out for
+     a frame or more. So every sheet is fetched AND decoded up front, the
+     Image is kept so the browser keeps the resource, and the player never
+     switches to a sheet until it is ready (see play). A sheet that fails
+     still settles, because a missing bird must not stop the lesson -- it is
+     marked unusable and the player holds the frame it has instead. */
+  var sheets = Object.create(null);    /* clip -> { img, ready, ok, promise } */
+  function load(clip) {
+    var s = sheets[clip];
+    if (s) return s.promise;
+    var img = new Image();
+    s = sheets[clip] = { img: img, ready: false, ok: false, promise: null };
+    s.promise = new Promise(function (resolve) {
+      function done(ok) { s.ready = true; s.ok = ok; resolve(clip); }
+      img.onload = function () {
+        if (!img.decode) { done(true); return; }
+        img.decode().then(function () { done(true); }, function () { done(true); });
+      };
+      img.onerror = function () { done(false); };
+      img.src = url(clip);
+    });
+    return s.promise;
+  }
   function preload(clips) {
     var list = (clips || Object.keys(SHEETS)).filter(function (c) { return SHEETS[c]; });
-    return Promise.all(list.map(function (clip) {
-      if (loaded[clip]) return loaded[clip];
-      loaded[clip] = new Promise(function (resolve) {
-        var img = new Image();
-        img.onload = img.onerror = function () { resolve(clip); };
-        img.src = url(clip);
-      });
-      return loaded[clip];
-    }));
+    return Promise.all(list.map(load));
   }
 
   /* ---- the player ------------------------------------------------------- */
@@ -101,9 +123,10 @@
                                               /* line it says is the content */
 
     var raf = 0;
-    var cur = null;        /* { clip, cols, rows, frames, loop, t0, onEnd } */
+    var cur = null;        /* { clip, cols, rows, frames, loop, from, live, blind, t0, onEnd } */
     var shown = -1;        /* the frame index currently painted             */
     var state = null;      /* the STATES key we are holding, if any         */
+    var entering = null;   /* enter()'s promise for `state`, while it holds */
     var mirrors = [];      /* elements painted with the same frame (below)  */
 
     /* ---- mirroring ------------------------------------------------------
@@ -135,7 +158,7 @@
     /* Paint one cell. Guarded on `shown` so a 60fps rAF only touches the DOM
        on the 20 frames a second that actually change. */
     function paint(index) {
-      if (index === shown || !cur) return;
+      if (index === shown || !cur || !cur.live || cur.blind) return;
       shown = index;
       var col = index % cur.cols;
       var row = (index / cur.cols) | 0;
@@ -148,6 +171,9 @@
 
     function tick() {
       if (!cur) { raf = 0; return; }
+      /* Still waiting on its sheet: the last frame painted stays up, and
+         the clock has not started -- see play. */
+      if (!cur.live) { raf = requestAnimationFrame(tick); return; }
       var elapsed = performance.now() - cur.t0;
       var n = Math.floor(elapsed / (1000 / FPS));
 
@@ -159,16 +185,41 @@
         if (done) done();
         return;
       }
-      paint(cur.loop ? n % cur.frames : Math.min(n, cur.frames - 1));
+      paint(cur.loop ? (cur.from + n) % cur.frames : Math.min(n, cur.frames - 1));
       raf = requestAnimationFrame(tick);
     }
 
+    /* Put the clip's sheet on the bird, on its first frame, in one go --
+       image, size, cell and the mirrors with it -- and start its clock. Only
+       ever called once the sheet is decoded, so there is never a frame in
+       which the element shows a sheet it cannot paint. A sheet that failed
+       to load is never put up at all: the bird holds the frame it has. */
+    function goLive(c) {
+      c.live = true;
+      c.t0 = performance.now();
+      shown = -1;
+      var s = sheets[c.clip];
+      /* A sheet that never loaded: its cells, read off the sheet still
+         showing, would be noise. */
+      if (s && !s.ok) { c.blind = true; return; }
+      el.style.backgroundImage = 'url("' + url(c.clip) + '")';
+      el.style.backgroundSize = (c.cols * 100) + '% ' + (c.rows * 100) + '%';
+      paint(c.loop ? c.from : 0);
+      mirrors.forEach(dress);        /* the new sheet, not just the new cell */
+    }
+
     /* Play one clip. Resolves when a one-shot reaches its last frame; a loop
-       resolves as soon as it is running, because it has no end to wait for. */
+       resolves as soon as it is running, because it has no end to wait for.
+       vars: loop, hold (see below), from (the frame a loop is entered on). */
     function play(clip, vars) {
       var v = vars || {};
       var sheet = SHEETS[clip];
       if (!sheet) return Promise.resolve();
+
+      /* Asked for the loop that is already playing: carry on with it. A
+         restart would snap it back to its first frame -- a visible jump in
+         the middle of a pose that was meant to be held. */
+      if (v.loop && cur && cur.loop && cur.clip === clip) return Promise.resolve();
 
       if (raf) { cancelAnimationFrame(raf); raf = 0; }
       /* A one-shot cut short by this call still has somebody awaiting it.
@@ -176,18 +227,22 @@
          beat was waiting on the bird to finish speaking. */
       if (cur && cur.onEnd) { var abandoned = cur.onEnd; cur.onEnd = null; abandoned(); }
 
-      cur = {
+      var c = cur = {
         clip: clip,
         frames: sheet[0], cols: sheet[1], rows: sheet[2],
         loop: !!v.loop,
-        t0: performance.now(),
+        from: v.loop ? ((v.from != null ? v.from : ENTRY[clip]) | 0) % sheet[0] : 0,
+        live: false,
+        blind: false,
+        t0: 0,
         onEnd: null
       };
-      shown = -1;
-      el.style.backgroundImage = 'url("' + url(clip) + '")';
-      el.style.backgroundSize = (cur.cols * 100) + '% ' + (cur.rows * 100) + '%';
-      paint(0);
-      mirrors.forEach(dress);        /* the new sheet, not just the new cell */
+      /* Decoded: up at once, in this same statement. Not yet: the frame
+         already on screen is held -- not blanked -- until it is, and the
+         clip then starts from its own first frame. */
+      var s = sheets[clip];
+      if (s && s.ready) goLive(c);
+      else load(clip).then(function () { if (cur === c && !c.live) goLive(c); });
 
       if (v.loop) {
         raf = requestAnimationFrame(tick);
@@ -199,33 +254,46 @@
       }).then(function () {
         /* A one-shot that nothing follows would freeze on its last frame,
            and a frozen character reads as a crash. Fall back to the idle. */
-        if (v.hold !== true && cur && cur.clip === clip && !cur.loop) idle();
+        if (v.hold !== true && cur === c) idle();
       });
     }
 
-    /* Enter a state: its start clip once, then its loop held open. */
+    /* Enter a state: its start clip once, then its loop held open.
+       Asked for the state it is already in -- on its way in, or holding its
+       loop -- it carries on: played again, the start clip would snap the
+       bird back to the top of it in the middle of a line. */
     function enter(name) {
       var s = STATES[name];
       if (!s) return Promise.resolve();
+      if (state === name && entering) return entering;
       state = name;
       var run = s.start ? play(s.start, { hold: true }) : Promise.resolve();
-      return run.then(function () {
-        if (state !== name) return;            /* something else took over */
+      var mine = entering = run.then(function () {
+        if (entering !== mine) return;         /* something else took over */
         return play(s.loop, { loop: true });
       });
+      return mine;
     }
 
     /* Leave the state we are in -- its stop clip once -- and settle back into
-       the idle. Called with nothing held, this is just the idle. */
+       the idle. Called with nothing held, this is just the idle.
+       The idle follows only a stop clip that played OUT: one cut short by
+       the next line has handed the bird on already, and an idle forced in
+       behind it would cut that line's own entrance off. */
     function settle() {
       var s = STATES[state];
       state = null;
+      entering = null;
       if (!s || !s.stop) return idle();
-      return play(s.stop, { hold: true }).then(idle);
+      var run = play(s.stop, { hold: true });
+      var c = cur;
+      return run.then(function () { if (cur === c) return idle(); });
     }
 
+    /* Idempotent: the idle already playing is left to play on. */
     function idle() {
       state = 'idle';
+      entering = null;
       return play('blinking', { loop: true });
     }
 
@@ -234,6 +302,7 @@
       if (cur && cur.onEnd) { var abandoned = cur.onEnd; cur.onEnd = null; abandoned(); }
       cur = null;
       state = null;
+      entering = null;
     }
 
     /* ---- placing the bird ----------------------------------------------

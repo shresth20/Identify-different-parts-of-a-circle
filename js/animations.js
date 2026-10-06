@@ -512,11 +512,9 @@
      The radius lit as it is named and kept lit while its name is written,
      then put out: the circumference's light (rimLight), for a line. Two
      beats for the same reason that is: the light has to outlast its own
-     fade-in. `glow` is one of the .line-glow paths under the halves; while
-     .is-lit is on, the CSS loop (line-breathe) owns the opacity and takes
-     the light from nothing to full and all the way out again each breath.
-     The inline fade below still runs under it: it is what the glow shows
-     when reduced motion turns the loop off. */
+     fade-in. `glow` is one of the .line-glow paths under the halves; the
+     fade below brings it up to LINE_LIT and it holds there, solid, while
+     .is-lit sets its width (user, 2026-10-05: no pulse). */
   var LINE_LIT = 0.85;
 
   function lineLight(glow) {
@@ -533,16 +531,21 @@
      where it was, at whatever point of a breath it is at, instead of
      snapping to the inline value underneath. */
   function lineUnlight(glow) {
-    var from = getComputedStyle(glow).opacity;
+    /* The breath swells the width with the brightness, so both are picked
+       up where it is: the opacity alone, and the line would drop from as
+       wide as 16 to its resting width in a single frame as it went out. */
+    var lit = getComputedStyle(glow);
+    var from = lit.opacity, fromW = lit.strokeWidth;
     glow.classList.remove('is-lit');
-    M.set(glow, { opacity: from });
+    var restW = getComputedStyle(glow).strokeWidth;
+    M.set(glow, { opacity: from, strokeWidth: fromW });
     var tl = M.timeline({
       willChange: glow, willChangeValue: 'opacity',
       revert: function () {
-        M.set(glow, { clearProps: 'opacity' });
+        M.set(glow, { clearProps: 'opacity,strokeWidth' });
       }
     });
-    tl.to(glow, { opacity: 0, duration: M.dur(0.6), ease: 'power2.inOut' });
+    tl.to(glow, { opacity: 0, strokeWidth: restW, duration: M.dur(0.6), ease: 'power2.inOut' });
     return tl;
   }
 

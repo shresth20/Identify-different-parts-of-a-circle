@@ -919,12 +919,17 @@
 
       /* ---- and cleared for the next -------------------------------------- */
       .then(function () {
-        var gone = [Flow.anim(Beats.clearFigure([box.g, box.leader]))];
+        /* Faded as the group that carries them, not as the box and its
+           leader: those two hold a CSS opacity transition for their
+           is-shown/is-quiet levels, which trails a tween written frame by
+           frame -- they would still be half up when the group is emptied
+           below, and go in a single frame. */
+        var gone = [Flow.anim(Beats.clearFigure([dom.qzBoxes]))];
         if (region) gone.push(Flow.anim(Beats.fillOut(region)));
         return Promise.all(gone);
       })
       .then(function () {
-        K.clearInline([box.g, box.leader]);
+        K.clearInline([dom.qzBoxes, box.g, box.leader]);
         clearBox();
         dom.qzBoxes.setAttribute('hidden', '');
         return Flow.wait(SHORT);

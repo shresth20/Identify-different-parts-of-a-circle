@@ -69,6 +69,19 @@
   --yellow-fill: #FEE18E;
   --yellow-border: #CEA43D;
 
+  /* Swiftee -- the bird's own colours, sampled from its art: the teal body
+     and its deeper shade, the mint face, the golden belly, the coral beak.
+     Not worn by anything yet; kept as the set to draw on. */
+  --swiftee-teal:      #30B0A0;
+  --swiftee-teal-deep: #189C90;
+  --swiftee-mint:      #80D0B0;
+  --swiftee-gold:      #F0B060;
+  --swiftee-coral:     #E06040;
+  /* The teal taken a step darker for TYPE: the body's own teal is only
+     3.4:1 on the white card, too faint for a word that has to stand out
+     from the navy around it. This is 5:1 and still plainly the bird's. */
+  --swiftee-ink:       #0B7D73;
+
   /* ---- the parts of the circle: the lines themselves --------------------
      One colour per part, for the mark on the board only. The words that
      name the parts, and the arrows that point at them, keep the palette
@@ -78,10 +91,18 @@
      enough apart in strength that the wash cannot be mixed out of the rim.
      Every other part is one line in one ink. */
   --part-circle-fill: #D3D1FA;      /* the wash inside the rim             */
-  --part-circle:      #3D35F5;      /* the rim -- the circumference        */
+  /* The rim is a vivid orange rather than a violet-indigo: in the board's
+     own purple family it melted into the lavender wash behind it, and the
+     orange is the board's complement. The highlighted word in a card wears
+     it too (.wd--key, arcs.css), so the word and the line are one thing. */
+  --part-circle:      #FB640C;      /* the rim -- the circumference        */
+  /* The ink the circle's FILLS are mixed from -- the deep wash below and
+     the segments' regions -- held at the original indigo, so recolouring
+     the rim leaves every inside of the circle exactly as it was. */
+  --part-circle-tint: #3D35F5;
   /* The wash a shade deeper, for the sections about an AREA of the circle
      (see "area focus" below): a paler region has to stand out of it. */
-  --part-circle-fill-deep: color-mix(in srgb, var(--part-circle) 32%, #FFFFFF);
+  --part-circle-fill-deep: color-mix(in srgb, var(--part-circle-tint) 32%, #FFFFFF);
   --part-centre:      #F51B88;
   --part-radius:      #F9A50B;
   --part-diameter:    #08B9F5;
@@ -316,11 +337,9 @@ body {
    Mascot, then the line it is saying. The row is laid out from the first
    frame and holds its height whether or not there is text in it, so nothing
    below it moves when a line arrives.
-     The pair is centred in the header, but as a box of FIXED width: the
-   line's column is the same size whatever it says (see .prompt__line), so
-   the bird keeps one spot and the words fill the column left-aligned.
-   Centred on the words' own width, every long line shoved the bird
-   sideways under them. */
+     The pair is centred in the header on the words' own width (see
+   .prompt__line), so a short line sits in the middle rather than off to
+   the left. */
 .prompt {
   display: flex;
   /* The bird is bottom-aligned because the band's bottom edge is the line it
@@ -349,10 +368,12 @@ body {
   margin: 0;
   /* Centred in the band rather than standing on its floor. */
   align-self: center;
-  /* A fixed column, sized for the longest one-line prompt (~46
-     characters); longer ones wrap onto a second row. It shrinks, never
-     grows, so a narrow header still fits the pair. */
-  flex: 0 1 24em;
+  /* As wide as the line it is saying, so the bird + line pair sits centred
+     in the header (sayInHeader in pages.js eases the bird to its new spot
+     when a line changes the width). Capped at the longest one-line prompt
+     (~46 characters); longer ones wrap onto a second row. */
+  flex: 0 1 auto;
+  max-width: 24em;
   min-width: 0;
   text-align: left;
   font-family: var(--font-display);
@@ -496,7 +517,7 @@ body {
   stroke-linecap: round;
 }
 .rim-run__halo {
-  stroke: color-mix(in srgb, var(--part-circle) 55%, var(--blue-fill));
+  stroke: color-mix(in srgb, var(--part-circle) 55%, var(--yellow-fill));
   stroke-width: 22;
   stroke-opacity: .9;
   filter: url(#rimGlowBlur);

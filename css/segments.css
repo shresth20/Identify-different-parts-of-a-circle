@@ -11,8 +11,8 @@
   /* The inside, lit: the circle's own indigo, deeper than the wash the disc
      rests at, so the same shape is seen to come forward rather than a new
      colour to arrive. */
-  --seg-area:     color-mix(in srgb, var(--part-circle) 42%, #FFFFFF);
-  --seg-area-lit: color-mix(in srgb, var(--part-circle) 58%, #FFFFFF);
+  --seg-area:     color-mix(in srgb, var(--part-circle-tint) 42%, #FFFFFF);
+  --seg-area-lit: color-mix(in srgb, var(--part-circle-tint) 58%, #FFFFFF);
 
   /* The two regions -- "Sunshine Blue": golden yellow for the smaller, as
      the smaller arc was; soft blue for the larger. Both are stated at the

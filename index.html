@@ -571,6 +571,27 @@
                     d="M500 52 A158 158 0 0 1 500 368 A158 158 0 0 1 500 52" />
               <circle class="rim-tip" id="cfTip" cx="500" cy="52" r="7" />
             </g>
+
+            <!-- ---- Skill 2, section 2, page 2: the semicircle's arc length
+                 (js/circum.js). Its own circle again: the wash, the rim and
+                 its pen, the diameter that cuts it in two, the upper half lit
+                 as the semicircle -- and, once the formula is answered, the
+                 straight angle at the centre with its "180°". Nothing here is
+                 a target; the answer is a press on a pill in #cfPane. -->
+            <g class="figure__cf" id="cs" hidden>
+              <circle class="figure__disc" id="csDisc" cx="500" cy="210" r="158" />
+              <path class="figure__rim" id="csRim"
+                    d="M500 52 A158 158 0 0 1 500 368 A158 158 0 0 1 500 52" />
+              <circle class="rim-tip" id="csTip" cx="500" cy="52" r="7" />
+              <path class="cs-dia" id="csDia" d="M342 210 L658 210" />
+              <!-- The upper half, from three o'clock over the top to nine. -->
+              <path class="arc-piece arc-piece--minor" id="csArc"
+                    d="M658 210 A158 158 0 0 0 342 210" />
+              <path class="cs-angle" id="csAngle" d="M542 210 A42 42 0 0 0 458 210" />
+              <circle class="cs-centre" id="csCentre" cx="500" cy="210" r="6.5" />
+              <text class="figure-label cs-deg" id="csDeg" x="500" y="152"
+                    text-anchor="middle">180°</text>
+            </g>
           </svg>
 
           <!-- The right half of the board, for the beats where the circle
@@ -584,11 +605,6 @@
           <div class="aside" id="aside" hidden>
             <div class="slot slot--aside" id="slotAside">
               <div class="bubble bubble--aside" id="bubbleAside" hidden>
-                <svg class="message-sparks" viewBox="0 0 36 40" aria-hidden="true">
-                  <path d="M25 13 L19 3 M13 23 L3 19 M14 34 L5 36"
-                        fill="none" stroke="#ffd16b" stroke-width="6"
-                        stroke-linecap="round" />
-                </svg>
                 <span class="type-wrap" id="asideType">
                   <span class="type-ghost"></span>
                   <span class="type" aria-live="polite"><span class="txt"></span></span>

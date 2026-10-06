@@ -9,10 +9,10 @@
 
    bubble-02 is the message box the question and its verdicts are said
    from, drawn as bubble-01 is -- the definition card on #bubbleAside
-   (.aside--message in arcs.css): the lavender rim deepening toward the
+   (.aside--message in arcs.css): the indigo rim deepening toward the
    foot, the white face with its bevel and gloss, the three soft shadows
    lifting card and tail together -- with only the hue changing with the
-   verdict: the question in the lesson's lavender, a right answer's
+   verdict: the question in the card's indigo, a right answer's
    sentence in green, a wrong one's in red, rim and tail and words together.
    It is a second element with its own copy of that drawing, NOT a
    restyling of bubble-01, which this section never touches.
@@ -62,12 +62,12 @@
    verdict eases across rim, face, tail and shadow together. Where
    @property is not understood the recolour is a cut, and nothing else
    changes. The initial values are bubble-01's own. */
-@property --cf-rim      { syntax: '<color>'; inherits: true; initial-value: #c7aef5; }
-@property --cf-rim-low  { syntax: '<color>'; inherits: true; initial-value: #a586e6; }
-@property --cf-face     { syntax: '<color>'; inherits: true; initial-value: #efe5ff; }
-@property --cf-face-mid { syntax: '<color>'; inherits: true; initial-value: #fbf8ff; }
-@property --cf-lip      { syntax: '<color>'; inherits: true; initial-value: #9673dbb3; }
-@property --cf-shade    { syntax: '<color>'; inherits: true; initial-value: #b190e638; }
+@property --cf-rim      { syntax: '<color>'; inherits: true; initial-value: #a9b3fb; }
+@property --cf-rim-low  { syntax: '<color>'; inherits: true; initial-value: #6a66ef; }
+@property --cf-face     { syntax: '<color>'; inherits: true; initial-value: #e3e8ff; }
+@property --cf-face-mid { syntax: '<color>'; inherits: true; initial-value: #f6f8ff; }
+@property --cf-lip      { syntax: '<color>'; inherits: true; initial-value: #4c46d9a6; }
+@property --cf-shade    { syntax: '<color>'; inherits: true; initial-value: #7d88f040; }
 
 /* bubble-01's drawing, at this pane's scale, over the hero bubble's frame
    (.bubble in style.css), which still does the anchoring and the type.
@@ -75,12 +75,12 @@
    reaches the answers' right edge, and only then wraps and grows upward,
    so a short line is a short box and a long one fills the pane's width. */
 .bubble--cf {
-  --cf-rim:      #c7aef5;
-  --cf-rim-low:  #a586e6;
-  --cf-face:     #efe5ff;              /* the fill at the foot, and the tail's */
-  --cf-face-mid: #fbf8ff;
-  --cf-lip:      #9673dbb3;            /* the rounded underside */
-  --cf-shade:    #b190e638;            /* the shade drawn in at either side */
+  --cf-rim:      #a9b3fb;
+  --cf-rim-low:  #6a66ef;
+  --cf-face:     #e3e8ff;              /* the fill at the foot, and the tail's */
+  --cf-face-mid: #f6f8ff;
+  --cf-lip:      #4c46d9a6;            /* the rounded underside */
+  --cf-shade:    #7d88f040;            /* the shade drawn in at either side */
   --cf-border:   .075em;
   /* The tail stands clear of the big corner, so the rim it opens is a
      straight stretch of foot. */
@@ -129,8 +129,8 @@
      a wide cast one -- as drop-shadows, so they follow card and tail as one
      silhouette. */
   filter: drop-shadow(0 .1em .07em var(--cf-lip))
-          drop-shadow(0 .25em .22em #5b3fa547)
-          drop-shadow(0 .75em .9em #3f2a8a52);
+          drop-shadow(0 .25em .22em #2f2aa54d)
+          drop-shadow(0 .75em .9em #231f8a52);
   /* Sized so the question stands on one row across the pane. */
   font-size: clamp(13px, 4.3cqw, 28px);
   /* The verdict is a colour that comes and goes, not a shape: the box is
@@ -228,11 +228,44 @@
    a control: restated here, because the rule above outranks style.css's. */
 .cf-opts .choice.is-done { pointer-events: none; }
 
+/* The semicircle page asks with longer formulas: a step smaller, so all
+   three still stand in one row across the half-stage. */
+.cf-pane.is-long .cf-opts .choice { font-size: clamp(11px, 3.3cqw, 22px); }
+
 /* ---- The circle -----------------------------------------------------------
    Nothing on this section's circle is a target: the answer is a press on a
    pill, never a touch on the picture. */
 .figure__cf,
 .figure__cf * { pointer-events: none; }
+
+/* ---- The semicircle page's marks --------------------------------------------
+   The diameter that cuts the circle in two, in the colour section 1 taught
+   it in; the straight angle at the centre and its "180°" in the centre's
+   pink. All rest invisible; the beats reveal them. */
+.cs-dia {
+  fill: none;
+  stroke: var(--part-diameter);
+  stroke-width: var(--part-weight);
+  stroke-linecap: round;
+  opacity: 0;
+}
+.cs-angle {
+  fill: none;
+  stroke: var(--part-centre);
+  stroke-width: 3.4;
+  stroke-linecap: round;
+  opacity: 0;
+}
+.cs-centre {
+  fill: var(--part-centre);
+  stroke: var(--board-highlight);
+  stroke-width: 2.2;
+  opacity: 0;
+}
+.cs-deg {
+  fill: var(--part-centre);
+  opacity: 0;
+}
 
 /* ---- Reduced motion ------------------------------------------------------- */
 @media (prefers-reduced-motion: reduce) {

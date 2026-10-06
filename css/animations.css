@@ -177,20 +177,12 @@
   50%      { opacity: .85; }
 }
 
-/* The radius, held lit while it is named. The light arrives from nothing,
-   swells to full, and goes ALL the way out again before it returns -- a slow
-   on-and-off, not a flicker between two brightnesses. While .is-lit is on,
-   this loop owns the opacity (it outranks the inline value the beats write);
-   lineLight in animations.js still sets that inline value underneath, which
-   is what the reduced-motion block's `animation: none` falls back to, and
-   lineUnlight picks the fade-out up from whatever brightness the breath is
-   at (see the handover there). */
+/* The radius, held lit while it is named: a solid glow, not a pulse
+   (user, 2026-10-05). It no longer breathes; lineLight in animations.js
+   fades it up to full and it stays there, at one width, until lineUnlight
+   fades it out again. */
 .line-glow.is-lit {
-  animation: line-breathe 2s ease-in-out infinite;
-}
-@keyframes line-breathe {
-  0%, 100% { opacity: 0;   stroke-width: 9; }
-  50%      { opacity: .85; stroke-width: 16; }
+  stroke-width: 13;
 }
 
 /* A name picked up by a tap, waiting for its box: it breathes so it is

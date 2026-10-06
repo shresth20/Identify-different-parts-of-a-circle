@@ -636,6 +636,7 @@
 
   Pages.addSection({
     name: 'Arc length',
+    skill: 'Skill 2 · Length of an arc',
     scenes: [
       { name: 'Identify the arcs', play: sceneIdentify }
     ],

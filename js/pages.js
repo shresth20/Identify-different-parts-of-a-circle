@@ -766,10 +766,9 @@
 
   /* Say a line in the header, and carry the bird to where the new line
      leaves room for it.
-       The prompt row is now a fixed-width pair (see .prompt in style.css),
-     so the bird keeps its spot and the shift below measures zero. The guard stays
-     for any layout that centres the row again: there the bird's resting place is a
-     function of how long the line beside it is -- and the ghost takes the
+       The prompt row is centred on the line's own width (see .prompt in
+     style.css), so the bird's resting place is a function of how long the
+     line beside it is -- and the ghost takes the
      whole line's width in a single frame, before one word of it is visible.
      Left alone that is a hard sideways jump of the bird on every line.
        So: note where the bird is, let the line lay itself out, note where the
@@ -1021,7 +1020,7 @@
     dom.aside.style.removeProperty('--message-bottom');
     dom.aside.setAttribute('hidden', '');
     dom.aside.classList.remove('aside--message');
-    dom.bubbleAside.classList.remove('msg-lead', 'msg-two');
+    dom.bubbleAside.classList.remove('msg-two');
     sayAside.clear();
     sayMore.clear();
     dom.asideMore.setAttribute('hidden', '');
@@ -1075,16 +1074,13 @@
      wears: the pane dressed as the card, the bird brought up under it, and
      the part the card is about breathing -- Beats.pulseHold -- from the
      moment the card opens until cardAway eases it back. The name in the
-     line is worn as a pill. */
+     line is set heavier, in the rim's orange. */
 
-  /* The pill (.wd--key, arcs.css): the first word of the line that says
-     the part's name, tagged in the typed line AND in the invisible layout
-     copy under it, so the type lands exactly where the ghost reserved. The
-     sparks beside the pill only suit one at the HEAD of the line -- a
-     shine in the card's corner over a plain first word is just debris --
-     so they are only shown then. Run after reserve, before reveal. */
+  /* The key word (.wd--key, arcs.css): the first word of the line that
+     says the part's name, tagged in the typed line AND in the invisible
+     layout copy under it, so the type lands exactly where the ghost
+     reserved. Run after reserve, before reveal. */
   function pillKey(name) {
-    dom.bubbleAside.classList.remove('msg-lead');
     if (!name) return;
     var want = String(name).toLowerCase();
     ['.type-ghost', '.type .txt'].forEach(function (sel) {
@@ -1093,7 +1089,6 @@
         if (words[i].textContent.trim().replace(/[.,!?]+$/, '')
                     .toLowerCase() === want) {
           words[i].classList.add('wd--key');
-          if (i === 0) dom.bubbleAside.classList.add('msg-lead');
           break;
         }
       }
@@ -1201,7 +1196,18 @@
     };
   }
 
+  /* Idempotent. The bird's jump out already closes the header it leaves
+     (see mascotJumpOut), and the scenes close it again behind that, in the
+     same flush. A second move measured then would find the picture still
+     wearing the first one's offset -- "was" and "now" equal -- and its
+     reset would wipe that offset before it was ever painted: the picture
+     snapping to its new size instead of easing there. So a header already
+     where it was asked to be hands back the move that took it there. */
+  var rowsMove = null;
   function collapseHeader(on, cls) {
+    if (dom.board.classList.contains(cls || 'is-headless') === !!on) {
+      return rowsMove && rowsMove.progress() < 1 ? rowsMove : null;
+    }
     return moveRows(function () {
       dom.board.classList.toggle(cls || 'is-headless', !!on);
     });
@@ -1231,7 +1237,7 @@
     var now = pictureAt(dom.figure.getBoundingClientRect());
     dom.board.style.transition = '';
 
-    if (!was.scale || !now.scale || M.reducedMotion()) return null;
+    if (!was.scale || !now.scale || M.reducedMotion()) return (rowsMove = null);
 
     M.set(dom.figure, {
       scale: was.scale / now.scale,
@@ -1243,7 +1249,7 @@
     tl.to(dom.figure, {
       scale: 1, x: 0, y: 0, duration: M.dur(0.66), ease: 'power2.inOut'
     });
-    return tl;
+    return (rowsMove = tl);
   }
 
   /* ---- a scene, over ------------------------------------------------------
@@ -2409,15 +2415,19 @@
        reset()       back to rest, with no animation
        stage(i)      the board as its i-th scene expects to find it
 
+     A section that opens a new skill says so with `skill`, its heading in
+     the level bar's list; one without it carries on the skill before it.
      Its scenes are appended to the lesson's, so the level bar, Next, Skip
      and Replay all work on them without knowing they came from elsewhere. */
   var BASE_SCENES = SCENES.length;
   var sections = [];
+  var skills = [{ first: 0, name: 'Skill 1 · Parts of a circle' }];
 
   function addSection(spec) {
     if (!spec || !spec.scenes) return;
     spec.first = SCENES.length;
     sections.push(spec);
+    if (spec.skill) skills.push({ first: spec.first, name: spec.skill });
     spec.scenes.forEach(function (sc) { SCENES.push(sc); });
     if (dom && spec.build) spec.build(kit);
   }
@@ -2506,6 +2516,11 @@
     hopperOff();
     mascot.el.hidden = false;
     mascot.el.classList.remove('is-away');
+    /* And whatever the bird was in the middle of -- a line the reset cut
+       off before it could settle -- is let go: the next run starts it from
+       the idle, rather than finding it still talking. */
+    mascot.idle();
+    rowsMove = null;
     dom.welcome.removeAttribute('hidden');
     dom.startBtn.setAttribute('hidden', '');
     dom.startBtn.classList.remove('in');
@@ -2567,7 +2582,11 @@
     }
   }
 
+  /* Idempotent: the board and its one bird are built once. Called again --
+     by script.js and by a runFrom that got there first -- it hands back what
+     is already built rather than building a second bird over the first. */
   function init() {
+    if (dom) return { dom: dom, mascot: mascot };
     dom = collect();
     chords = buildChords(dom.chords);
     longChord = buildLongChord(dom.chords);
@@ -2598,8 +2617,11 @@
      between them are stepped over by handOver. The board the asked-for page
      opens on is therefore the board that page would really have opened on,
      and the page itself plays at full speed from its own first beat. */
+  var started = false;        /* a run has begun -- see script.js */
+
   function runFrom(index, wanted) {
     if (!dom) init();
+    started = true;
     index = Math.max(0, Math.min(SCENES.length - 1, index | 0));
     seek = Math.max(0, wanted | 0);
     seekIn = index;
@@ -2608,8 +2630,16 @@
        animation hands back whatever it had written inline as it is killed,
        so cleaning first would just have those writes land on top of it. */
     Flow.reset();
+    /* The board as the asked-for page finds it is WRITTEN, not animated:
+       the rows' transition (see .board in style.css) is held off across
+       the rewrite, and the layout forced while it is off -- moveRows' own
+       hold -- or a jump between a closed header and an open one would play
+       the rows easing between them as the page opened. */
+    dom.board.style.transition = 'none';
     rewind();
     stageFor(index);
+    void dom.board.offsetHeight;
+    dom.board.style.transition = '';
     return Flow.run(function () {
       if (seek > 0) Flow.skip();
       return play(index);
@@ -2658,7 +2688,10 @@
     run: run,
     runFrom: runFrom,
     rewind: rewind,
+    started: function () { return started; },
     levels: function () { return SCENES.map(function (s) { return s.name; }); },
+    /* Where each skill starts, as {first: scene index, name}, in order. */
+    skills: function () { return skills.slice(); },
     level: function () { return at; },
     page: function () { return page; },
     /* How many pages each scene has turned out to have, so far. */

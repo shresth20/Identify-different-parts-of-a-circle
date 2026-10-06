@@ -286,10 +286,13 @@
   height: 36cqh;
 }
 .aside--message .bubble--aside {
-  --bubble-bg: #efe5ff;              /* the fill at the foot, and the tail's */
-  --message-rim: #c7aef5;
-  --message-rim-low: #a586e6;
-  --message-lip: #9673dbb3;          /* the rounded underside */
+  /* Cool indigo, the circle's own family, rather than the board's
+     lavender: in the board's colour the card sank into the wash behind it. */
+  --bubble-bg: #e3e8ff;              /* the fill at the foot, and the tail's */
+  --message-rim: #a9b3fb;
+  --message-rim-low: #6a66ef;
+  --message-lip: #4c46d9a6;          /* the rounded underside */
+  --message-shade: #7d88f040;        /* the shade drawn in at either side */
   --message-border: .075em;
   --note-edge: var(--message-rim-low);
   left: -7cqw;
@@ -308,28 +311,28 @@
   padding: .85em 1.05em .95em;
   border: var(--message-border) solid transparent;
   border-radius: 1.45em;
-  /* A lavender rim, deepening toward the foot, drawn round a white card --
+  /* An indigo rim, deepening toward the foot, drawn round a white card --
      so the card holds its edge against the pale board instead of fading
      into it. The fill is flat at the tail's colour for its last stretch,
      because the tail's top reaches up into it and has to vanish there. */
   background:
-    linear-gradient(180deg, #ffffff 0%, #fbf8ff 40%, var(--bubble-bg) 84%) padding-box,
+    linear-gradient(180deg, #ffffff 0%, #f6f8ff 40%, var(--bubble-bg) 84%) padding-box,
     linear-gradient(180deg, var(--message-rim) 0%, var(--message-rim-low) 100%) border-box;
   /* A white bevel just inside the rim, a gloss across the top, and a little
      shade drawn in at either side, so the face reads as curved rather than
      flat. No shade at the foot, for the tail's sake. */
   box-shadow: inset 0 0 0 .05em #ffffffe6,
               inset 0 .22em .3em -.12em #ffffff,
-              inset .16em 0 .26em -.12em #b190e638,
-              inset -.16em 0 .26em -.12em #b190e638;
+              inset .16em 0 .26em -.12em var(--message-shade),
+              inset -.16em 0 .26em -.12em var(--message-shade);
   /* Lifted off the board in three soft layers, none with a hard edge: a
      blurred underside that rounds the card's edge over, a contact shadow
      just beneath it, and a wide one cast well below. drop-shadow rather than
      box-shadow, so all three follow the card-and-tail silhouette and the
      pointer belongs to the same raised surface. */
   filter: drop-shadow(0 .1em .07em var(--message-lip))
-          drop-shadow(0 .25em .22em #5b3fa547)
-          drop-shadow(0 .75em .9em #3f2a8a52);
+          drop-shadow(0 .25em .22em #2f2aa54d)
+          drop-shadow(0 .75em .9em #231f8a52);
   font-size: 5.3cqw;
   line-height: 1.38;
   letter-spacing: 0;
@@ -360,33 +363,15 @@
    line's ghost wraps too, so the two-line card is laid out whole. */
 .aside--message #asideType .type-ghost,
 .aside--message #asideMore .type-ghost { white-space: pre-wrap; }
-/* The pill: the word that names the part, wherever it falls in the line.
-   pillKey (pages.js) tags it in the type and in the ghost alike, so the
-   words land where the layout was reserved. */
+/* The key word: the one that names the part, wherever it falls in the
+   line. pillKey (pages.js) tags it in the type and in the ghost alike, so
+   the words land where the layout was reserved. No plate behind it -- a
+   pill reads as a button -- just the heaviest weight, thickened a touch
+   further by a stroke of its own ink, in the rim's orange, so it is the
+   first word the eye finds and plainly the name of the line it matches. */
 .aside--message #asideType .wd.wd--key {
-  display: inline-block;
-  padding: 0 .38em .04em;
-  margin: 0 .05em .08em -.12em;
-  border-radius: 999px;
-  background: linear-gradient(180deg, #ece1ff, #d8c1ff);
-  /* The card's own make, smaller: a rim, a gloss, a soft underside and a
-     shadow. */
-  box-shadow: inset 0 0 0 .04em #c8aef5,
-              inset 0 .08em .06em #ffffffb3,
-              0 .06em .04em #a888e6a6,
-              0 .14em .18em #5b3fa538;
-  white-space: nowrap;
-}
-/* The sparks only suit a pill at the HEAD of the line -- a shine in the
-   card's corner over a plain first word reads as debris -- so they wait
-   for .msg-lead, which pillKey sets only then. */
-.message-sparks { display: none; }
-.aside--message .msg-lead .message-sparks {
-  display: block;
-  position: absolute;
-  width: 1.18em;
-  height: 1.3em;
-  left: .25em;
-  top: .27em;
-  overflow: visible;
+  font-weight: 800;
+  color: var(--part-circle);
+  -webkit-text-stroke: .025em currentColor;
+  paint-order: stroke fill;
 }

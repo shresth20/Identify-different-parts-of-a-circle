@@ -55,7 +55,7 @@
     '  display:flex; align-items:center; gap:8px;',
     '  padding:0px 0px; border-radius:999px;',
     '  font-family:var(--font-body,system-ui,sans-serif);',
-    '  opacity:.55; transition:opacity .18s ease;',
+    '  opacity:1; transition:opacity .18s ease;',
     '}',
     /* Out of the way until it is wanted. */
     '.devnav:hover,.devnav:focus-within{opacity:1;}',
@@ -192,14 +192,24 @@
       if (want === shape) return;
       shape = want;
 
+      /* Each skill's pages under its own heading: an <optgroup>, so the
+         heading is shown but cannot be picked. */
+      var heads = Pages.skills ? Pages.skills() : [];
+      var into = pick, h = 0;
+
       pick.textContent = '';
       for (var s = 0; s < names.length; s++) {
+        while (h < heads.length && heads[h].first <= s) {
+          into = document.createElement('optgroup');
+          into.label = heads[h++].name;
+          pick.appendChild(into);
+        }
         for (var p = 0; p < pagesIn(s); p++) {
           var o = document.createElement('option');
           o.value = s + ':' + p;
           o.textContent = (s + 1) + '. ' + names[s] +
                           (pagesIn(s) > 1 ? ' · ' + (p + 1) : '');
-          pick.appendChild(o);
+          into.appendChild(o);
         }
       }
     }

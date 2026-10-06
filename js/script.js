@@ -14,12 +14,20 @@
 
   var PRELOAD_DEADLINE = 2500;   /* ms -- start regardless after this */
 
+  /* Fetched AND decoded: a big image that has only been downloaded can
+     still paint blank for a frame the first time it is shown. The Image is
+     kept so the decoded copy is not thrown away before it is used. */
+  var kept = [];
   function imageReady(src) {
     return new Promise(function (resolve) {
       var img = new Image();
-      img.onload = img.onerror = function () { resolve(src); };
+      kept.push(img);
+      function done() { resolve(src); }
+      img.onload = function () {
+        if (img.decode) img.decode().then(done, done); else done();
+      };
+      img.onerror = done;
       img.src = src;
-      if (img.complete) resolve(src);
     });
   }
 
@@ -55,8 +63,11 @@
       ])
     ];
 
+    /* Unless a run has already been started from the level bar while the
+       art was still coming in: starting the lesson over on top of it would
+       tear down a scene the learner is already watching. */
     Promise.race([Promise.all(art), deadline(PRELOAD_DEADLINE)])
-      .then(function () { global.Pages.run(); });
+      .then(function () { if (!global.Pages.started()) global.Pages.run(); });
 
     /* Replaying is a genuine stop, not a rewind: Flow.reset kills everything
        the abandoned run still had in the air before the fresh one starts, so

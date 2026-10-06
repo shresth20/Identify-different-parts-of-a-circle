@@ -9,7 +9,7 @@
  * every other. To split the section out later, this file, css/circum.css
  * and the two blocks in index.html (#cf and #cfPane) are the whole of it.
  *
- * Section 2 -- the formula. One scene, one question:
+ * Page 1 -- the formula. One question:
  *
  *   The board opens blank. A circle is drawn -- the pen round the rim, the
  *   colour poured in -- and slides smoothly to the left half, where every
@@ -26,6 +26,17 @@
  *   and then the formula, and Next arrives. The bird stays beside its
  *   verdict until Next is PRESSED -- only then does it drop away with the
  *   box, the pills and the circle.
+ *
+ * Page 2 -- the semicircle's arc length. The same ask, on a new circle:
+ *
+ *   The board opens blank. A circle is drawn, the diameter cuts it in two,
+ *   and the upper half is lit. The bird comes up onto the header to say
+ *   "This is the semicircle.", then springs away as the circle slides to
+ *   the left half, and lands in the right pane to ask, from bubble-02, for
+ *   the formula of the semicircle's arc length. Three formulas, one by one;
+ *   a wrong press is refused with why, as on page 1. The right one shows,
+ *   at once, the straight angle at the centre -- 180° -- while the box
+ *   turns green to say so, and Next arrives.
  *
  * Load order: js/pages.js -> ... -> js/arclen.js -> js/circum.js
  * ========================================================================== */
@@ -60,11 +71,23 @@
     wrong: {
       'π × radius':    ['Not quite!', tie(whole('π × radius') + ' gives only half the circumference.')],
       'π × (radius)²': ['Not quite!', tie(whole('π × (radius)²') + ' is the area of a circle, not its circumference.')]
+    },
+
+    /* page 2 -- the semicircle's arc length */
+    semiIs:    'This is the semicircle.',
+    semiAsk:   tie('Choose the correct formula to find the arc length of this semicircle.'),
+    semiRight: ['Correct!', tie('The arc length of the whole circle is ' + whole('2π × radius.'))],
+    semiWrong: {
+      '2π × radius':       ['Not quite!', tie(whole('2π × radius') + ' is the arc length of the whole circle, not half of it.')],
+      '½ × π × (radius)²': ['Not quite!', tie(whole('½ × π × (radius)²') + ' is the area of a semicircle, not its arc length.')]
     }
   };
 
   var OPTIONS = ['π × radius', 'π × diameter', 'π × (radius)²'];
   var ANSWER  = 'π × diameter';
+
+  var SEMI_OPTIONS = ['½ × 2π × radius', '2π × radius', '½ × π × (radius)²'];
+  var SEMI_ANSWER  = '½ × 2π × radius';
 
   var BEAT = K.BEAT, SHORT = K.SHORT;
   var READ = 700;          /* ms a verdict's sentence stands, once typed,
@@ -94,6 +117,16 @@
     dom.cfBubble = $('bubbleCf');
     dom.cfOpts   = $('cfOpts');
 
+    dom.cs       = $('cs');
+    dom.csDisc   = $('csDisc');
+    dom.csRim    = $('csRim');
+    dom.csTip    = $('csTip');
+    dom.csDia    = $('csDia');
+    dom.csArc    = $('csArc');
+    dom.csAngle  = $('csAngle');
+    dom.csCentre = $('csCentre');
+    dom.csDeg    = $('csDeg');
+
     /* fit: the box closes round each line's own rows, so the question and
        every verdict get a box their own size, eased from one to the next. */
     sayCf = global.Typer.create($('cfType'), { box: dom.cfBubble, fit: true });
@@ -114,6 +147,7 @@
     M.set(dom.cfBubble, { clearProps: 'opacity,transform,transformOrigin' });
     dom.cfOpts.textContent = '';
     opts = [];
+    dom.cfPane.classList.remove('is-long');
     dom.cfPane.setAttribute('hidden', '');
   }
 
@@ -260,22 +294,36 @@
         ]);
       })
       .then(function () { return Flow.wait(SHORT); })
-
-      /* ---- the bird, and the question from bubble-02 -------------------------
-         The pane opens first so the slot has a box to be measured by, the
-         bird comes up onto it, and the box unfolds from its head with the
-         question typing in -- the greeting's own entrance, on the board. */
       .then(function () {
-        dom.cfPane.removeAttribute('hidden');
-        return K.mascotJumpIn(dom.slotCf);
+        return askFormula({
+          ask: LINES.ask, options: OPTIONS, answer: ANSWER,
+          wrong: LINES.wrong, right: LINES.right
+        });
       })
+      .then(function () { return closeOut(dom.cf); });
+  }
+
+  /* ======================================================================
+   * The ask, as both pages put it: the bird up in the pane, the question
+   * from bubble-02, the formulas one by one, the press, and the verdict.
+   *   spec: ask (the question), options, answer, wrong ({name: lines}),
+   * right (lines), and `reveal` -- what the board shows the moment the
+   * right formula is pressed, alongside the verdict -- if anything.
+   * ====================================================================== */
+  function askFormula(spec) {
+    /* ---- the bird, and the question from bubble-02 -------------------------
+       The pane opens first so the slot has a box to be measured by, the
+       bird comes up onto it, and the box unfolds from its head with the
+       question typing in -- the greeting's own entrance, on the board. */
+    dom.cfPane.removeAttribute('hidden');
+    return K.mascotJumpIn(dom.slotCf)
       .then(function () {
         mascot.state('talking');
         /* Ghost before live, and before the box is shown: the box has to be
            laid out and measurable when the line goes into it, or it would
            open at the wrong size and resize a beat later. */
         Beats.bubbleArm(dom.cfBubble);
-        var said = sayCf(LINES.ask);
+        var said = sayCf(spec.ask);
         Beats.bubbleIn(dom.cfBubble);
         return said;
       })
@@ -286,7 +334,7 @@
 
       /* ---- the three formulas, one by one --------------------------------- */
       .then(function () {
-        opts = K.buildChoices(dom.cfOpts, K.shuffle(OPTIONS));
+        opts = K.buildChoices(dom.cfOpts, K.shuffle(spec.options));
         opts.forEach(function (b) { b.dataset.name = b.textContent; });
         return Flow.anim(optsIn(opts));
       })
@@ -297,9 +345,9 @@
          scene's own beat, said in green once the gate has fired. ---------- */
       .then(function () {
         return armChoices({
-          answer: ANSWER,
+          answer: spec.answer,
           onWrong: function (name) {
-            K.quiet(verdict(LINES.wrong[name], 'confused', 'is-bad'));
+            K.quiet(verdict(spec.wrong[name], 'confused', 'is-bad'));
           }
         });
       })
@@ -307,49 +355,127 @@
          controls -- step back to a faint 0.4 while the box says why, so the
          green one is what the eye is left on. */
       .then(function () {
-        var right = opts.filter(function (b) { return b.dataset.name === ANSWER; })[0];
+        var right = opts.filter(function (b) { return b.dataset.name === spec.answer; })[0];
         return Promise.all([
-          verdict(LINES.right, 'happy', 'is-ok'),
-          Flow.anim(M.focus(right, opts, { opacity: 0.4 }))
+          verdict(spec.right, 'happy', 'is-ok'),
+          Flow.anim(M.focus(right, opts, { opacity: 0.4 })),
+          spec.reveal ? spec.reveal() : null
         ]);
       })
-      .then(function () { return Flow.wait(BEAT); })
+      .then(function () { return Flow.wait(BEAT); });
+  }
 
-      /* ---- Next -- and only its PRESS sends the bird away ------------------
-         handOver waits on the button, so everything after this line is
-         after the learner has pressed it: the box shuts, the pills and the
-         circle fade, and the bird drops back behind the board, all at
-         once. */
-      .then(function () { return K.handOver(dom.nextBtn); })
+  /* ======================================================================
+   * Next -- and only its PRESS sends the bird away. handOver waits on the
+   * button, so everything after it is after the learner has pressed it:
+   * the box shuts, the pills and the circle fade, and the bird drops back
+   * behind the board, all at once. Then everything is handed back to its
+   * built state and the header opens again over a clean board, which is
+   * where whatever comes next begins.
+   * ====================================================================== */
+  function closeOut(group) {
+    return K.handOver(dom.nextBtn)
       .then(function () {
         saying++;                     /* no verdict owns the box any more */
         return Promise.all([
           Flow.anim(Beats.bubbleOut(dom.cfBubble)),
           Flow.anim(optsOut(opts)),
           K.mascotJumpOut(),
-          Flow.anim(Beats.clearFigure([dom.cf]))
+          Flow.anim(Beats.clearFigure([group]))
         ]);
       })
-
-      /* ---- and the section closes -------------------------------------------
-         Everything handed back to its built state, and the header opens
-         again over a clean board, which is where whatever comes next
-         begins. */
       .then(function () {
         restorePane();
-        dom.cf.setAttribute('hidden', '');
-        K.clearInline([dom.cf].concat(
-          Array.prototype.slice.call(dom.cf.querySelectorAll('*'))));
+        group.setAttribute('hidden', '');
+        K.clearInline([group].concat(
+          Array.prototype.slice.call(group.querySelectorAll('*'))));
         return Flow.anim(K.collapseHeader(false));
       });
+  }
+
+  /* ======================================================================
+   * Page 2 -- the semicircle's arc length. A blank board, the circle made
+   * and cut in two by its diameter, the upper half lit and named from the
+   * header; then the circle stands aside, the bird crosses to the pane and
+   * asks for the formula, and the right answer shows the straight angle
+   * the semicircle stands on: 180°.
+   * ====================================================================== */
+  function sceneSemicircle() {
+    return K.wipeBoard()
+      .then(function () { return Flow.wait(BEAT); })
+
+      /* ---- the circle: the pen round the rim, the colour poured in ------- */
+      .then(function () {
+        dom.cs.removeAttribute('hidden');
+        return Flow.anim(Beats.drawRim(dom.csRim, dom.csTip));
+      })
+      .then(function () { return Flow.wait(SHORT); })
+      .then(function () { return Flow.anim(Beats.fillDisc(dom.csDisc)); })
+      .then(function () { return Flow.wait(SHORT); })
+
+      /* ---- cut in two: the diameter drawn across, edge to edge ------------ */
+      .then(function () {
+        return Flow.anim(Beats.growLine(dom.csDia, 0.7, 'power2.inOut'));
+      })
+      .then(function () { return Flow.wait(SHORT); })
+
+      /* ---- and the upper half lit: swept over the top, then swelling once */
+      .then(function () {
+        return Flow.anim(Beats.growLine(dom.csArc, 0.9, 'power2.inOut'));
+      })
+      .then(function () { return Flow.anim(Beats.arcPulse([dom.csArc])); })
+      .then(function () { return Flow.wait(SHORT); })
+
+      /* ---- named from the header ------------------------------------------ */
+      .then(function () { return K.arriveSaying(LINES.semiIs); })
+      .then(function () {
+        mascot.settle();
+        return Flow.wait(BEAT);
+      })
+
+      /* ---- the circle stands aside, and the bird crosses -------------------
+         The bird springs off the header with its line -- the header closes
+         behind it -- while the circle slides smoothly to the left half; it
+         then comes up in the right pane to ask. */
+      .then(function () {
+        return Promise.all([
+          K.mascotJumpOut(),
+          Flow.anim(Beats.lineOut(dom.promptLine)),
+          Flow.anim(Beats.slideArcs(dom.cs, SHIFT))
+        ]);
+      })
+      .then(function () {
+        K.clearPrompt();
+        return Flow.wait(SHORT);
+      })
+      .then(function () {
+        dom.cfPane.classList.add('is-long');
+        return askFormula({
+          ask: LINES.semiAsk, options: SEMI_OPTIONS, answer: SEMI_ANSWER,
+          wrong: LINES.semiWrong, right: LINES.semiRight,
+          reveal: showAngle
+        });
+      })
+      .then(function () { return closeOut(dom.cs); });
+  }
+
+  /* The straight angle at the centre: the dot, the half-turn drawn over
+     it, and its "180°". */
+  function showAngle() {
+    return Flow.anim(Beats.plotDot(dom.csCentre))
+      .then(function () {
+        return Flow.anim(Beats.growLine(dom.csAngle, 0.6, 'power2.inOut'));
+      })
+      .then(function () { return Flow.anim(Beats.labelIn(dom.csDeg)); });
   }
 
   /* ======================================================================
    * The hooks the board's housekeeping calls -- see addSection in pages.js
    * ====================================================================== */
 
-  /* What this section has on the figure: the one group, faded as a whole. */
-  function parts() { return [dom.cf]; }
+  /* What this section has on the figure: one group per page, each faded
+     as a whole. */
+  function parts() { return [dom.cf, dom.cs]; }
 
   /* And what it keeps outside the figure: the pane, if a wipe catches the
      question still up. */
@@ -373,18 +499,20 @@
   function reset() {
     saying++;
     dom.cf.setAttribute('hidden', '');
+    dom.cs.setAttribute('hidden', '');
     restorePane();
   }
 
-  /* The board as the scene expects to find it, written straight in. The
-     one scene opens on a wiped board -- its own first beat is the wipe --
+  /* The board as the scene expects to find it, written straight in. Both
+     scenes open on a wiped board -- each one's first beat is the wipe --
      so there is nothing to stage. */
   function stage() {}
 
   Pages.addSection({
     name: 'Circumference formula',
     scenes: [
-      { name: 'Circumference formula', play: sceneFormula }
+      { name: 'Circumference formula', play: sceneFormula },
+      { name: 'Semicircle arc length', play: sceneSemicircle }
     ],
     build: build,
     parts: parts,
