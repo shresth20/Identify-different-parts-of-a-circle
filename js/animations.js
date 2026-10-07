@@ -508,47 +508,6 @@
     return tl;
   }
 
-  /* ---- a line, lit ---------------------------------------------------
-     The radius lit as it is named and kept lit while its name is written,
-     then put out: the circumference's light (rimLight), for a line. Two
-     beats for the same reason that is: the light has to outlast its own
-     fade-in. `glow` is one of the .line-glow paths under the halves; the
-     fade below brings it up to LINE_LIT and it holds there, solid, while
-     .is-lit sets its width (user, 2026-10-05: no pulse). */
-  var LINE_LIT = 0.85;
-
-  function lineLight(glow) {
-    glow.classList.add('is-lit');
-    var tl = M.timeline({ willChange: glow, willChangeValue: 'opacity' });
-    tl.fromTo(glow, { opacity: 0 },
-              { opacity: LINE_LIT, duration: M.dur(0.5), ease: 'power2.out' });
-    return tl;
-  }
-
-  /* The loop owns the opacity for as long as the class is on, so the
-     fade-out starts by taking the breath's CURRENT brightness onto the
-     element and letting the class go -- the light then dims from exactly
-     where it was, at whatever point of a breath it is at, instead of
-     snapping to the inline value underneath. */
-  function lineUnlight(glow) {
-    /* The breath swells the width with the brightness, so both are picked
-       up where it is: the opacity alone, and the line would drop from as
-       wide as 16 to its resting width in a single frame as it went out. */
-    var lit = getComputedStyle(glow);
-    var from = lit.opacity, fromW = lit.strokeWidth;
-    glow.classList.remove('is-lit');
-    var restW = getComputedStyle(glow).strokeWidth;
-    M.set(glow, { opacity: from, strokeWidth: fromW });
-    var tl = M.timeline({
-      willChange: glow, willChangeValue: 'opacity',
-      revert: function () {
-        M.set(glow, { clearProps: 'opacity,strokeWidth' });
-      }
-    });
-    tl.to(glow, { opacity: 0, strokeWidth: restW, duration: M.dur(0.6), ease: 'power2.inOut' });
-    return tl;
-  }
-
   /* ---- the radius, swept round -----------------------------------------
      "From the centre to ANY point on the circle", acted out: a copy of the
      radius just named is swept once round the centre, clockwise from three
@@ -635,21 +594,6 @@
     M.set(o.end, { opacity: 1, scale: 0, transformOrigin: 'center center' });
     tl.to(o.end, { scale: 1, duration: M.dur(0.26), ease: M.POP }, M.gap(1.9));
     tl.call(pop, null, M.gap(1.9));
-    return tl;
-  }
-
-  /* One half of the line lit up and named: a wide soft stroke under it
-     breathes in and out once, and the word is set beneath it as the light
-     is at its fullest. */
-  function glowLine(glow, label) {
-    M.set(label, { opacity: 0, scale: 0.7, transformOrigin: 'center center' });
-    var tl = M.timeline({ willChange: [glow, label], willChangeValue: 'transform, opacity' });
-    tl.fromTo(glow, { opacity: 0 },
-      { opacity: 0.85, duration: M.dur(0.34), ease: 'power2.out' }, 0)
-      .to(glow, { opacity: 0, duration: M.dur(0.75), ease: 'power2.inOut' }, M.gap(0.62))
-      .to(label, {
-        opacity: 1, scale: 1, duration: M.dur(0.36), ease: 'back.out(1.7)'
-      }, M.gap(0.2));
     return tl;
   }
 
@@ -1833,12 +1777,9 @@
     /* points and lines */
     plotDot: plotDot,
     growLine: growLine,
-    lineLight: lineLight,
-    lineUnlight: lineUnlight,
     radiusSweep: radiusSweep,
     marksOut: marksOut,
     copyRadius: copyRadius,
-    glowLine: glowLine,
     joinDiameter: joinDiameter,
     showRule: showRule,
     drawChords: drawChords,

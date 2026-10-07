@@ -109,9 +109,9 @@
  *   the line drops out of it to stand under it. Then three steps, one at
  *   a time and each a beat apart, every step the same shape: in the copy
  *   the word fades, the line closes up round the gap and the letter lands
- *   in its place in its mark's colour; then the mark on the figure glows
- *   -- a pulse of solid light in its own colour, twice -- while its label
- *   pops in beside it and the letter in the formula swells once with it,
+ *   in its place in its mark's colour; then the mark on the figure
+ *   swells once while its label pops in beside it and the letter in the
+ *   formula swells once with it,
  *   so the two are seen to be one thing. "Arc length" becomes s, with the
  *   arc; "Angle" becomes θ, with the angle; "circumference" becomes 2πr,
  *   with the radii and their "r". With "s = θ⁄360° × 2πr" written under
@@ -325,9 +325,7 @@
   var FF_DROP = 0.8;           /* s: the copy dropping down to the second line */
   var FF_STEP = 1000;          /* ms a finished step is left to be read */
   var FF_HOLD = 450;           /* ms between the letter landing and its mark lighting */
-  var GLOW_PEAK = 0.85;        /* the glow at the top of a breath */
-  var GLOW_DIP = 0.3;          /* and between the two breaths */
-  var GLOW_LABEL_AT = 250;     /* ms into the glow that the label pops in */
+  var LABEL_AT = 250;          /* ms into the mark's swell that the label pops in */
 
   /* ---- the elements ------------------------------------------------------ */
   var dom = null;          /* pages.js's, with this section's own on top */
@@ -427,7 +425,6 @@
     dom.cvS       = $('cvS');
     dom.cvTheta   = $('cvTheta');
     dom.cvR       = $('cvR');
-    dom.cvGlow    = { s: $('cvArcGlow'), th: $('cvAngleGlow'), r: [$('cvRadAGlow'), $('cvRadBGlow')] };
     dom.ffPane    = $('ffPane');
     dom.ffLine1   = $('ffLine1');
     dom.ffLine2   = $('ffLine2');
@@ -1356,18 +1353,17 @@
    * its mark lights on the figure and takes its label.
    * ====================================================================== */
 
-  /* The figure's marks, written once: everything on it is fixed. Each
-     glow is given the very path it lies under. */
+  /* The figure's marks, written once: everything on it is fixed. */
   function layoutFormula() {
     var c = { x: CX, y: CY };
     var pA = P(CV_A, RR), pB = P(CV_B, RR);
     var arc = arcD(pA, pB, RR);
     var ra = radiusD(c, pA), rb = radiusD(c, pB);
     var ang = arcD(P(CV_A, ANGLE_R), P(CV_B, ANGLE_R), ANGLE_R);
-    dom.cvArc.setAttribute('d', arc);     dom.cvGlow.s.setAttribute('d', arc);
-    dom.cvRadA.setAttribute('d', ra);     dom.cvGlow.r[0].setAttribute('d', ra);
-    dom.cvRadB.setAttribute('d', rb);     dom.cvGlow.r[1].setAttribute('d', rb);
-    dom.cvAngle.setAttribute('d', ang);   dom.cvGlow.th.setAttribute('d', ang);
+    dom.cvArc.setAttribute('d', arc);
+    dom.cvRadA.setAttribute('d', ra);
+    dom.cvRadB.setAttribute('d', rb);
+    dom.cvAngle.setAttribute('d', ang);
 
     var mid = (CV_A + CV_B) / 2;
     var th = P(mid, THETA_R);
@@ -1387,13 +1383,13 @@
     dom.cvR.setAttribute('y', round2(m.y + ny * CV_R_OFF + 6));
   }
 
-  /* The three marks, by the key of the cell that names each: what glows,
-     what swells and to what weight, and the label that lands. */
+  /* The three marks, by the key of the cell that names each: what swells
+     and to what weight, and the label that lands. */
   function marks() {
     return {
-      s:  { glow: [dom.cvGlow.s],  lines: [dom.cvArc],               w: CV_ARC_W,  label: dom.cvS },
-      th: { glow: [dom.cvGlow.th], lines: [dom.cvAngle],             w: CV_LINE_W, label: dom.cvTheta },
-      c:  { glow: dom.cvGlow.r,    lines: [dom.cvRadA, dom.cvRadB],  w: CV_LINE_W, label: dom.cvR }
+      s:  { lines: [dom.cvArc],               w: CV_ARC_W,  label: dom.cvS },
+      th: { lines: [dom.cvAngle],             w: CV_LINE_W, label: dom.cvTheta },
+      c:  { lines: [dom.cvRadA, dom.cvRadB],  w: CV_LINE_W, label: dom.cvR }
     };
   }
 
@@ -1457,23 +1453,6 @@
     });
   }
 
-  /* A mark lit: its glow breathes twice -- up to its peak, down to a dip,
-     up again and out -- while the mark's own line swells once with the
-     first breath (linePulse, alongside). However the timeline ends, the
-     glow is left out. */
-  function markGlow(glow) {
-    M.set(glow, { opacity: 0 });
-    var tl = M.timeline({
-      willChange: glow, willChangeValue: 'opacity',
-      revert: function () { M.set(glow, { opacity: 0 }); }
-    });
-    tl.to(glow, { opacity: GLOW_PEAK, duration: M.dur(0.3),  ease: 'power2.out' }, 0)
-      .to(glow, { opacity: GLOW_DIP,  duration: M.dur(0.4),  ease: 'sine.inOut' }, M.gap(0.3))
-      .to(glow, { opacity: GLOW_PEAK, duration: M.dur(0.4),  ease: 'sine.inOut' }, M.gap(0.7))
-      .to(glow, { opacity: 0,         duration: M.dur(0.55), ease: 'power2.in' },  M.gap(1.1));
-    return tl;
-  }
-
   /* The letter in the formula swelling once, as its mark lights: the
      same breath, so the two read as one thing. */
   function symSwell(el) {
@@ -1488,8 +1467,8 @@
   }
 
   /* One step, the same shape three times: the word turned into its
-     letter in the second line; a breath; then the mark lit on the figure
-     -- glow, swell, label -- with the letter swelling in time with it;
+     letter in the second line; a breath; then the mark on the figure
+     swells and takes its label, with the letter swelling in time with it;
      and the finished step left to be read. */
   function formulaStep(key, mark) {
     var cell = dom.ffKeys2[key];
@@ -1498,9 +1477,8 @@
       .then(function () {
         var sym = cell.querySelector('.ff-sym');
         return Promise.all([
-          Flow.anim(markGlow(mark.glow)),
           Flow.anim(Beats.linePulse(mark.lines, mark.w)),
-          Flow.wait(GLOW_LABEL_AT).then(function () {
+          Flow.wait(LABEL_AT).then(function () {
             return Promise.all([
               Flow.anim(Beats.labelIn(mark.label)),
               Flow.anim(symSwell(sym))

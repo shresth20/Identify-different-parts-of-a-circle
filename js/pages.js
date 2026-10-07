@@ -178,10 +178,11 @@
        `part` is the mark on the board the name belongs to. Naming a part
      lights that part -- see aimCallout -- so the word, the arrow and the
      thing itself are one event; it is a function because these specs are
-     written before the picture exists. The circumference, the radius and
-     the diameter have none: each is already lit, and held lit, by the time
-     its name goes on (see Beats.rimLight and Beats.lineLight), and a pulse
-     over that light would fight it. */
+     written before the picture exists. The circumference has none: it is
+     already lit, and held lit, by the time its name goes on (see
+     Beats.rimLight), and a pulse over that light would fight it. The
+     radius and the diameter have none either: they are named with no
+     light on them (user, 2026-10-07: no solid glow). */
   var CALLOUTS = {
     circumference: {
       text: 'Circumference',
@@ -288,8 +289,6 @@
       rimTip:    $('rimTip'),
 
       dia:         $('dia'),
-      glowRight:   $('glowRight'),
-      glowLeft:    $('glowLeft'),
       halfRight:   $('halfRight'),
       halfLeft:    $('halfLeft'),
       halfGhost:   $('halfGhost'),
@@ -298,7 +297,6 @@
       endLeft:     $('endLeft'),
       rLabelRight: $('rLabelRight'),
       rLabelLeft:  $('rLabelLeft'),
-      glowDia:     $('glowDia'),
       diaJoin:     $('diaJoin'),
       diaRule:     $('diaRule'),
       diaPlate:    $('diaPlate'),
@@ -344,13 +342,9 @@
   }
 
   /* The four chords: each a line and the two points it runs between, the
-     line first in document order so its points paint over it, and a light
-     under the line for while it is being pointed at (see Beats.lineLight). */
+     line first in document order so its points paint over it. */
   function buildChords(group) {
     return CHORDS.map(function (pair) {
-      var glow = el('path', { 'class': 'line-glow line-glow--chord',
-                              d: seg(pair[0], pair[1]) });
-      group.appendChild(glow);
       var line = el('path', { 'class': 'chord-line', d: seg(pair[0], pair[1]) });
       group.appendChild(line);
       var ends = pair.map(function (p) {
@@ -358,7 +352,7 @@
         group.appendChild(dot);
         return dot;
       });
-      return { line: line, ends: ends, glow: glow };
+      return { line: line, ends: ends };
     });
   }
 
@@ -367,10 +361,6 @@
      the `chords` list, because the beat that draws "all of these lines"
      must not draw this one. */
   function buildLongChord(group) {
-    /* lit in the diameter's colour, which is the colour it is drawn in */
-    var glow = el('path', { 'class': 'line-glow line-glow--dia',
-                            d: seg(LONG_CHORD[0], LONG_CHORD[1]) });
-    group.appendChild(glow);
     var line = el('path', { 'class': 'long-chord',
                             d: seg(LONG_CHORD[0], LONG_CHORD[1]) });
     group.appendChild(line);
@@ -379,7 +369,7 @@
       group.appendChild(dot);
       return dot;
     });
-    return { line: line, ends: ends, glow: glow };
+    return { line: line, ends: ends };
   }
 
   /* The radius swept round the circle (see Beats.radiusSweep): an arm that
@@ -1848,8 +1838,7 @@
          A point on the rim, then the line out from the centre to it -- the
          order the definition is in -- both in slow motion, so the line is
          seen to be MADE from the one to the other. The bird comes back up in
-         the pause after it, the line is lit as it is named and kept lit
-         while its name is written, and then the light goes out. */
+         the pause after it, and the line is named. */
       .then(function () {
         dom.dia.removeAttribute('hidden');
         return Flow.anim(Beats.plotDot(dom.endRight, DOT_TIME));
@@ -1865,14 +1854,12 @@
         ]);
       })
       .then(function () {
-        return Promise.all([Flow.anim(Beats.lineLight(dom.glowRight)),
-                            speak(LINES.radius)]);
+        return speak(LINES.radius);
       })
       .then(function () { return Flow.wait(SAID_HOLD); })
       .then(function () {
         return Flow.anim(aimCallout(CALLOUTS.radius, { pace: NAME_PACE }));
       })
-      .then(function () { return Flow.anim(Beats.lineUnlight(dom.glowRight)); })
       .then(function () { return Flow.wait(STAND_HOLD); })
 
       /* The circle stands aside, name and all, as it did for the
@@ -1926,16 +1913,14 @@
       })
 
       /* ---- 4. The diameter ------------------------------------------------
-         Built out of the radius, a DIA_HOLD at a time: the radius is lit and
+         Built out of the radius, a DIA_HOLD at a time: the radius is
          named again, then COPIED to the other side of the centre rather than
          a second line being drawn there -- a faint copy is lifted off it,
          carried across by exactly one radius and set down, and the left
          half comes up solid under it, so the learner sees the same length
-         moved. The light passes to the copy as it is called a radius too;
-         then the two are joined into one line in one colour, and that line
-         is lit and named. */
+         moved, and the copy is called a radius too; then the two are
+         joined into one line in one colour, and that line is named. */
       .then(function () { return Flow.wait(DIA_HOLD); })
-      .then(function () { return Flow.anim(Beats.lineLight(dom.glowRight)); })
       .then(function () {
         return Promise.all([
           Flow.wait(DIA_HOLD),
@@ -1951,27 +1936,20 @@
         }));
       })
       .then(function () {
-        return Promise.all([Flow.anim(Beats.lineUnlight(dom.glowRight)),
-                            Flow.anim(Beats.lineLight(dom.glowLeft)),
-                            speak(LINES.twoRadius)]);
+        return speak(LINES.twoRadius);
       })
       .then(function () { return Flow.wait(SAID_HOLD); })
       .then(function () {
-        return Promise.all([
-          Flow.anim(Beats.lineUnlight(dom.glowLeft)),
-          Flow.anim(Beats.joinDiameter(dom.diaJoin, [dom.halfLeft, dom.halfRight]))
-        ]);
+        return Flow.anim(Beats.joinDiameter(dom.diaJoin, [dom.halfLeft, dom.halfRight]));
       })
       .then(function () { return Flow.wait(DIA_HOLD); })
       .then(function () {
-        return Promise.all([Flow.anim(Beats.lineLight(dom.glowDia)),
-                            speak(LINES.diameter)]);
+        return speak(LINES.diameter);
       })
       .then(function () { return Flow.wait(SAID_HOLD); })
       .then(function () {
         return Flow.anim(aimCallout(CALLOUTS.diameter, { pace: NAME_PACE }));
       })
-      .then(function () { return Flow.anim(Beats.lineUnlight(dom.glowDia)); })
       .then(function () { return Flow.wait(SAID_HOLD); })
 
       /* The circle stands aside, name and all, and what a diameter is is
@@ -2013,8 +1991,7 @@
         pillKey('diameter');
         return Promise.all([
           tell(lines[0]),
-          Flow.anim(Beats.glowLine(dom.glowLeft, dom.rLabelLeft)),
-          Flow.anim(Beats.glowLine(dom.glowRight, dom.rLabelRight))
+          Flow.anim(Beats.labelIn([dom.rLabelLeft, dom.rLabelRight]))
         ]).then(function () { return Flow.wait(NOTE_HOLD); })
           .then(function () {
             return Promise.all([tell(lines[1]),
@@ -2058,8 +2035,7 @@
     /* Two points on the rim, popped on one after the other, and the line
        between them grown slowly from the one to the other, each step left
        to be looked at. The bird comes back up in the pause before its line,
-       the line is lit as it is named and kept lit while its name is
-       written, and then the light goes out. */
+       and the line is named. */
     return Flow.wait(CHORD_HOLD)
       .then(function () {
         dom.chords.removeAttribute('hidden');
@@ -2072,7 +2048,6 @@
         return Flow.anim(Beats.growLine(first.line, LINE_TIME, 'sine.inOut'));
       })
       .then(function () { return Flow.wait(DIA_HOLD); })
-      .then(function () { return Flow.anim(Beats.lineLight(first.glow)); })
       .then(function () {
         return Promise.all([
           Flow.wait(DIA_HOLD),
@@ -2084,7 +2059,6 @@
       .then(function () {
         return Flow.anim(aimCallout(CALLOUTS.chord, { pace: NAME_PACE }));
       })
-      .then(function () { return Flow.anim(Beats.lineUnlight(first.glow)); })
       .then(function () { return Flow.wait(DIA_HOLD); })
 
       /* The circle stands aside, name and all, and the bird says what a
@@ -2129,8 +2103,7 @@
       /* ---- Many chords ----------------------------------------------------
          And there are as many of them as you like: four, one after another,
          the first in slow motion. Then the circle steps aside and the bird
-         says so beside it, and each chord is lit in turn as it is said --
-         left lit, so by the end of the line every one of them is. */
+         says so beside it, the chords breathing under the card. */
       .then(function () { return Flow.wait(DIA_HOLD); })
       .then(function () { return drawChord(chords[0], true); })
       .then(function () {
@@ -2145,21 +2118,11 @@
         return Promise.all([Flow.anim(collapseHeader(true)), slideCircle(ASIDE_X)]);
       })
       /* All four chords breathe as one under the card -- in step, the way
-         the swept radii do -- while each one's light still arrives as it
-         is said. */
+         the swept radii do. */
       .then(function () {
         return cardUp(LINES.chords, chords.map(function (c) { return c.line; }));
       })
-      .then(function (reveals) {
-        var text = LINES.chords;
-        var step = text.length * global.Typer.TYPE_MS / chords.length;
-        chords.forEach(function (c, i) {
-          quiet(Flow.wait(i * step).then(function () {
-            return Flow.anim(Beats.lineLight(c.glow));
-          }));
-        });
-        return tell(reveals[0]);
-      })
+      .then(function (reveals) { return tell(reveals[0]); })
       .then(function () { return Flow.wait(BEAT); })
       .then(function () { return handOver(dom.nextBtn); })
 
@@ -2229,7 +2192,7 @@
 
       /* "The longest chord of a circle" -- said on the card, as every rule
          in this section now is, with the line it is about breathing under
-         it and lit as it is said, and left so until Next. */
+         it until Next. */
       .then(function () {
         return Promise.all([mascotJumpOut(), Flow.anim(Beats.lineOut(dom.promptLine))]);
       })
@@ -2241,17 +2204,15 @@
         return cardUp(LINES.longest, longChord.line, 'diameter');
       })
       .then(function (reveals) {
-        return Promise.all([Flow.anim(Beats.lineLight(longChord.glow)),
-                            tell(reveals[0])]);
+        return tell(reveals[0]);
       })
       .then(function () { return Flow.wait(BEAT); })
-      /* Stop. Then the card beside the circle and the bird go, the light
-         goes out and the line settles out of its breath, and the circle
+      /* Stop. Then the card beside the circle and the bird go, the line
+         settles out of its breath, and the circle
          comes back to the middle for the activity to wipe. */
       .then(function () { return handOver(dom.nextBtn); })
       .then(function () {
-        return cardAway(longChord.line,
-                        [Flow.anim(Beats.lineUnlight(longChord.glow))]);
+        return cardAway(longChord.line);
       })
       .then(function () {
         restoreAside();
@@ -2278,7 +2239,6 @@
      drawn into a group still at nothing -- and every chord, point and light
      inside back to its resting state, which is invisible. */
   function clearChords() {
-    chords.concat(longChord).forEach(function (c) { c.glow.classList.remove('is-lit'); });
     clearInline([dom.chords].concat(
       Array.prototype.slice.call(dom.chords.querySelectorAll('*'))));
   }

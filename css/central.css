@@ -294,20 +294,6 @@
   stroke-linecap: round;
   opacity: 0;
 }
-/* A mark's glow: the same line laid under it, wide, in its own colour,
-   softened just enough at the edge to read as light rather than as a
-   second line. At rest unseen; central.js breathes it as the mark is
-   named. */
-.cv-glow {
-  fill: none;
-  stroke-width: 18;
-  stroke-linecap: round;
-  opacity: 0;
-  filter: url(#cvGlowBlur);
-}
-.cv-glow--s  { stroke: var(--cv-s); }
-.cv-glow--th { stroke: var(--cv-th); }
-.cv-glow--r  { stroke: var(--cv-r); }
 .cv-label { opacity: 0; }
 .cv-s     { fill: var(--cv-s); }
 .cv-theta { fill: var(--cv-th); }

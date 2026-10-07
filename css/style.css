@@ -640,22 +640,6 @@ body {
   stroke-linecap: round;
   opacity: 0;
 }
-/* The light that picks out one half at a time: the same segment under it,
-   wider and blurred (see #neonLine in index.html), in a gold between the
-   line's two yellows so it reads as the line's own light rather than as a
-   pale band behind it. */
-.line-glow {
-  fill: none;
-  stroke: var(--part-radius);
-  stroke-width: 9;
-  stroke-linecap: round;
-  opacity: 0;
-  filter: url(#neonLine);
-}
-/* ...and the whole diameter's light, in the diameter's colour. */
-.line-glow--dia { stroke: var(--part-diameter); }
-/* ...and the first chord's, in the chord's. */
-.line-glow--chord { stroke: var(--part-chord); }
 /* The names set under the lines, with no arrow between them: each in its
    own line's colour, so the word and the mark read as one thing. */
 .dia__r {

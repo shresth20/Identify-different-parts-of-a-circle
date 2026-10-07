@@ -300,8 +300,10 @@
        A newer verdict takes the box over: `saying` is bumped at the start,
      and an older chain that wakes up to find itself outvoted says nothing
      more and leaves the bird alone rather than settling it out from under
-     the new line. */
-  function verdict(lines, mood, cls) {
+     the new line. `on(i, line)`, if given, is called as line i starts --
+     for a mark on the board that should light with the words naming it
+     (the wiper pages, practice.js). */
+  function verdict(lines, mood, cls, on) {
     var mine = ++saying;
     function live() { return mine === saying; }
     dom.cfBubble.classList.remove('is-ok', 'is-bad');
@@ -310,7 +312,11 @@
     return [].concat(lines).reduce(function (chain, line, i) {
       return chain
         .then(function () { if (i && live()) return Flow.wait(READ); })
-        .then(function () { if (live()) return speak(line); });
+        .then(function () {
+          if (!live()) return;
+          if (on) on(i, line);
+          return speak(line);
+        });
     }, Promise.resolve()).then(function () {
       if (live()) mascot.settle();
     });
@@ -485,7 +491,9 @@
    * from bubble-02, the formulas one by one, the press, and the verdict.
    *   spec: ask (the question), options, answer, wrong ({name: lines}),
    * right (lines), and `reveal` -- what the board shows the moment the
-   * right formula is pressed, alongside the verdict -- if anything.
+   * right formula is pressed, alongside the verdict -- if anything;
+   * `onAsk`, a beat on the board played as the question is asked, and
+   * `onRight(i)`, one as each sentence of the right verdict starts.
    * ====================================================================== */
   function askFormula(spec) {
     /* ---- the bird, and the question from bubble-02 -------------------------
@@ -503,6 +511,9 @@
            laid out and measurable when the line goes into it, or it would
            open at the wrong size and resize a beat later. */
         Beats.bubbleArm(dom.cfBubble);
+        /* and, if the page asks for one, a beat on the board that shows
+           what the question is about, played as the words arrive */
+        if (spec.onAsk) K.quiet(spec.onAsk());
         var asked = speak(spec.ask);
         Beats.bubbleIn(dom.cfBubble);
         return asked;
@@ -539,7 +550,7 @@
       .then(function () {
         var right = opts.filter(function (b) { return b.dataset.name === spec.answer; })[0];
         return Promise.all([
-          verdict(spec.right, 'happy', 'is-ok'),
+          verdict(spec.right, 'happy', 'is-ok', spec.onRight),
           Flow.anim(M.focus(right, opts, { opacity: 0.4 })),
           spec.reveal ? spec.reveal() : null
         ]);
@@ -555,7 +566,7 @@
    * built state and the header opens again over a clean board, which is
    * where whatever comes next begins.
    * ====================================================================== */
-  function closeOut(group) {
+  function closeOut(group, also) {
     return K.handOver(dom.nextBtn)
       .then(function () {
         saying++;                     /* no verdict owns the box any more */
@@ -564,7 +575,9 @@
           Flow.anim(Beats.bubbleOut(dom.cfBubble)),
           Flow.anim(optsOut(opts)),
           K.mascotJumpOut(),
-          Flow.anim(Beats.clearFigure([group]))
+          Flow.anim(Beats.clearFigure([group])),
+          /* and whatever else the page keeps up beside its figure */
+          also ? also() : null
         ]);
       })
       .then(function () {

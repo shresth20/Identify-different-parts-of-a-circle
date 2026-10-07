@@ -88,31 +88,16 @@
           <svg class="figure" id="figure" viewBox="0 0 1000 420"
                role="img" aria-label="A circle">
             <defs>
-              <!-- The light that picks out one half of the diameter at a
-                   time. A glow is a stroke whose edge has been blurred away,
-                   not a wider stroke laid under a narrower one -- a stack of
-                   hard-edged strokes reads as rings, however translucent each
-                   is.
-                     The radius, the diameter and the first chord are
-                   horizontal lines: their box has no height, so a filter
-                   region measured against it collapses to nothing. This one
-                   is measured in the picture's own units instead, over the
-                   circle the lines lie in. -->
-              <filter id="neonLine" filterUnits="userSpaceOnUse"
-                      x="300" y="30" width="400" height="360">
-                <feGaussianBlur stdDeviation="5" />
-              </filter>
-
               <!-- The bloom under a part while it is being named. A blurred
                    copy of the mark itself, laid twice under the mark, so the
                    glow is always in the part's OWN ink -- nothing here names
                    a colour, which is what lets one filter serve the rim, the
                    lines and the dots alike.
                      Measured in the picture's own units, over the whole view
-                   box, for the reason #neonLine is: the radius, the diameter
-                   and the level chord are horizontal, so their boxes have no
-                   height, and a region measured against one would collapse
-                   to nothing and take the line with it. -->
+                   box: the radius, the diameter and the level chord are
+                   horizontal, so their boxes have no height, and a region
+                   measured against one would collapse to nothing and take
+                   the line with it. -->
               <filter id="partGlow" filterUnits="userSpaceOnUse"
                       x="0" y="0" width="1000" height="420">
                 <feGaussianBlur in="SourceGraphic" stdDeviation="6" result="bloom" />
@@ -188,12 +173,8 @@
                  the very same length moved over, not a second line grown to
                  match. Because they are two paths, each half can then be lit
                  and named on its own before the pair is recoloured as one
-                 line. The glows are the same halves again, wider and blurred,
-                 under them. -->
+                 line. -->
             <g class="figure__dia" id="dia" hidden>
-              <path class="line-glow" id="glowRight" d="M500 210 L658 210" />
-              <path class="line-glow" id="glowLeft"  d="M500 210 L342 210" />
-              <path class="line-glow line-glow--dia" id="glowDia" d="M342 210 L658 210" />
               <!-- The radius swept once round the centre as the bird says
                    what a radius is, and the faint radii it leaves at the
                    points it passes. Built by pages.js (see buildSweep);
@@ -589,7 +570,7 @@
               <defs>
                 <!-- The blur the lower half of the rim is put behind once
                      the upper half is lit. Measured in the picture's own
-                     units, as #neonLine is, over the circle. -->
+                     units, over the circle. -->
                 <filter id="csSoft" filterUnits="userSpaceOnUse"
                         x="300" y="30" width="400" height="360">
                   <feGaussianBlur stdDeviation="2.4" />
@@ -813,24 +794,14 @@
                  (js/central.js). Its own circle once more, finished before
                  a word is said: two radii, the piece of rim between their
                  ends and the angle between them at the centre, each in
-                 the colour its letter in #ffPane will wear. Under each
-                 mark lies its glow -- the same line, wide and soft, in the
-                 same colour -- which central.js pulses as the mark is
-                 named and its label pops in. Every coordinate is written
+                 the colour its letter in #ffPane will wear; central.js
+                 swells each mark as it is named and its label pops in.
+                 Every coordinate is written
                  by central.js. Nothing here is a target. -->
             <g class="figure__cv" id="cv" hidden>
-              <defs id="cvDefs">
-                <filter id="cvGlowBlur" x="-12%" y="-12%" width="124%" height="124%">
-                  <feGaussianBlur stdDeviation="3.5" />
-                </filter>
-              </defs>
               <path class="figure__rim" id="cvRim"
                     d="M500 52 A158 158 0 0 1 500 368 A158 158 0 0 1 500 52" />
               <circle class="rim-tip" id="cvTip" cx="500" cy="52" r="7" />
-              <path class="cv-glow cv-glow--s" id="cvArcGlow" d="" />
-              <path class="cv-glow cv-glow--r" id="cvRadAGlow" d="" />
-              <path class="cv-glow cv-glow--r" id="cvRadBGlow" d="" />
-              <path class="cv-glow cv-glow--th" id="cvAngleGlow" d="" />
               <path class="cv-arc" id="cvArc" d="" />
               <path class="ca-radius cv-radius" id="cvRadA" d="" />
               <path class="ca-radius cv-radius" id="cvRadB" d="" />
@@ -891,6 +862,102 @@
                     text-anchor="middle" data-i18n="val120">120°</text>
               <text class="figure-label pr-label pr-len" id="pbLen" x="0" y="0"
                     text-anchor="middle" data-i18n="val21cm">21 cm</text>
+            </g>
+
+            <!-- ---- Skill 2, section 4, page 3: the central angle, worked
+                 (js/practice.js). The same figure made again with other
+                 numbers, and the angle unknown: two radii 60° apart
+                 astride twelve o'clock -- the angle drawn at its true
+                 size -- the sector between them tinted with its arc lit,
+                 "22 cm" over the arc, "21 cm" beside the right-hand radius
+                 and "θ = ?" in the sector. Nothing here is a target; the
+                 values are chosen in #pnPane. -->
+            <g class="figure__pc" id="pc" hidden>
+              <path class="pr-sector" id="pcSector" d="" />
+              <path class="figure__rim" id="pcRim"
+                    d="M500 52 A158 158 0 0 1 500 368 A158 158 0 0 1 500 52" />
+              <circle class="rim-tip" id="pcTip" cx="500" cy="52" r="7" />
+              <path class="pr-arc" id="pcArc" d="" />
+              <path class="pr-radius" id="pcRadA" d="" />
+              <path class="pr-radius" id="pcRadB" d="" />
+              <path class="pr-angle" id="pcAngle" d="" />
+              <circle class="pr-centre" id="pcCentre" cx="500" cy="210" r="5" />
+              <text class="figure-label pr-label pr-arclen" id="pcArcLen" x="0" y="0"
+                    text-anchor="middle" data-i18n="val22cm">22 cm</text>
+              <text class="figure-label pr-label pr-len" id="pcLen" x="0" y="0"
+                    text-anchor="middle" data-i18n="val21cm">21 cm</text>
+              <text class="figure-label pr-label pr-deg" id="pcDeg" x="0" y="0"
+                    text-anchor="middle" data-i18n="p31ThetaQ">θ = ?</text>
+            </g>
+
+            <!-- ---- Skill 2, section 4, pages 4 and 5: the wiper
+                 (js/practice.js). Not the lesson's circle: a windshield,
+                 its edge drawn and its glass tinted in, with the wiper's
+                 pivot on its bottom edge; the blade grown out to its start
+                 and turned 60° across (practice.js writes the turn to the
+                 group's transform), the glass it wipes tinted behind it
+                 and the arc its tip traces; the angle at the pivot with
+                 "60°"; the blade's length beside it and the tip's note over
+                 the arc. Every coordinate but the glass's is written by
+                 practice.js. Nothing here is a target; the answers are
+                 pressed in #cfPane. -->
+            <g class="figure__pw" id="pw" hidden>
+              <path class="pw-glass" id="pwGlass"
+                    d="M280 357 L312 110 Q318 82 345 82 L655 82 Q682 82 688 110 L720 357 Z"
+                    role="img" data-i18n-attr="aria-label:a11yWindshield"
+                    aria-label="A car windshield, with a wiper blade sweeping across it." />
+              <path class="pr-sector" id="pwSector" d="" />
+              <path class="pr-arc" id="pwArc" d="" />
+              <path class="pr-radius" id="pwRadA" d="" />
+              <path class="pr-angle" id="pwAngle" d="" />
+              <g class="pw-blade" id="pwBlade">
+                <path class="pr-radius pw-blade__line" id="pwBladeLine" d="" />
+                <circle class="pw-tip" id="pwTip" cx="0" cy="0" r="6" />
+              </g>
+              <path class="pw-glass-edge" id="pwGlassEdge"
+                    d="M280 357 L312 110 Q318 82 345 82 L655 82 Q682 82 688 110 L720 357 Z" />
+              <circle class="pr-centre" id="pwCentre" cx="500" cy="357" r="5.5" />
+              <text class="figure-label pr-label pr-deg" id="pwDeg" x="0" y="0"
+                    text-anchor="middle" data-i18n="val60">60°</text>
+              <text class="figure-label pr-label pr-len pw-label" id="pwLen" x="0" y="0"
+                    text-anchor="end" data-i18n="p32Blade">Blade length = 42 cm</text>
+              <text class="figure-label pr-label pr-arclen pw-label" id="pwArcLen" x="0" y="0"
+                    text-anchor="middle" data-i18n="p32Tip">The tip travels along this arc.</text>
+            </g>
+
+            <!-- ---- Skill 2, section 4, pages 6 and 7: the clock
+                 (js/practice.js). A clock face: the rim and its pen, the
+                 twelve ticks (made by practice.js), the dot at the centre,
+                 the minute hand grown out to twelve and turned 45 minutes
+                 round (practice.js writes the turn to the group's
+                 transform), its start left as a dashed line, the rim its
+                 tip passes made bold, the angle it turns through drawn at
+                 the centre; "hand = 14 cm" beside the hand, "?" by the arc
+                 and the answer that takes its place, and "270°" in the
+                 angle. Every coordinate is written by practice.js. Nothing
+                 here is a target; the answers are pressed in #cfPane. -->
+            <g class="figure__ck" id="ck" hidden role="img"
+               data-i18n-attr="aria-label:a11yClock"
+               aria-label="A clock face with its minute hand.">
+              <path class="ck-rim" id="ckRim" d="" />
+              <circle class="rim-tip" id="ckTip" cx="500" cy="52" r="7" />
+              <g class="ck-ticks" id="ckTicks"></g>
+              <path class="ck-arc" id="ckArc" d="" />
+              <path class="ck-start" id="ckStart" d="" />
+              <path class="pr-angle" id="ckAngle" d="" />
+              <g class="ck-hand" id="ckHand">
+                <path class="pr-radius ck-hand__line" id="ckHandLine" d="" />
+                <circle class="pw-tip" id="ckHandTip" cx="0" cy="0" r="6" />
+              </g>
+              <circle class="pr-centre" id="ckCentre" cx="500" cy="210" r="5.5" />
+              <text class="figure-label pr-label pr-len pw-label" id="ckLen" x="0" y="0"
+                    text-anchor="middle" data-i18n="p34Hand">hand = 14 cm</text>
+              <text class="figure-label pr-label pr-arclen" id="ckQ" x="0" y="0"
+                    text-anchor="middle" data-i18n="p34Unknown">?</text>
+              <text class="figure-label pr-label pr-arclen ck-answer" id="ckAns" x="0" y="0"
+                    text-anchor="middle" data-i18n="val66cm">66 cm</text>
+              <text class="figure-label pr-label pr-deg" id="ckDeg" x="0" y="0"
+                    text-anchor="middle" data-i18n="val270">270°</text>
             </g>
           </svg>
 
@@ -1119,6 +1186,118 @@
             <div class="ps-opts" id="psOpts" role="group"
                  data-i18n-attr="aria-label:a11yAnswers" aria-label="Choose your answer"></div>
           </div>
+
+          <!-- Skill 2, section 4 (js/practice.js): the central angle, worked.
+               The right half of the stage, as #psPane is: the formula, a
+               copy of it rewritten with two boxes, a copy of that solved
+               for θ, and a copy of that with the box θ is chosen into. A
+               box here is a dropdown (.ps-drop): a button in the line's
+               own type with the menu of three values hung under its cell.
+               Line 2 keeps both the cells it starts with (s, 2πr) and the
+               cells they are rewritten into; line 3 keeps the cells of
+               every move it is solved by, each placed where it will stand
+               once the line has been turned round (practice.js reorders
+               it); line 4 keeps the cells of line 3's last form and the
+               box. Only the boxes and their values are ever live. -->
+          <div class="ps-pane" id="pnPane" hidden>
+            <div class="ps-lines" id="pnLines" aria-live="polite">
+              <p class="ps-line" id="pnLine1" hidden>
+                <span class="ps-t" data-i18n="lblS">s</span>
+                <span class="ps-t ps-op" data-i18n="symEq">=</span>
+                <span class="ps-t ps-frac">
+                  <span class="ps-n" data-i18n="lblTheta">θ</span>
+                  <span class="ps-bar"></span>
+                  <span class="ps-d" data-i18n="lbl360">360°</span>
+                </span>
+                <span class="ps-t ps-op" data-i18n="symTimes">×</span>
+                <span class="ps-t" data-i18n="lbl2PiR">2πr</span>
+              </p>
+              <p class="ps-line" id="pnLine2" hidden>
+                <span class="ps-t" data-k="s0" data-i18n="lblS">s</span>
+                <span class="ps-t ps-cell ps-new" data-k="slotS"><button class="ps-slot ps-drop" id="pnSlotS" type="button" tabindex="-1" aria-haspopup="listbox" aria-expanded="false" data-i18n-attr="aria-label:a11yDrop" aria-label="A dropdown. Open it and choose the value."><span class="ps-slot__v"></span><span class="ps-drop__chev" aria-hidden="true"></span></button><span class="ps-menu" id="pnMenuS" role="listbox" hidden data-i18n-attr="aria-label:a11yAnswers" aria-label="Choose your answer"></span></span>
+                <span class="ps-t ps-op" data-i18n="symEq">=</span>
+                <span class="ps-t ps-frac">
+                  <span class="ps-n" data-i18n="lblTheta">θ</span>
+                  <span class="ps-bar"></span>
+                  <span class="ps-d" data-i18n="lbl360">360°</span>
+                </span>
+                <span class="ps-t ps-op" data-i18n="symTimes">×</span>
+                <span class="ps-t" data-k="c0" data-i18n="lbl2PiR">2πr</span>
+                <span class="ps-t ps-new" data-k="two" data-i18n="num2">2</span>
+                <span class="ps-t ps-op ps-new" data-k="x2" data-i18n="symTimes">×</span>
+                <span class="ps-t ps-frac ps-new" data-k="pi">
+                  <span class="ps-n" data-i18n="num22">22</span>
+                  <span class="ps-bar"></span>
+                  <span class="ps-d" data-i18n="num7">7</span>
+                </span>
+                <span class="ps-t ps-op ps-new" data-k="x3" data-i18n="symTimes">×</span>
+                <span class="ps-t ps-cell ps-new" data-k="slotR"><button class="ps-slot ps-drop" id="pnSlotR" type="button" tabindex="-1" aria-haspopup="listbox" aria-expanded="false" data-i18n-attr="aria-label:a11yDrop" aria-label="A dropdown. Open it and choose the value."><span class="ps-slot__v"></span><span class="ps-drop__chev" aria-hidden="true"></span></button><span class="ps-menu" id="pnMenuR" role="listbox" hidden data-i18n-attr="aria-label:a11yAnswers" aria-label="Choose your answer"></span></span>
+              </p>
+              <!-- Line 3: line 2 with its values in, and the cells it is
+                   solved into -- 132 cm for the product, 22 cm over 132 cm
+                   for the division, 1⁄6 for the fraction simplified, and
+                   θ = 360° × 1⁄6 at the end. -->
+              <p class="ps-line" id="pnLine3" hidden>
+                <span class="ps-t ps-k--s" data-k="s" data-i18n="val22cm">22 cm</span>
+                <span class="ps-t ps-op" data-k="eq" data-i18n="symEq">=</span>
+                <span class="ps-t ps-frac ps-k--th" data-k="th">
+                  <span class="ps-n" data-i18n="lblTheta">θ</span>
+                  <span class="ps-bar"></span>
+                  <span class="ps-d" data-i18n="lbl360">360°</span>
+                </span>
+                <span class="ps-t ps-op" data-k="x1" data-i18n="symTimes">×</span>
+                <span class="ps-t ps-k--c" data-k="two" data-i18n="num2">2</span>
+                <span class="ps-t ps-op ps-k--c" data-k="x2" data-i18n="symTimes">×</span>
+                <span class="ps-t ps-frac ps-k--c" data-k="pi">
+                  <span class="ps-n" data-i18n="num22">22</span>
+                  <span class="ps-bar"></span>
+                  <span class="ps-d" data-i18n="num7">7</span>
+                </span>
+                <span class="ps-t ps-op ps-k--c" data-k="x3" data-i18n="symTimes">×</span>
+                <span class="ps-t ps-k--c" data-k="r" data-i18n="val21cm">21 cm</span>
+                <span class="ps-t ps-k--c ps-new" data-k="circ" data-i18n="val132cm">132 cm</span>
+                <span class="ps-t ps-c--th ps-new" data-k="thetaL" data-i18n="lblTheta">θ</span>
+                <span class="ps-t ps-frac ps-new" data-k="ratio">
+                  <span class="ps-n ps-c--s" data-i18n="val22cm">22 cm</span>
+                  <span class="ps-bar"></span>
+                  <span class="ps-d ps-c--c" data-i18n="val132cm">132 cm</span>
+                </span>
+                <span class="ps-t ps-frac ps-new" data-k="sixth">
+                  <span class="ps-n" data-i18n="num1">1</span>
+                  <span class="ps-bar"></span>
+                  <span class="ps-d" data-i18n="num6">6</span>
+                </span>
+                <span class="ps-t ps-c--th ps-new" data-k="deg360" data-i18n="lbl360">360°</span>
+                <span class="ps-t ps-op ps-new" data-k="x4" data-i18n="symTimes">×</span>
+                <span class="ps-t ps-frac ps-new" data-k="sixthR">
+                  <span class="ps-n" data-i18n="num1">1</span>
+                  <span class="ps-bar"></span>
+                  <span class="ps-d" data-i18n="num6">6</span>
+                </span>
+              </p>
+              <!-- Line 4: line 3's last form, and the box for θ. -->
+              <p class="ps-line" id="pnLine4" hidden>
+                <span class="ps-t ps-c--th" data-i18n="lblTheta">θ</span>
+                <span class="ps-t ps-op" data-i18n="symEq">=</span>
+                <span class="ps-t ps-c--th" data-k="deg360" data-i18n="lbl360">360°</span>
+                <span class="ps-t ps-op" data-k="x4" data-i18n="symTimes">×</span>
+                <span class="ps-t ps-frac" data-k="sixth">
+                  <span class="ps-n" data-i18n="num1">1</span>
+                  <span class="ps-bar"></span>
+                  <span class="ps-d" data-i18n="num6">6</span>
+                </span>
+                <span class="ps-t ps-cell ps-new" data-k="slotTh"><button class="ps-slot ps-drop" id="pnSlotTh" type="button" tabindex="-1" aria-haspopup="listbox" aria-expanded="false" data-i18n-attr="aria-label:a11yDrop" aria-label="A dropdown. Open it and choose the value."><span class="ps-slot__v"></span><span class="ps-drop__chev" aria-hidden="true"></span></button><span class="ps-menu" id="pnMenuTh" role="listbox" hidden data-i18n-attr="aria-label:a11yAnswers" aria-label="Choose your answer"></span></span>
+              </p>
+            </div>
+          </div>
+
+          <!-- Skill 2, section 4 (js/practice.js): the note under page 3's
+               figure, "Take π = 22⁄7" -- the left half of the stage, with
+               the note at its foot. practice.js writes the line, so its
+               fraction is stood up. Glass throughout. -->
+          <div class="pn-note" id="pnNote" hidden>
+            <span class="pn-note__t" id="pnNoteText" data-i18n="p31Pi">Take π = 22⁄7</span>
+          </div>
         </div>
 
         <!-- The footer holds the five names the learner drags onto the
@@ -1213,8 +1392,9 @@
   <!-- Skill 2, section 4: the arc length, worked and asked. Same board,
        same bird; its first page is answered on the header and in #psPane,
        its second asked from bubble-02. To split it out later, this line,
-       js/practice.js, css/practice.css, the two groups in the figure (#pa
-       and #pb) and #psPane are the whole of it. -->
+       js/practice.js, css/practice.css, the five groups in the figure
+       (#pa, #pb, #pc, #pw and #ck), #psPane, #pnPane and #pnNote are the
+       whole of it. -->
   <script src="js/practice.js"></script>
   <script src="js/script.js"></script>
   <!-- TEMPORARY: the Back / Skip / Replay level bar. Delete this line

@@ -177,14 +177,6 @@
   50%      { opacity: .85; }
 }
 
-/* The radius, held lit while it is named: a solid glow, not a pulse
-   (user, 2026-10-05). It no longer breathes; lineLight in animations.js
-   fades it up to full and it stays there, at one width, until lineUnlight
-   fades it out again. */
-.line-glow.is-lit {
-  stroke-width: 13;
-}
-
 /* A name picked up by a tap, waiting for its box: it breathes so it is
    plainly the one in hand. */
 .chip.is-picked { animation: chip-pick 1.3s ease-in-out infinite; }
@@ -245,7 +237,6 @@
   }
   /* The same for the lit rim: lit, steadily. */
   .rim-light.is-lit .rim-light__glow { animation: none !important; }
-  .line-glow.is-lit { animation: none !important; }
   .chip.is-picked { animation: none !important; }
   /* The pulse is a highlight before it is a motion: the part still has to be
      picked out, so the bloom is left standing for as long as the beat holds

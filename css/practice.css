@@ -8,8 +8,9 @@
    colour its letter wore on the formula page (--cl-s, --cl-r, --cl-th,
    central.css), so the figure points back at the formula. Everything is
    picked out of the palette in style.css. To split the section into its
-   own folder later, this file, js/practice.js, the two groups in the
-   figure (#pa and #pb) and #psPane in index.html are the whole of it.
+   own folder later, this file, js/practice.js, the five groups in the
+   figure (#pa, #pb, #pc, #pw and #ck), #psPane, #pnPane and #pnNote in
+   index.html are the whole of it.
    ========================================================================== */
 
 /* ---- The two figures ---------------------------------------------------
@@ -19,7 +20,13 @@
 .figure__pa,
 .figure__pa *,
 .figure__pb,
-.figure__pb * { pointer-events: none; }
+.figure__pb *,
+.figure__pc,
+.figure__pc *,
+.figure__pw,
+.figure__pw *,
+.figure__ck,
+.figure__ck * { pointer-events: none; }
 
 /* The sector: the lit arc's own yellow, faint, as every tinted sector in
    the skill is. */
@@ -52,17 +59,89 @@
   opacity: 0;
 }
 /* The measure in the angle's colour, the length in the radius's -- each
-   label the colour of the mark it names -- with a thin white edge under
-   the ink, so a label set over the rim stays clear of it. */
-.pr-label {
-  opacity: 0;
-  paint-order: stroke;
-  stroke: var(--board-highlight);
-  stroke-width: 5;
-  stroke-linejoin: round;
-}
+   label the colour of the mark it names. Plain ink, no edge under it
+   (user, 2026-10-07). */
+.pr-label { opacity: 0; }
 .pr-deg { fill: var(--cl-th); }
 .pr-len { fill: var(--cl-r); }
+.pr-arclen { fill: var(--cl-s); }
+
+/* ---- The wiper (pages 4 and 5) ---------------------------------------------
+   A windshield in the palette's own sky blue, pale, its edge drawn first
+   and the glass tinted in after; the blade in the radius's green, a step
+   heavier than a radius -- it is a thing, not a construction line -- with
+   its tip in the arc's blue, since the tip is what travels the arc. The
+   blade is a group, turned about the pivot by practice.js, so its line
+   keeps its own opacity and the group carries the fade. The labels on
+   this page are sentences, so they are set a step smaller than the
+   figure's lettering; the blade's is wrapped into rows by practice.js. */
+.pw-glass {
+  fill: color-mix(in srgb, var(--blue-fill) 38%, #FFFFFF);
+  opacity: 0;
+}
+.pw-glass-edge {
+  fill: none;
+  stroke: var(--blue-border);
+  stroke-width: 3;
+  stroke-linejoin: round;
+  stroke-linecap: round;
+  opacity: 0;
+}
+.pw-blade { opacity: 0; }
+.pw-blade__line {
+  stroke-width: 5.5;
+  opacity: 1;
+}
+.pw-tip {
+  fill: var(--cl-s);
+  stroke: var(--board-highlight);
+  stroke-width: 2;
+}
+.pw-label { font-size: 24px; }
+
+/* ---- The clock (pages 6 and 7) ----------------------------------------------
+   A clock face in the skill's ink -- its rim thin and its twelve ticks
+   with it -- so it reads as a clock, not as the lesson's circle; the pen
+   that draws it in the same ink. The minute hand in the radius's green,
+   as the wiper's blade is, with its tip in the arc's blue; the hand's
+   start left as a thin dashed line in the ink; the rim the tip has passed
+   laid over in the arc's blue, bold. "?" and the answer that takes its
+   place wear the arc's blue; "270°" the angle's pink. */
+.ck-rim {
+  fill: none;
+  stroke: var(--text-primary);
+  stroke-width: 2.6;
+  stroke-linecap: round;
+  opacity: 0;
+}
+.figure__ck .rim-tip { fill: var(--text-primary); }
+.ck-tick {
+  stroke: var(--text-primary);
+  stroke-width: 3;
+  stroke-linecap: round;
+  opacity: 0;
+}
+.ck-arc {
+  fill: none;
+  stroke: var(--cl-s);
+  stroke-width: 7;
+  stroke-linecap: round;
+  opacity: 0;
+}
+.ck-start {
+  fill: none;
+  stroke: var(--text-secondary);
+  stroke-width: 2.2;
+  stroke-dasharray: 6 6;
+  stroke-linecap: butt;
+  opacity: 0;
+}
+.ck-hand { opacity: 0; }
+.ck-hand__line {
+  stroke-width: 5.5;
+  opacity: 1;
+}
+.ck-answer { opacity: 0; }
 
 /* ---- The working (page 1) ------------------------------------------------
    The right half of the stage, as .ff-pane is -- a container, so the type
@@ -179,9 +258,116 @@
 .ps-new.ps-k--th { color: var(--cl-th); }
 .ps-k--c.is-on,
 .ps-new.ps-k--c  { color: var(--part-circle); }
+/* And a cell that wears its colour from the start -- the halves of a
+   fraction made out of two coloured terms, the θ carried to the left. */
+.ps-c--s  { color: var(--cl-s); }
+.ps-c--th { color: var(--cl-th); }
+.ps-c--c  { color: var(--part-circle); }
+.ps-k--s.is-on { color: var(--cl-s); }
 .ps-new { display: none; }
 .ps-new.is-in { display: inline-flex; }
 .ps-t.is-gone { display: none; }
+
+/* ---- The dropdown (page 3) --------------------------------------------------
+   The box is a button here, in the line's own type: at rest it is the
+   empty box above and no control; live, it is a control, wears a chevron
+   and breathes; filled, it dissolves as the box above does. Its menu
+   hangs under the cell that holds it -- a card of the pills' own face,
+   the three values one under another -- and is positioned, so it costs
+   the line no layout. It hangs from the cell's left edge, or from its
+   right when the box stands at the end of the line (practice.js measures
+   that as it opens). */
+.ps-cell { position: relative; }
+.ps-drop {
+  appearance: none;
+  -webkit-appearance: none;
+  margin: 0;
+  font: inherit;
+  letter-spacing: inherit;
+  color: inherit;
+  cursor: default;
+  pointer-events: none;
+}
+.ps-drop.is-live {
+  pointer-events: auto;
+  cursor: pointer;
+}
+.ps-drop:focus-visible {
+  outline: none;
+  border-style: solid;
+  border-color: var(--lavender-border);
+}
+.ps-drop__chev {
+  display: none;
+  width: .36em;
+  height: .36em;
+  margin: -.22em 0 0 .3em;
+  border-right: .1em solid var(--lavender-border);
+  border-bottom: .1em solid var(--lavender-border);
+  transform: rotate(45deg);
+}
+.ps-drop.is-live .ps-drop__chev { display: inline-block; }
+.ps-drop.is-filled .ps-drop__chev { display: none; }
+.ps-menu {
+  position: absolute;
+  top: calc(100% + .3em);
+  left: 0;
+  z-index: 5;
+  display: flex;
+  flex-direction: column;
+  align-items: stretch;
+  gap: .35em;
+  margin: 0;
+  padding: .4em;
+  border: 3px solid var(--pill-border);
+  border-radius: .9em;
+  background: linear-gradient(180deg, #FFFFFF 0%, var(--pill-face-mid) 100%);
+  box-shadow: 0 6px 18px var(--shadow-soft);
+  pointer-events: auto;
+}
+.ps-menu[hidden] { display: none; }
+.ps-menu.is-right {
+  left: auto;
+  right: 0;
+}
+.ps-menu .choice {
+  pointer-events: auto;
+  font-size: .8em;
+  padding: .3em 1em .36em;
+  text-align: center;
+}
+.ps-menu .choice.is-done { pointer-events: none; }
+
+/* ---- The note under page 3's figure: "Take π = 22⁄7" ------------------------
+   The left half of the stage, as the pane is the right: a container, so
+   the type is measured against this half, with the note standing at its
+   foot under the circle. Glass: nothing here is a control. The note rests
+   unseen; practice.js brings it up. */
+.pn-note {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  left: 0;
+  width: 50%;
+  z-index: 2;
+  pointer-events: none;
+  container-type: size;
+  display: flex;
+  align-items: flex-end;
+  justify-content: center;
+  padding-bottom: 2.5cqh;
+}
+.pn-note[hidden] { display: none; }
+.pn-note__t {
+  font-family: var(--font-display);
+  font-weight: 800;
+  font-size: clamp(14px, 4.6cqw, 32px);
+  line-height: 1.2;
+  letter-spacing: .3px;
+  color: var(--text-primary);
+  white-space: nowrap;
+  opacity: 0;
+}
 
 /* The values, in a row under the working: the yes/no question's own
    pills (see .choice in style.css), sized against the pane as everything
