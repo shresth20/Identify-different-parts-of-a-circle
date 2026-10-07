@@ -370,10 +370,12 @@ body {
   align-self: center;
   /* As wide as the line it is saying, so the bird + line pair sits centred
      in the header (sayInHeader in pages.js eases the bird to its new spot
-     when a line changes the width). Capped at the longest one-line prompt
-     (~46 characters); longer ones wrap onto a second row. */
+     when a line changes the width). No fixed cap: a line is one row for
+     as long as the header has the room, and wraps onto a second row only
+     when it has not -- the live text wraps WITH its box (pre-wrap below),
+     because a box capped short of its text leaves the words spilling out
+     to the right and the pair off centre (user, 2026-10-07). */
   flex: 0 1 auto;
-  max-width: 24em;
   min-width: 0;
   text-align: left;
   font-family: var(--font-display);
@@ -382,6 +384,10 @@ body {
   line-height: 1.22;
   color: var(--text-primary);
 }
+/* The typed line wraps where its box does, as the bubbles' do (arcs.css,
+   circum.css): each word keeps its trailing space, and a space at the end
+   of a row hangs rather than breaking. */
+.prompt__line .type { white-space: pre-wrap; }
 
 /* ==========================================================================
    The figure

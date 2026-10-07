@@ -14,6 +14,7 @@
   <link rel="stylesheet" href="css/circum.css" />
   <link rel="stylesheet" href="css/central.css" />
   <link rel="stylesheet" href="css/practice.css" />
+  <link rel="stylesheet" href="css/segarea.css" />
   <link rel="stylesheet" href="css/animations.css" />
   <link rel="stylesheet" href="css/responsive.css" />
 </head>
@@ -959,6 +960,232 @@
               <text class="figure-label pr-label pr-deg" id="ckDeg" x="0" y="0"
                     text-anchor="middle" data-i18n="val270">270°</text>
             </g>
+
+            <!-- ---- Skill 4, section 1, page 1: tap the segment (js/segarea.js)
+                 Three cards in a row, each with a circle on it and one
+                 region of that circle shaded -- the minor sector, the
+                 triangle, the minor segment. Built by segarea.js afresh
+                 each run, in a fresh order, each where it stands: the clip
+                 circle the segment's colour spreads from goes in the defs,
+                 the cards in the group. The card is the target; nothing on
+                 its circle is. -->
+            <g class="figure__sa" id="sa" hidden>
+              <defs id="saDefs"></defs>
+              <g class="sa-cards" id="saCards"></g>
+            </g>
+
+            <!-- ---- Skill 4, section 1, page 2: the area of a sector
+                 (js/segarea.js). Its own circle, for the reason every
+                 section has one: the wash and the rim with its pen, the
+                 sector swept in under them, its piece of the rim lit, the
+                 two radii out of the centre, the angle between them with
+                 its "θ", and the centre dot. What depends on the two radii
+                 is written by segarea.js from its own numbers. Slid aside
+                 as ONE thing. Nothing here is a target; the answer is a
+                 press on a pill in #cfPane. -->
+            <g class="figure__sb" id="sb" hidden>
+              <circle class="sa-disc" id="sbDisc" cx="500" cy="210" r="158" />
+              <path class="sa-region" id="sbSector" d="" />
+              <path class="sa-rim" id="sbRim"
+                    d="M500 52 A158 158 0 0 1 500 368 A158 158 0 0 1 500 52" />
+              <circle class="rim-tip" id="sbTip" cx="500" cy="52" r="7" />
+              <path class="sa-arc" id="sbArc" d="" />
+              <path class="sa-radius" id="sbRadA" d="" />
+              <path class="sa-radius" id="sbRadB" d="" />
+              <path class="sb-angle" id="sbAngle" d="" />
+              <circle class="sa-centre" id="sbCentre" cx="500" cy="210" r="6" />
+              <text class="figure-label sb-theta" id="sbTheta" x="0" y="0"
+                    text-anchor="middle" data-i18n="lblTheta">θ</text>
+            </g>
+
+            <!-- ---- Skill 4, section 1, page 3: make a segment (js/segarea.js)
+                 Its own circle: the wash, the rim and its pen, the band and
+                 the glow of skill 2's two-point pick, the two red points
+                 the learner puts on the rim, the chord between them, a
+                 radius to each, the angle at the centre with its "θ", the
+                 region between chord and arc coloured in from the chord
+                 (through the clip circle in the defs), its arc lit, and
+                 the reading beside the circle. What depends on the two
+                 points is written by segarea.js. The second point carries
+                 the handle the figure is explored with. -->
+            <g class="figure__sc" id="sc" hidden>
+              <defs>
+                <filter id="scGlowBlur" x="-12%" y="-12%" width="124%" height="124%">
+                  <feGaussianBlur stdDeviation="5" />
+                </filter>
+                <clipPath id="scClip">
+                  <circle id="scClipC" cx="500" cy="210" r="400" />
+                </clipPath>
+              </defs>
+              <circle class="sc-glow" id="scGlow" cx="500" cy="210" r="158" />
+              <circle class="sa-disc" id="scDisc" cx="500" cy="210" r="158" />
+              <path class="sa-region" id="scSeg" d="" clip-path="url(#scClip)" />
+              <path class="sa-rim" id="scRim"
+                    d="M500 52 A158 158 0 0 1 500 368 A158 158 0 0 1 500 52" />
+              <circle class="rim-tip" id="scTip" cx="500" cy="52" r="7" />
+              <circle class="arc-band" id="scBand" cx="500" cy="210" r="158"
+                      tabindex="-1" role="button"
+                      data-i18n-attr="aria-label:a11yBand"
+                      aria-label="The edge of the circle. Tap it to place a point." />
+              <path class="sa-radius" id="scRadA" d="" />
+              <path class="sa-radius" id="scRadB" d="" />
+              <path class="sa-chord" id="scChord" d="" />
+              <path class="sa-arc" id="scArc" d="" />
+              <path class="sb-angle" id="scAngle" d="" />
+              <circle class="sa-centre" id="scCentre" cx="500" cy="210" r="6" />
+              <text class="figure-label sb-theta" id="scTheta" x="0" y="0"
+                    text-anchor="middle" data-i18n="lblTheta">θ</text>
+              <text class="figure-label sc-readout" id="scReadout" x="712" y="222"
+                    text-anchor="start" aria-live="polite"></text>
+              <circle class="arc-ghost" id="scGhost" cx="500" cy="52" r="7" />
+              <g class="arc-point" id="scPointA">
+                <circle class="arc-dot" cx="500" cy="52" r="7" />
+                <circle class="arc-dot__hit" cx="500" cy="52" r="30" tabindex="-1" role="button"
+                        data-i18n-attr="aria-label:a11yPoint"
+                        aria-label="A point on the circle." />
+              </g>
+              <g class="arc-point sc-handle" id="scPointB">
+                <circle class="arc-dot" cx="500" cy="52" r="8" />
+                <circle class="arc-dot__hit" cx="500" cy="52" r="30" tabindex="-1"
+                        role="slider" aria-valuemin="10" aria-valuemax="350" aria-valuenow="110"
+                        data-i18n-attr="aria-label:a11yHandle"
+                        aria-label="The movable end of a radius. Drag it around the circle to change the angle." />
+              </g>
+              <g class="arc-nudges" id="scNudges" hidden aria-hidden="true"></g>
+            </g>
+
+            <!-- ---- Skill 4, section 1, page 4: two segments (js/segarea.js)
+                 Its own circle, everything on it fixed and written once by
+                 segarea.js: the wash, the two regions a chord makes (each
+                 coloured in from the chord through its own clip circle),
+                 the rim and its pen, each region's piece of the rim in its
+                 own colour, the chord, the two red points, and the two
+                 names. Nothing here is a target. -->
+            <g class="figure__sd" id="sd" hidden>
+              <defs>
+                <clipPath id="sdClipMinor">
+                  <circle id="sdClipMinorC" cx="500" cy="210" r="400" />
+                </clipPath>
+                <clipPath id="sdClipMajor">
+                  <circle id="sdClipMajorC" cx="500" cy="210" r="400" />
+                </clipPath>
+              </defs>
+              <circle class="sa-disc" id="sdDisc" cx="500" cy="210" r="158" />
+              <path class="sa-region sa-region--major" id="sdMajor" d=""
+                    clip-path="url(#sdClipMajor)" />
+              <path class="sa-region" id="sdMinor" d=""
+                    clip-path="url(#sdClipMinor)" />
+              <path class="sa-rim" id="sdRim"
+                    d="M500 52 A158 158 0 0 1 500 368 A158 158 0 0 1 500 52" />
+              <circle class="rim-tip" id="sdTip" cx="500" cy="52" r="7" />
+              <path class="sa-arc sa-arc--major" id="sdArcMajor" d="" />
+              <path class="sa-arc" id="sdArcMinor" d="" />
+              <path class="sa-chord" id="sdChord" d="" />
+              <circle class="sa-centre" id="sdCentre" cx="500" cy="210" r="6" />
+              <circle class="arc-dot" id="sdDotA" cx="500" cy="52" r="7" />
+              <circle class="arc-dot" id="sdDotB" cx="500" cy="52" r="7" />
+              <text class="figure-label sd-label sd-label--minor" id="sdLblMinor" x="0" y="0"
+                    text-anchor="middle" data-i18n="s4p1Segment">Minor segment</text>
+              <text class="figure-label sd-label sd-label--major" id="sdLblMajor" x="0" y="0"
+                    text-anchor="middle" data-i18n="s4p4Major">Major segment</text>
+            </g>
+
+            <!-- ---- Skill 4, section 1, page 5: sector minus triangle
+                 (js/segarea.js). Its own circle, everything on it fixed and
+                 written once by segarea.js: the wash, the sector (whose
+                 colour is drawn back to the chord when the triangle goes),
+                 the triangle over it, the rim and its pen, the arc, the
+                 two radii, the chord, the centre and the two red points.
+                 Nothing here is a target. -->
+            <g class="figure__se" id="se" hidden>
+              <circle class="sa-disc" id="seDisc" cx="500" cy="210" r="158" />
+              <path class="sa-region" id="seSector" d="" />
+              <path class="se-tri" id="seTri" d="" />
+              <path class="sa-rim" id="seRim"
+                    d="M500 52 A158 158 0 0 1 500 368 A158 158 0 0 1 500 52" />
+              <circle class="rim-tip" id="seTip" cx="500" cy="52" r="7" />
+              <path class="sa-arc" id="seArc" d="" />
+              <path class="sa-radius" id="seRadA" d="" />
+              <path class="sa-radius" id="seRadB" d="" />
+              <path class="sa-chord" id="seChord" d="" />
+              <circle class="sa-centre" id="seCentre" cx="500" cy="210" r="6" />
+              <circle class="arc-dot" id="seDotA" cx="500" cy="52" r="7" />
+              <circle class="arc-dot" id="seDotB" cx="500" cy="52" r="7" />
+            </g>
+
+            <!-- ---- Skill 4, section 1, page 6: the summary (js/segarea.js).
+                 Three small circles in a row -- the sector, the triangle,
+                 the segment -- built by segarea.js into the group, with
+                 "−" and "=" between them and a name under each. Nothing
+                 here is a target. -->
+            <g class="figure__sf" id="sf" hidden>
+              <g class="sf-figs" id="sfFigs"></g>
+              <text class="figure-label sf-sign" id="sfMinus" x="335" y="202"
+                    text-anchor="middle" data-i18n="symMinus">−</text>
+              <text class="figure-label sf-sign" id="sfEquals" x="665" y="202"
+                    text-anchor="middle" data-i18n="symEq">=</text>
+              <text class="figure-label sf-label sf-label--sector" id="sfLblSector" x="170" y="348"
+                    text-anchor="middle" data-i18n="s4p6Sector">Sector</text>
+              <text class="figure-label sf-label sf-label--triangle" id="sfLblTriangle" x="500" y="348"
+                    text-anchor="middle" data-i18n="s4p1Triangle">Triangle</text>
+              <text class="figure-label sf-label sf-label--segment" id="sfLblSegment" x="830" y="348"
+                    text-anchor="middle" data-i18n="s4p1Segment">Minor segment</text>
+            </g>
+
+            <!-- ---- Skill 4, section 1, page 7: the triangle at 90°
+                 (js/segarea.js). Its own circle, everything on it fixed
+                 and written once by segarea.js: the wash, the triangle
+                 between the two radii and the chord, the rim and its pen,
+                 the two radii, the chord, the right-angle mark at the
+                 centre, the centre dot, an "r" by each radius and "90°"
+                 inside the triangle. Slid aside as ONE thing. Nothing here
+                 is a target; the answer is a press on a pill in #cfPane. -->
+            <g class="figure__sg" id="sg" hidden>
+              <circle class="sa-disc" id="sgDisc" cx="500" cy="210" r="158" />
+              <path class="se-tri" id="sgTri" d="" />
+              <path class="sa-rim" id="sgRim"
+                    d="M500 52 A158 158 0 0 1 500 368 A158 158 0 0 1 500 52" />
+              <circle class="rim-tip" id="sgTip" cx="500" cy="52" r="7" />
+              <path class="sa-radius" id="sgRadA" d="" />
+              <path class="sa-radius" id="sgRadB" d="" />
+              <path class="sa-chord" id="sgChord" d="" />
+              <path class="sg-mark" id="sgMark" d="" />
+              <circle class="sa-centre" id="sgCentre" cx="500" cy="210" r="6" />
+              <text class="figure-label sg-label" id="sgRA" x="0" y="0"
+                    text-anchor="middle" data-i18n="lblR">r</text>
+              <text class="figure-label sg-label" id="sgRB" x="0" y="0"
+                    text-anchor="middle" data-i18n="lblR">r</text>
+              <text class="figure-label sg-label" id="sgDeg" x="0" y="0"
+                    text-anchor="middle" data-i18n="p21Deg">90°</text>
+            </g>
+
+            <!-- ---- Skill 4, section 1, pages 8 and 9: the segment, worked
+                 and asked (js/segarea.js). Its own circle, shared by the two
+                 pages and written once by segarea.js: the wash, the segment
+                 between chord and arc, the rim and its pen, the arc, the two
+                 radii, the chord, the right-angle mark, the centre, the two
+                 red points, the radius's length under the level radius and
+                 "90°" beside the right angle. Slid aside as ONE thing.
+                 Nothing here is a target. -->
+            <g class="figure__sh" id="sh" hidden>
+              <circle class="sa-disc" id="shDisc" cx="500" cy="210" r="158" />
+              <path class="sa-region" id="shSeg" d="" />
+              <path class="sa-rim" id="shRim"
+                    d="M500 52 A158 158 0 0 1 500 368 A158 158 0 0 1 500 52" />
+              <circle class="rim-tip" id="shTip" cx="500" cy="52" r="7" />
+              <path class="sa-arc" id="shArc" d="" />
+              <path class="sa-radius" id="shRadA" d="" />
+              <path class="sa-radius" id="shRadB" d="" />
+              <path class="sa-chord" id="shChord" d="" />
+              <path class="sg-mark" id="shMark" d="" />
+              <circle class="sa-centre" id="shCentre" cx="500" cy="210" r="6" />
+              <circle class="arc-dot" id="shDotA" cx="500" cy="52" r="7" />
+              <circle class="arc-dot" id="shDotB" cx="500" cy="52" r="7" />
+              <text class="figure-label sh-len" id="shLen" x="0" y="0"
+                    text-anchor="middle"></text>
+              <text class="figure-label sh-deg" id="shDeg" x="0" y="0"
+                    text-anchor="middle" data-i18n="p21Deg">90°</text>
+            </g>
           </svg>
 
           <!-- The right half of the board, for the beats where the circle
@@ -1291,6 +1518,57 @@
             </div>
           </div>
 
+          <!-- Skill 4 (js/segarea.js): the segment, worked. The right half
+               of the stage, in skill 2's worked lines (.ps-pane, css/
+               practice.css): three lines of working, one under the other --
+               the sector, the triangle, the segment -- each ending in a
+               box that is a dropdown (.ps-drop) with its menu of three
+               values hung under its cell. Only the boxes and their values
+               are ever live. -->
+          <div class="ps-pane" id="swPane" hidden>
+            <div class="ps-lines" id="swLines" aria-live="polite">
+              <p class="ps-line" id="swLine1" hidden>
+                <span class="ps-t sw-name--sector" data-i18n="s4p8Sector">sector</span>
+                <span class="ps-t ps-op" data-i18n="symEq">=</span>
+                <span class="ps-t ps-frac sw-c--th">
+                  <span class="ps-n" data-i18n="num90">90</span>
+                  <span class="ps-bar"></span>
+                  <span class="ps-d" data-i18n="num360">360</span>
+                </span>
+                <span class="ps-t ps-op" data-i18n="symTimes">×</span>
+                <span class="ps-t ps-frac sw-c--pi">
+                  <span class="ps-n" data-i18n="num22">22</span>
+                  <span class="ps-bar"></span>
+                  <span class="ps-d" data-i18n="num7">7</span>
+                </span>
+                <span class="ps-t ps-op" data-i18n="symTimes">×</span>
+                <span class="ps-t" data-i18n="val14sqd">14²</span>
+                <span class="ps-t ps-op" data-i18n="symEq">=</span>
+                <span class="ps-t ps-cell"><button class="ps-slot ps-drop" id="swSlot1" type="button" tabindex="-1" aria-haspopup="listbox" aria-expanded="false" data-i18n-attr="aria-label:a11yDrop" aria-label="A dropdown. Open it and choose the value."><span class="ps-slot__v"></span><span class="ps-drop__chev" aria-hidden="true"></span></button><span class="ps-menu" id="swMenu1" role="listbox" hidden data-i18n-attr="aria-label:a11yAnswers" aria-label="Choose your answer"></span></span>
+              </p>
+              <p class="ps-line" id="swLine2" hidden>
+                <span class="ps-t sw-name--triangle" data-i18n="s4p8Triangle">triangle</span>
+                <span class="ps-t ps-op" data-i18n="symEq">=</span>
+                <span class="ps-t" data-i18n="numHalf">½</span>
+                <span class="ps-t ps-op" data-i18n="symTimes">×</span>
+                <span class="ps-t" data-i18n="num14">14</span>
+                <span class="ps-t ps-op" data-i18n="symTimes">×</span>
+                <span class="ps-t" data-i18n="num14">14</span>
+                <span class="ps-t ps-op" data-i18n="symEq">=</span>
+                <span class="ps-t ps-cell"><button class="ps-slot ps-drop" id="swSlot2" type="button" tabindex="-1" aria-haspopup="listbox" aria-expanded="false" data-i18n-attr="aria-label:a11yDrop" aria-label="A dropdown. Open it and choose the value."><span class="ps-slot__v"></span><span class="ps-drop__chev" aria-hidden="true"></span></button><span class="ps-menu" id="swMenu2" role="listbox" hidden data-i18n-attr="aria-label:a11yAnswers" aria-label="Choose your answer"></span></span>
+              </p>
+              <p class="ps-line" id="swLine3" hidden>
+                <span class="ps-t sw-name--segment" data-i18n="s4p8Segment">segment</span>
+                <span class="ps-t ps-op" data-i18n="symEq">=</span>
+                <span class="ps-t" data-i18n="num154">154</span>
+                <span class="ps-t ps-op" data-i18n="symMinus">−</span>
+                <span class="ps-t" data-i18n="num98">98</span>
+                <span class="ps-t ps-op" data-i18n="symEq">=</span>
+                <span class="ps-t ps-cell"><button class="ps-slot ps-drop" id="swSlot3" type="button" tabindex="-1" aria-haspopup="listbox" aria-expanded="false" data-i18n-attr="aria-label:a11yDrop" aria-label="A dropdown. Open it and choose the value."><span class="ps-slot__v"></span><span class="ps-drop__chev" aria-hidden="true"></span></button><span class="ps-menu" id="swMenu3" role="listbox" hidden data-i18n-attr="aria-label:a11yAnswers" aria-label="Choose your answer"></span></span>
+              </p>
+            </div>
+          </div>
+
           <!-- Skill 2, section 4 (js/practice.js): the note under page 3's
                figure, "Take π = 22⁄7" -- the left half of the stage, with
                the note at its foot. practice.js writes the line, so its
@@ -1396,6 +1674,13 @@
        (#pa, #pb, #pc, #pw and #ck), #psPane, #pnPane and #pnNote are the
        whole of it. -->
   <script src="js/practice.js"></script>
+  <!-- Skill 4: area of a segment of a circle. Same board, same bird; its
+       first page is answered on the header, its second asked from
+       bubble-02 (circum.js), its third picked and explored on the figure
+       with skill 2's two-point pick (arcs.js). To split it out later, this
+       line, js/segarea.js, css/segarea.css, the eight groups in the
+       figure (#sa to #sh) and #swPane are the whole of it. -->
+  <script src="js/segarea.js"></script>
   <script src="js/script.js"></script>
   <!-- TEMPORARY: the Back / Skip / Replay level bar. Delete this line
        and js/devnav.js to remove it; nothing else refers to it. -->

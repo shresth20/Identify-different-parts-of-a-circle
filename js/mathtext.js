@@ -39,9 +39,10 @@
      and "7/6" in a page count are left alone. Either figure may carry a
      degree sign ("80°⁄360°", the central-angle pages), and a fraction
      held in brackets -- "(radius⁄2)" -- is one token with them, so the
-     brackets can be drawn as tall as the stack they hold, as LaTeX's
+     brackets can be drawn as tall as the stack they hold. A Greek letter
+     may stand over the bar too ("θ⁄360", the sector-area page), as LaTeX's
      \left( \right) are. */
-  var TOKEN = /[½⅓⅔¼¾⅕⅖⅗⅘⅙⅚⅛⅜⅝⅞]|\([A-Za-z\d°]+⁄[\d°]+\)|[A-Za-z\d°]+⁄[\d°]+/g;
+  var TOKEN = /[½⅓⅔¼¾⅕⅖⅗⅘⅙⅚⅛⅜⅝⅞]|\([A-Za-zθ\d°]+⁄[\d°]+\)|[A-Za-zθ\d°]+⁄[\d°]+/g;
 
   function parts(tok) {
     return GLYPHS[tok] || tok.split('⁄');
