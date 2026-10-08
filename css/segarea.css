@@ -39,6 +39,21 @@
   --sa-fill-tri:   color-mix(in srgb, var(--mint-fill) 42%, #FFFFFF);
   --sa-ink-tri:    #1FB45A;      /* a fresh green, the radii's own a step deeper */
 
+  /* Pages 11 to 14: the small piece beside the major segment, in the
+     palette's sky blue, as the storyboard draws it. */
+  --sa-arc-blue:   #38B6F5;
+  --sa-fill-blue:  color-mix(in srgb, var(--blue-fill) 24%, #FFFFFF);
+
+  /* Pages 15 and 16: the pipe in a dark slate with its water in blue, the
+     flower bed in green with its path in earth brown, as the storyboard
+     draws them. */
+  --sa-pipe-rim:   #3A4A63;
+  --sa-fill-water: color-mix(in srgb, var(--blue-fill) 42%, #FFFFFF);
+  --sa-water-ink:  #1F5F8B;
+  --sa-bed-rim:    #22A34E;
+  --sa-fill-bed:   color-mix(in srgb, var(--mint-fill) 20%, #FFFFFF);
+  --sa-path:       #8B5A2B;
+
   /* A card's plate: white on a soft lavender edge, as the activity boxes
      are, with the verdict hues when it has been pressed. */
   --sa-card-edge:  color-mix(in srgb, var(--lavender-border) 30%, #FFFFFF);
@@ -358,6 +373,54 @@
 .sw-name--triangle { color: var(--sa-ink-tri); }
 .sw-c--th { color: var(--part-centre); }
 .sw-c--pi { color: var(--blue-border); }
+
+/* ---- The major segment (pages 11 to 14) --------------------------------------
+   The same figures with the other piece coloured: the major arc and the
+   major segment in the lavender family, the small piece in blue beside
+   them, the names of the major pieces in the lavender ink. Nothing here
+   is a target. */
+.figure__si,
+.figure__si *,
+.figure__sj,
+.figure__sj *,
+.figure__sk,
+.figure__sk * { pointer-events: none; }
+.figure__si .sa-rim,
+.figure__sj .sa-rim { stroke: var(--sa-rim); stroke-width: 4; }
+.figure__sk .sa-rim { stroke: var(--sa-rim); stroke-width: 3.4; }
+.figure__si .sa-disc,
+.figure__sj .sa-disc,
+.figure__sk .sa-disc { fill: var(--sa-disc); }
+.figure__si .arc-dot,
+.figure__sj .arc-dot { fill: var(--sa-point); }
+.sa-region--blue { fill: var(--sa-fill-blue); }
+.sa-arc--blue { stroke: var(--sa-arc-blue); }
+.sw-name--msector,
+.sw-name--msegment { color: var(--sa-ink-major); }
+.sf-label--msector,
+.sf-label--msegment { fill: var(--sa-ink-major); }
+
+/* ---- The stories (pages 15 and 16) -------------------------------------------
+   The pipe: a dark ring with no wash -- it is a pipe, not a disc -- its
+   water pale blue under a blue surface and a blue arc, named in the water.
+   The bed: a green ring over a pale green wash, cut by a brown path, its
+   smaller piece in the tan of every minor segment here. Nothing here is a
+   target. */
+.figure__sl,
+.figure__sl *,
+.figure__sm,
+.figure__sm * { pointer-events: none; }
+.figure__sl .sa-rim { stroke: var(--sa-pipe-rim); stroke-width: 4.4; }
+.figure__sl .sa-chord { stroke: var(--sa-arc-blue); }
+.sa-region--water { fill: var(--sa-fill-water); }
+.sl-word {
+  font-size: 24px;
+  fill: var(--sa-water-ink);
+  opacity: 0;
+}
+.figure__sm .sa-rim { stroke: var(--sa-bed-rim); stroke-width: 4; }
+.figure__sm .sa-disc { fill: var(--sa-fill-bed); }
+.figure__sm .sa-chord { stroke: var(--sa-path); }
 
 /* ---- Reduced motion ------------------------------------------------------- */
 @media (prefers-reduced-motion: reduce) {

@@ -1186,6 +1186,143 @@
               <text class="figure-label sh-deg" id="shDeg" x="0" y="0"
                     text-anchor="middle" data-i18n="p21Deg">90°</text>
             </g>
+
+            <!-- ---- Skill 4, section 1, pages 13 and 14: the major segment,
+                 worked and asked (js/segarea.js). The figure of pages 8 and
+                 9 with the other piece coloured: the major segment from the
+                 chord round the major arc (coloured in through the clip
+                 circle in the defs), the small piece pale blue under its
+                 blue arc, the major arc in lavender. Slid aside as ONE
+                 thing. Nothing here is a target. -->
+            <g class="figure__si" id="si" hidden>
+              <defs>
+                <clipPath id="siClipMajor">
+                  <circle id="siClipMajorC" cx="500" cy="210" r="400" />
+                </clipPath>
+              </defs>
+              <circle class="sa-disc" id="siDisc" cx="500" cy="210" r="158" />
+              <path class="sa-region sa-region--major" id="siMajor" d=""
+                    clip-path="url(#siClipMajor)" />
+              <path class="sa-region sa-region--blue" id="siMinor" d="" />
+              <path class="sa-rim" id="siRim"
+                    d="M500 52 A158 158 0 0 1 500 368 A158 158 0 0 1 500 52" />
+              <circle class="rim-tip" id="siTip" cx="500" cy="52" r="7" />
+              <path class="sa-arc sa-arc--major" id="siArcMajor" d="" />
+              <path class="sa-arc sa-arc--blue" id="siArcMinor" d="" />
+              <path class="sa-radius" id="siRadA" d="" />
+              <path class="sa-radius" id="siRadB" d="" />
+              <path class="sa-chord" id="siChord" d="" />
+              <path class="sg-mark" id="siMark" d="" />
+              <circle class="sa-centre" id="siCentre" cx="500" cy="210" r="6" />
+              <circle class="arc-dot" id="siDotA" cx="500" cy="52" r="7" />
+              <circle class="arc-dot" id="siDotB" cx="500" cy="52" r="7" />
+              <text class="figure-label sh-len" id="siLen" x="0" y="0"
+                    text-anchor="middle"></text>
+              <text class="figure-label sh-deg" id="siDeg" x="0" y="0"
+                    text-anchor="middle" data-i18n="p21Deg">90°</text>
+            </g>
+
+            <!-- ---- Skill 4, section 1, page 11: the major segment made
+                 (js/segarea.js). Its own circle: the wash, the major
+                 segment (whose apex segarea.js carries from the chord to
+                 the centre as it is drawn back to the sector), the
+                 triangle that comes in from outside and is put back on,
+                 the rim and its pen, the major arc, the small blue arc,
+                 the two radii, the chord, the centre and the two red
+                 points. Nothing here is a target. -->
+            <g class="figure__sj" id="sj" hidden>
+              <defs>
+                <clipPath id="sjClip">
+                  <circle id="sjClipC" cx="500" cy="210" r="400" />
+                </clipPath>
+              </defs>
+              <circle class="sa-disc" id="sjDisc" cx="500" cy="210" r="158" />
+              <path class="sa-region sa-region--major" id="sjMajor" d=""
+                    clip-path="url(#sjClip)" />
+              <path class="se-tri" id="sjTri" d="" />
+              <path class="sa-rim" id="sjRim"
+                    d="M500 52 A158 158 0 0 1 500 368 A158 158 0 0 1 500 52" />
+              <circle class="rim-tip" id="sjTip" cx="500" cy="52" r="7" />
+              <path class="sa-arc sa-arc--major" id="sjArcMajor" d="" />
+              <path class="sa-arc sa-arc--blue" id="sjArcMinor" d="" />
+              <path class="sa-radius" id="sjRadA" d="" />
+              <path class="sa-radius" id="sjRadB" d="" />
+              <path class="sa-chord" id="sjChord" d="" />
+              <circle class="sa-centre" id="sjCentre" cx="500" cy="210" r="6" />
+              <circle class="arc-dot" id="sjDotA" cx="500" cy="52" r="7" />
+              <circle class="arc-dot" id="sjDotB" cx="500" cy="52" r="7" />
+            </g>
+
+            <!-- ---- Skill 4, section 1, page 12: the major recap
+                 (js/segarea.js). Three small circles in a row -- the major
+                 sector, the triangle, the major segment -- built by
+                 segarea.js into the group, with "+" and "=" between them
+                 and a name under each. Nothing here is a target. -->
+            <g class="figure__sk" id="sk" hidden>
+              <g class="sf-figs" id="skFigs"></g>
+              <text class="figure-label sf-sign" id="skPlus" x="335" y="202"
+                    text-anchor="middle" data-i18n="symPlus">+</text>
+              <text class="figure-label sf-sign" id="skEquals" x="665" y="202"
+                    text-anchor="middle" data-i18n="symEq">=</text>
+              <text class="figure-label sf-label sf-label--msector" id="skLblSector" x="170" y="348"
+                    text-anchor="middle" data-i18n="s4p12MajorSector">Major sector</text>
+              <text class="figure-label sf-label sf-label--triangle" id="skLblTriangle" x="500" y="348"
+                    text-anchor="middle" data-i18n="s4p1Triangle">Triangle</text>
+              <text class="figure-label sf-label sf-label--msegment" id="skLblSegment" x="830" y="348"
+                    text-anchor="middle" data-i18n="s4p4Major">Major segment</text>
+            </g>
+
+            <!-- ---- Skill 4, section 1, page 15: the pipe (js/segarea.js).
+                 A ring with no wash, its water at the bottom: the water's
+                 region, the rim and its pen, the water's arc, the two radii
+                 down to the ends of the surface, the surface itself, the
+                 right angle at the centre, the centre, the length turned
+                 along its radius (by the group round it), "90°" and the
+                 word "water". Written by segarea.js. Nothing here is a
+                 target. -->
+            <g class="figure__sl" id="sl" hidden>
+              <path class="sa-region sa-region--water" id="slSeg" d="" />
+              <path class="sa-rim" id="slRim"
+                    d="M500 52 A158 158 0 0 1 500 368 A158 158 0 0 1 500 52" />
+              <circle class="rim-tip" id="slTip" cx="500" cy="52" r="7" />
+              <path class="sa-arc sa-arc--blue" id="slArc" d="" />
+              <path class="sa-radius" id="slRadA" d="" />
+              <path class="sa-radius" id="slRadB" d="" />
+              <path class="sa-chord" id="slChord" d="" />
+              <path class="sg-mark" id="slMark" d="" />
+              <circle class="sa-centre" id="slCentre" cx="500" cy="210" r="6" />
+              <g id="slLenG">
+                <text class="figure-label sh-len" id="slLen" x="0" y="0"
+                      text-anchor="middle" data-i18n="val14cm">14 cm</text>
+              </g>
+              <text class="figure-label sh-deg" id="slDeg" x="0" y="0"
+                    text-anchor="middle" data-i18n="p21Deg">90°</text>
+              <text class="figure-label sl-word" id="slWord" x="0" y="0"
+                    text-anchor="middle" data-i18n="s4p15Water">water</text>
+            </g>
+
+            <!-- ---- Skill 4, section 1, page 16: the flower bed
+                 (js/segarea.js). The quarter of page 8 in the bed's colours:
+                 the wash, the smaller piece, the rim and its pen, its arc,
+                 the two radii, the path, the right angle, the centre, "21 m"
+                 and "90°". Nothing here is a target. -->
+            <g class="figure__sm" id="sm" hidden>
+              <circle class="sa-disc" id="smDisc" cx="500" cy="210" r="158" />
+              <path class="sa-region" id="smSeg" d="" />
+              <path class="sa-rim" id="smRim"
+                    d="M500 52 A158 158 0 0 1 500 368 A158 158 0 0 1 500 52" />
+              <circle class="rim-tip" id="smTip" cx="500" cy="52" r="7" />
+              <path class="sa-arc" id="smArc" d="" />
+              <path class="sa-radius" id="smRadA" d="" />
+              <path class="sa-radius" id="smRadB" d="" />
+              <path class="sa-chord" id="smChord" d="" />
+              <path class="sg-mark" id="smMark" d="" />
+              <circle class="sa-centre" id="smCentre" cx="500" cy="210" r="6" />
+              <text class="figure-label sh-len" id="smLen" x="0" y="0"
+                    text-anchor="middle" data-i18n="val21m">21 m</text>
+              <text class="figure-label sh-deg" id="smDeg" x="0" y="0"
+                    text-anchor="middle" data-i18n="p21Deg">90°</text>
+            </g>
           </svg>
 
           <!-- The right half of the board, for the beats where the circle
@@ -1569,6 +1706,48 @@
             </div>
           </div>
 
+          <!-- Skill 4 (js/segarea.js): the major segment, worked. The same
+               three lines as #swPane, for the other piece: the major
+               sector, the triangle, the major segment -- the last a sum.
+               Only the boxes and their values are ever live. -->
+          <div class="ps-pane" id="sxPane" hidden>
+            <div class="ps-lines" id="sxLines" aria-live="polite">
+              <p class="ps-line" id="sxLine1" hidden>
+                <span class="ps-t sw-name--msector" data-i18n="s4p13Sector">major sector</span>
+                <span class="ps-t ps-op" data-i18n="symEq">=</span>
+                <span class="ps-t ps-frac sw-c--th">
+                  <span class="ps-n" data-i18n="num270">270</span>
+                  <span class="ps-bar"></span>
+                  <span class="ps-d" data-i18n="num360">360</span>
+                </span>
+                <span class="ps-t ps-op" data-i18n="symTimes">×</span>
+                <span class="ps-t sw-c--pi" data-i18n="num616">616</span>
+                <span class="ps-t ps-op" data-i18n="symEq">=</span>
+                <span class="ps-t ps-cell"><button class="ps-slot ps-drop" id="sxSlot1" type="button" tabindex="-1" aria-haspopup="listbox" aria-expanded="false" data-i18n-attr="aria-label:a11yDrop" aria-label="A dropdown. Open it and choose the value."><span class="ps-slot__v"></span><span class="ps-drop__chev" aria-hidden="true"></span></button><span class="ps-menu" id="sxMenu1" role="listbox" hidden data-i18n-attr="aria-label:a11yAnswers" aria-label="Choose your answer"></span></span>
+              </p>
+              <p class="ps-line" id="sxLine2" hidden>
+                <span class="ps-t sw-name--triangle" data-i18n="s4p8Triangle">triangle</span>
+                <span class="ps-t ps-op" data-i18n="symEq">=</span>
+                <span class="ps-t" data-i18n="numHalf">½</span>
+                <span class="ps-t ps-op" data-i18n="symTimes">×</span>
+                <span class="ps-t" data-i18n="num14">14</span>
+                <span class="ps-t ps-op" data-i18n="symTimes">×</span>
+                <span class="ps-t" data-i18n="num14">14</span>
+                <span class="ps-t ps-op" data-i18n="symEq">=</span>
+                <span class="ps-t ps-cell"><button class="ps-slot ps-drop" id="sxSlot2" type="button" tabindex="-1" aria-haspopup="listbox" aria-expanded="false" data-i18n-attr="aria-label:a11yDrop" aria-label="A dropdown. Open it and choose the value."><span class="ps-slot__v"></span><span class="ps-drop__chev" aria-hidden="true"></span></button><span class="ps-menu" id="sxMenu2" role="listbox" hidden data-i18n-attr="aria-label:a11yAnswers" aria-label="Choose your answer"></span></span>
+              </p>
+              <p class="ps-line" id="sxLine3" hidden>
+                <span class="ps-t sw-name--msegment" data-i18n="s4p13Segment">major segment</span>
+                <span class="ps-t ps-op" data-i18n="symEq">=</span>
+                <span class="ps-t" data-i18n="num462">462</span>
+                <span class="ps-t ps-op" data-i18n="symPlus">+</span>
+                <span class="ps-t" data-i18n="num98">98</span>
+                <span class="ps-t ps-op" data-i18n="symEq">=</span>
+                <span class="ps-t ps-cell"><button class="ps-slot ps-drop" id="sxSlot3" type="button" tabindex="-1" aria-haspopup="listbox" aria-expanded="false" data-i18n-attr="aria-label:a11yDrop" aria-label="A dropdown. Open it and choose the value."><span class="ps-slot__v"></span><span class="ps-drop__chev" aria-hidden="true"></span></button><span class="ps-menu" id="sxMenu3" role="listbox" hidden data-i18n-attr="aria-label:a11yAnswers" aria-label="Choose your answer"></span></span>
+              </p>
+            </div>
+          </div>
+
           <!-- Skill 2, section 4 (js/practice.js): the note under page 3's
                figure, "Take π = 22⁄7" -- the left half of the stage, with
                the note at its foot. practice.js writes the line, so its
@@ -1678,8 +1857,8 @@
        first page is answered on the header, its second asked from
        bubble-02 (circum.js), its third picked and explored on the figure
        with skill 2's two-point pick (arcs.js). To split it out later, this
-       line, js/segarea.js, css/segarea.css, the eight groups in the
-       figure (#sa to #sh) and #swPane are the whole of it. -->
+       line, js/segarea.js, css/segarea.css, the thirteen groups in the
+       figure (#sa to #sm), #swPane and #sxPane are the whole of it. -->
   <script src="js/segarea.js"></script>
   <script src="js/script.js"></script>
   <!-- TEMPORARY: the Back / Skip / Replay level bar. Delete this line

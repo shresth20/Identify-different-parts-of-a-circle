@@ -93,6 +93,29 @@
  *   refused with what it really is, and the right one lights the segment
  *   while the box turns green and the working is said in a sentence.
  *
+ *   Page 10 -- the segment from its parts. The same figure; the bird asks
+ *   from the pane for the segment given the sector and the triangle.
+ *
+ *   Page 11 -- the major segment. One circle, two points and the chord;
+ *   then, word by word with the bird's two lines, the bigger piece is
+ *   coloured in from the chord with its arc lit, drawn back to the major
+ *   sector as the radii grow, and the triangle slides in from outside and
+ *   is put back on.
+ *
+ *   Page 12 -- its recap: three small circles, "+" and "=" between them --
+ *   the major sector, the triangle, the major segment -- and the bird's
+ *   two lines: the sum, and the shortcut, πr² less the minor segment.
+ *
+ *   Pages 13 and 14 -- the major segment, worked and asked, as pages 8 and
+ *   9 are: three lines of working with dropdowns, then the question from
+ *   the pane with r = 7 cm.
+ *
+ *   Pages 15 and 16 -- two stories. A pipe on its side with water in it,
+ *   and a round flower bed cut by a path: the bird tells each from the
+ *   header, the figure drawn as the words name its parts, then springs
+ *   to the pane to ask -- the water's cross-section, the bed's smaller
+ *   piece. Three values each; a wrong press is refused with why.
+ *
  * Every word is read by key (T('key'), js/i18n.js) from
  * locales/locales.json, and each line is voiced by the same key once a
  * recording is there.
@@ -217,6 +240,9 @@
      says, the three values, the right one, why each wrong one is wrong,
      and the mark on the figure to light for it. */
   function hint(key) { return [said('fbNotQuite', T('fbNotQuite')), said(key, tie(T(key)))]; }
+  /* what a step lights on its figure when a wrong value is pressed */
+  function lightSeg(which) { return function () { return spotlight(which); }; }
+  function lightMajor(which) { return function () { return spotlightOn(majorMarks(which)); }; }
   function workedSteps() {
     var v154 = T('val154sq'), v616 = T('val616sq'), v77 = T('val77sq');
     var v98 = T('val98sq'), v196 = T('val196sq'), v49 = T('val49sq');
@@ -225,13 +251,13 @@
     var w2 = {}; w2[v196] = hint('s4p8Wrong196'); w2[v49]  = hint('s4p8Wrong49');
     var w3 = {}; w3[v252] = hint('s4p8Wrong252'); w3[v46]  = hint('s4p8Wrong46');
     return [
-      { line: dom.swLine1, slot: dom.swSlot1, menu: dom.swMenu1, mark: 'sector',
+      { line: dom.swLine1, slot: dom.swSlot1, menu: dom.swMenu1, light: lightSeg('sector'),
         ask: said('s4p8AskSector', T('s4p8AskSector')),
         options: [v154, v616, v77], answer: v154, wrong: w1 },
-      { line: dom.swLine2, slot: dom.swSlot2, menu: dom.swMenu2, mark: 'triangle',
+      { line: dom.swLine2, slot: dom.swSlot2, menu: dom.swMenu2, light: lightSeg('triangle'),
         ask: said('s4p8AskTriangle', T('s4p8AskTriangle')),
         options: [v98, v196, v49], answer: v98, wrong: w2 },
-      { line: dom.swLine3, slot: dom.swSlot3, menu: dom.swMenu3, mark: 'segment',
+      { line: dom.swLine3, slot: dom.swSlot3, menu: dom.swMenu3, light: lightSeg('segment'),
         ask: said('s4p8AskSegment', T('s4p8AskSegment')),
         options: [v56, v252, v46], answer: v56, wrong: w3 }
     ];
@@ -255,6 +281,110 @@
       answer:  right,
       wrong:   wrong,
       right:   [said('fbCorrect', T('fbCorrect')), said('s4p9Right', tie(T('s4p9Right')))]
+    };
+  }
+
+  /* Page 10's: the segment from its two parts. */
+  function partsLines() {
+    var right = T('val56sq'), add = T('val252sq'), off = T('val58sq');
+    var wrong = {};
+    wrong[add] = [said('fbNotQuite', T('fbNotQuite')), said('s4p8Wrong252', tie(T('s4p8Wrong252')))];
+    wrong[off] = [said('fbNotQuite', T('fbNotQuite')), said('s4p10Wrong58', tie(T('s4p10Wrong58')))];
+    return {
+      ask:     said('s4p10Ask', tie(T('s4p10Ask'))),
+      options: [right, add, off],
+      answer:  right,
+      wrong:   wrong,
+      right:   [said('fbCorrect', T('fbCorrect')), said('s4p10Right', tie(T('s4p10Right')))]
+    };
+  }
+
+  /* Page 11's two, and page 12's two. */
+  function majorLines() {
+    return {
+      big:  said('s4p11Big',  tie(T('s4p11Big'))),
+      back: said('s4p11Back', tie(T('s4p11Back')))
+    };
+  }
+  function majorSumLines() {
+    return {
+      sum: said('s4p12Sum1', tie(T('s4p12Sum1'))),
+      or:  said('s4p12Sum2', tie(T('s4p12Sum2')))
+    };
+  }
+
+  /* Page 13's three steps, and its close. */
+  function majorSteps() {
+    var v462 = T('val462sq'), v154 = T('val154sq'), v616 = T('val616sq');
+    var v98 = T('val98sq'), v196 = T('val196sq'), v49 = T('val49sq');
+    var v560 = T('val560sq'), v364 = T('val364sq');
+    var w1 = {}; w1[v154] = hint('s4p13Wrong154'); w1[v616] = hint('s4p13Wrong616');
+    var w2 = {}; w2[v196] = hint('s4p8Wrong196');  w2[v49]  = hint('s4p8Wrong49');
+    var w3 = {}; w3[v364] = hint('s4p13Wrong364'); w3[v462] = hint('s4p13Wrong462');
+    return [
+      { line: dom.sxLine1, slot: dom.sxSlot1, menu: dom.sxMenu1, light: lightMajor('msector'),
+        ask: said('s4p13AskSector', T('s4p13AskSector')),
+        options: [v462, v154, v616], answer: v462, wrong: w1 },
+      { line: dom.sxLine2, slot: dom.sxSlot2, menu: dom.sxMenu2, light: lightMajor('triangle'),
+        ask: said('s4p8AskTriangle', T('s4p8AskTriangle')),
+        options: [v98, v196, v49], answer: v98, wrong: w2 },
+      { line: dom.sxLine3, slot: dom.sxSlot3, menu: dom.sxMenu3, light: lightMajor('msegment'),
+        ask: said('s4p13AskSegment', T('s4p13AskSegment')),
+        options: [v560, v364, v462], answer: v560, wrong: w3 }
+    ];
+  }
+  function majorClose() {
+    return {
+      done:  said('p29WellDone', T('p29WellDone')),
+      check: said('s4p13Check', tie(T('s4p13Check')))
+    };
+  }
+
+  /* Page 14's. Each wrong value is refused with what it really is. */
+  function majorAskedLines() {
+    var right = T('val140sq'), small = T('val14sq'), whole = T('val154sq');
+    var wrong = {};
+    wrong[small] = [said('fbNotQuite', T('fbNotQuite')), said('s4p14Wrong14',  tie(T('s4p14Wrong14')))];
+    wrong[whole] = [said('fbNotQuite', T('fbNotQuite')), said('s4p14Wrong154', tie(T('s4p14Wrong154')))];
+    return {
+      ask:     said('s4p14Ask', tie(T('s4p14Ask'))),
+      options: [right, small, whole],
+      answer:  right,
+      wrong:   wrong,
+      right:   [said('fbCorrect', T('fbCorrect')), said('s4p14Right', tie(T('s4p14Right')))]
+    };
+  }
+
+  /* Page 15's: the pipe. */
+  function pipeLines() {
+    var right = T('val56sq'), v156 = T('val156sq'), v256 = T('val256sq');
+    var wrong = {};
+    wrong[v156] = [said('fbNotQuite', T('fbNotQuite')), said('s4p15Wrong156', tie(T('s4p15Wrong156')))];
+    wrong[v256] = [said('fbNotQuite', T('fbNotQuite')), said('s4p15Wrong256', tie(T('s4p15Wrong256')))];
+    return {
+      pipe:     said('s4p15Pipe',     tie(T('s4p15Pipe'))),
+      subtends: said('s4p15Subtends', tie(T('s4p15Subtends'))),
+      ask:      said('s4p15Ask', tie(T('s4p15Ask'))),
+      options:  [right, v156, v256],
+      answer:   right,
+      wrong:    wrong,
+      right:    [said('fbCorrect', T('fbCorrect')), said('s4p15Right', tie(T('s4p15Right')))]
+    };
+  }
+  /* Page 16's: the flower bed. */
+  function bedLines() {
+    var right = T('val126m'), v252 = T('val252m'), v58 = T('val58m');
+    var wrong = {};
+    wrong[v252] = [said('fbNotQuite', T('fbNotQuite')), said('s4p16Wrong252', tie(T('s4p16Wrong252')))];
+    wrong[v58]  = [said('fbNotQuite', T('fbNotQuite')), said('s4p16Wrong58',  tie(T('s4p16Wrong58')))];
+    return {
+      bed:      said('s4p16Bed',      tie(T('s4p16Bed'))),
+      subtends: said('s4p16Subtends', tie(T('s4p16Subtends'))),
+      ask:      said('s4p16Ask', tie(T('s4p16Ask'))),
+      options:  [right, v252, v58],
+      answer:   right,
+      wrong:    wrong,
+      right:    [said('fbCorrect', T('fbCorrect')), said('s4p16Right', tie(T('s4p16Right')))]
     };
   }
 
@@ -385,6 +515,25 @@
   var HINT_READ = 700;                      /* ms "Not quite!" stands before the why */
   var MENU_GAP = 0.25;                      /* s between the values dropping out of a box */
 
+  /* ---- pages 11 to 14: the major segment ----------------------------------
+     The other piece of the same cut: the major arc runs from the upright
+     radius anticlockwise for 270° round to the level one. On page 11 the
+     triangle comes back in from outside the circle, along the chord's
+     middle line, and is put down between the radii. */
+  var MJ = { a: 90, span: 270 };
+  var TRI_IN = 1.5;                         /* how far out the triangle starts, in radii */
+  var PUT_TIME = 0.9;                       /* s: the triangle sliding in; the colour drawn back */
+
+  /* ---- pages 15 and 16: the stories ----------------------------------------
+     The pipe lies on its side, so its water is the segment at the BOTTOM:
+     the two radii run down to the ends of the water's surface, 90° apart.
+     The bed is the quarter of pages 8 and 13. The pipe's length is set
+     along its radius, outside the sector; "water" sits in the water. */
+  var PIPE = { a: 225, span: 90 };
+  var PIPE_LEN_OFF = 22;                    /* "14 cm", off its radius      */
+  var PIPE_DEG_R = 72;                      /* "90°", down from the centre  */
+  var PIPE_WORD_R = 137;                    /* "water", in the water        */
+
   /* ---- a circle, and everything measured from it -------------------------
      The three numbers a circle is drawn with, and the marks written from
      them: a point on it, a piece of its rim, the wedge two radii cut, the
@@ -447,6 +596,7 @@
   var cards = [];          /* page 1's three, in the order they stand */
   var saying = 0;          /* which verdict owns the header line now  */
   var figs = [];           /* page 6's three small circles            */
+  var kfigs = [];          /* page 12's three                         */
   var dropOpts = [];       /* page 8's values, while a menu is open   */
   var hinting = 0;         /* which hint owns the header now          */
   var hintUp = false;      /* a hint is standing in the header        */
@@ -580,6 +730,93 @@
     dom.swMenu2 = $('swMenu2');
     dom.swMenu3 = $('swMenu3');
     dom.swAll   = [dom.swLine1, dom.swLine2, dom.swLine3];
+
+    dom.si         = $('si');
+    dom.siDisc     = $('siDisc');
+    dom.siMajor    = $('siMajor');
+    dom.siMinor    = $('siMinor');
+    dom.siClip     = $('siClipMajorC');
+    dom.siRim      = $('siRim');
+    dom.siTip      = $('siTip');
+    dom.siArcMajor = $('siArcMajor');
+    dom.siArcMinor = $('siArcMinor');
+    dom.siRadA     = $('siRadA');
+    dom.siRadB     = $('siRadB');
+    dom.siChord    = $('siChord');
+    dom.siMark     = $('siMark');
+    dom.siCentre   = $('siCentre');
+    dom.siDotA     = $('siDotA');
+    dom.siDotB     = $('siDotB');
+    dom.siLen      = $('siLen');
+    dom.siDeg      = $('siDeg');
+    layoutMajor();
+
+    dom.sj         = $('sj');
+    dom.sjDisc     = $('sjDisc');
+    dom.sjMajor    = $('sjMajor');
+    dom.sjClip     = $('sjClipC');
+    dom.sjTri      = $('sjTri');
+    dom.sjRim      = $('sjRim');
+    dom.sjTip      = $('sjTip');
+    dom.sjArcMajor = $('sjArcMajor');
+    dom.sjArcMinor = $('sjArcMinor');
+    dom.sjRadA     = $('sjRadA');
+    dom.sjRadB     = $('sjRadB');
+    dom.sjChord    = $('sjChord');
+    dom.sjCentre   = $('sjCentre');
+    dom.sjDotA     = $('sjDotA');
+    dom.sjDotB     = $('sjDotB');
+    layoutMajorAnim();
+
+    dom.sk       = $('sk');
+    dom.skFigs   = $('skFigs');
+    dom.skPlus   = $('skPlus');
+    dom.skEquals = $('skEquals');
+    dom.skLabels = [$('skLblSector'), $('skLblTriangle'), $('skLblSegment')];
+    kfigs = ['msector', 'triangle', 'msegment'].map(function (k, i) { return buildFig(k, i, dom.skFigs); });
+
+    dom.sxPane  = $('sxPane');
+    dom.sxLine1 = $('sxLine1');
+    dom.sxLine2 = $('sxLine2');
+    dom.sxLine3 = $('sxLine3');
+    dom.sxSlot1 = $('sxSlot1');
+    dom.sxSlot2 = $('sxSlot2');
+    dom.sxSlot3 = $('sxSlot3');
+    dom.sxMenu1 = $('sxMenu1');
+    dom.sxMenu2 = $('sxMenu2');
+    dom.sxMenu3 = $('sxMenu3');
+    dom.sxAll   = [dom.sxLine1, dom.sxLine2, dom.sxLine3];
+
+    dom.sl       = $('sl');
+    dom.slSeg    = $('slSeg');
+    dom.slRim    = $('slRim');
+    dom.slTip    = $('slTip');
+    dom.slArc    = $('slArc');
+    dom.slRadA   = $('slRadA');
+    dom.slRadB   = $('slRadB');
+    dom.slChord  = $('slChord');
+    dom.slMark   = $('slMark');
+    dom.slCentre = $('slCentre');
+    dom.slLenG   = $('slLenG');
+    dom.slLen    = $('slLen');
+    dom.slDeg    = $('slDeg');
+    dom.slWord   = $('slWord');
+    layoutPipe();
+
+    dom.sm       = $('sm');
+    dom.smDisc   = $('smDisc');
+    dom.smSeg    = $('smSeg');
+    dom.smRim    = $('smRim');
+    dom.smTip    = $('smTip');
+    dom.smArc    = $('smArc');
+    dom.smRadA   = $('smRadA');
+    dom.smRadB   = $('smRadB');
+    dom.smChord  = $('smChord');
+    dom.smMark   = $('smMark');
+    dom.smCentre = $('smCentre');
+    dom.smLen    = $('smLen');
+    dom.smDeg    = $('smDeg');
+    layoutBed();
     figs = ['sector', 'triangle', 'segment'].map(buildFig);
 
     reset();
@@ -1840,25 +2077,30 @@
    * ====================================================================== */
 
   /* One small circle, built where it stands, with the one region it shows
-     -- the marks page 5 drew, on a smaller circle. */
-  function buildFig(kind, i) {
+     -- the marks pages 5 and 11 drew, on a smaller circle. The kinds:
+     sector, triangle, segment (page 6) and msector, msegment (page 12);
+     `host` is the group it goes into. */
+  function buildFig(kind, i, host) {
     var c = circleAt(SF_X[i], SF_CY, SF_R);
     var o = { x: c.cx, y: c.cy };
     var pA = c.pt(SE.a), pB = c.pt(SE.a + SE.span);
+    var major = kind === 'msector' || kind === 'msegment';
     var g = el('g', { 'class': 'sf-fig sf-fig--' + kind });
     var f = { kind: kind, g: g, geo: c };
     f.disc = el('circle', { 'class': 'sa-disc', cx: c.cx, cy: c.cy, r: c.r });
     g.appendChild(f.disc);
-    f.region = el('path', { 'class': kind === 'triangle' ? 'se-tri' : 'sa-region',
-                            d: kind === 'segment' ? c.seg(SE.a, SE.span) : '' });
+    var regionClass = kind === 'triangle' ? 'se-tri' : (major ? 'sa-region sa-region--major' : 'sa-region');
+    var regionD = kind === 'segment' ? c.seg(SE.a, SE.span)
+                : kind === 'msegment' ? c.arc(MJ.a, MJ.span) + ' Z' : '';
+    f.region = el('path', { 'class': regionClass, d: regionD });
     g.appendChild(f.region);
-    f.radA = f.radB = f.chord = f.arc = null;
-    if (kind !== 'segment') {
+    f.radA = f.radB = f.chord = f.arc = f.arcMinor = null;
+    if (kind === 'sector' || kind === 'triangle' || kind === 'msector') {
       f.radA = el('path', { 'class': 'sa-radius', d: lineD(o, pA) });
       f.radB = el('path', { 'class': 'sa-radius', d: lineD(o, pB) });
       g.appendChild(f.radA); g.appendChild(f.radB);
     }
-    if (kind !== 'sector') {
+    if (kind === 'triangle' || kind === 'segment' || kind === 'msegment') {
       f.chord = el('path', { 'class': 'sa-chord', d: lineD(pA, pB) });
       g.appendChild(f.chord);
     }
@@ -1866,13 +2108,21 @@
     g.appendChild(f.rim);
     f.tip = el('circle', { 'class': 'rim-tip', cx: c.cx, cy: c.cy - c.r, r: 7 });
     g.appendChild(f.tip);
-    if (kind !== 'triangle') {
+    if (kind === 'sector' || kind === 'segment') {
       f.arc = el('path', { 'class': 'sa-arc', d: c.arc(SE.a, SE.span) });
       g.appendChild(f.arc);
     }
+    if (major) {
+      f.arc = el('path', { 'class': 'sa-arc sa-arc--major', d: c.arc(MJ.a, MJ.span) });
+      g.appendChild(f.arc);
+    }
+    if (kind === 'msegment') {
+      f.arcMinor = el('path', { 'class': 'sa-arc sa-arc--blue', d: c.arc(SE.a, SE.span) });
+      g.appendChild(f.arcMinor);
+    }
     f.centre = el('circle', { 'class': 'sa-centre', cx: c.cx, cy: c.cy, r: 5 });
     g.appendChild(f.centre);
-    dom.sfFigs.appendChild(g);
+    (host || dom.sfFigs).appendChild(g);
     return f;
   }
 
@@ -1885,14 +2135,15 @@
       .then(function () { return Flow.anim(discIn(f.disc)); })
       .then(function () { return Flow.anim(Beats.plotDot(f.centre, 0.3)); })
       .then(function () { return Flow.wait(SHORT); });
-    if (f.kind === 'sector') {
+    if (f.kind === 'sector' || f.kind === 'msector') {
+      var cut = f.kind === 'sector' ? SE : MJ;
       return made
         .then(function () { return grow(f.radA, 0.4); })
         .then(function () { return grow(f.radB, 0.4); })
         .then(function () {
           return Promise.all([
-            Flow.anim(Beats.secFill(f.region, function (t) { return g.wedge(SE.a, SE.span, t); }, 0.6)),
-            Flow.anim(Beats.growLine(f.arc, 0.6, 'power2.inOut'))
+            Flow.anim(Beats.secFill(f.region, function (t) { return g.wedge(cut.a, cut.span, t); }, 0.7)),
+            Flow.anim(Beats.growLine(f.arc, 0.7, 'power2.inOut'))
           ]);
         });
     }
@@ -1907,7 +2158,12 @@
     }
     return made
       .then(function () { return grow(f.chord, 0.45); })
-      .then(function () { return grow(f.arc, 0.5); })
+      .then(function () {
+        return Promise.all([
+          grow(f.arc, 0.6),
+          f.arcMinor ? grow(f.arcMinor, 0.4) : null
+        ]);
+      })
       .then(function () { return Flow.anim(discIn(f.region)); });
   }
 
@@ -2170,8 +2426,8 @@
     if (which === 'triangle') return { lines: [dom.shRadA, dom.shRadB, dom.shChord], arcs: [] };
     return { lines: [dom.shChord], arcs: [dom.shArc] };
   }
-  function spotlight(which) {
-    var m = segMarks(which);
+  function spotlight(which) { return spotlightOn(segMarks(which)); }
+  function spotlightOn(m) {
     var tl = M.timeline({
       revert: function () { M.set(m.lines.concat(m.arcs), { clearProps: 'strokeWidth' }); }
     });
@@ -2237,7 +2493,7 @@
      past the pane's edge -- the box at the end of a line -- in which case
      it hangs under the right edge instead. */
   function alignMenu(menu, cell) {
-    var pane = dom.swPane.getBoundingClientRect();
+    var pane = menu.closest('.ps-pane').getBoundingClientRect();
     var at = cell.getBoundingClientRect();
     var w = menu.getBoundingClientRect().width;
     menu.classList.toggle('is-right', at.left + w > pane.right - 4);
@@ -2256,7 +2512,7 @@
       .then(function () { if (live()) return Flow.wait(HINT_READ); })
       .then(function () {
         if (!live()) return;
-        K.quiet(spotlight(spec.mark));
+        K.quiet(spec.light());
         return K.speak(lines[1], 'confused');
       });
   }
@@ -2393,8 +2649,8 @@
   }
 
   /* The working away, once Next is pressed -- or a wipe catches it up. */
-  function linesOut() {
-    var shown = dom.swAll.filter(function (l) { return !l.hasAttribute('hidden'); });
+  function linesOut(lines) {
+    var shown = lines.filter(function (l) { return !l.hasAttribute('hidden'); });
     var tl = M.timeline({ willChange: shown.concat(dropOpts), willChangeValue: 'transform, opacity' });
     if (shown.length) {
       tl.to(shown, { opacity: 0, y: 8, duration: M.dur(0.3), ease: M.IN, stagger: M.gap(0.06) }, 0);
@@ -2408,12 +2664,11 @@
 
   /* The pane's working put away: every line hidden and plain again, every
      box empty and a box once more, every menu shut and emptied. */
-  function restoreWorked() {
+  function restoreWorked(pane, lines) {
     hinting++;
     hintUp = false;
-    var pane = dom.swPane;
     pane.setAttribute('hidden', '');
-    dom.swAll.forEach(function (l) { l.setAttribute('hidden', ''); });
+    lines.forEach(function (l) { l.setAttribute('hidden', ''); });
     all('.is-filled, .is-live, .is-right', pane).forEach(function (el) {
       el.classList.remove('is-filled', 'is-live', 'is-right');
     });
@@ -2471,13 +2726,13 @@
         return Promise.all([
           K.mascotJumpOut(true),
           Flow.anim(Beats.lineOut(dom.promptLine)),
-          Flow.anim(linesOut()),
+          Flow.anim(linesOut(dom.swAll)),
           Flow.anim(Beats.clearFigure([dom.sh]))
         ]);
       })
       .then(function () {
         K.clearPrompt();
-        restoreWorked();
+        restoreWorked(dom.swPane, dom.swAll);
         dom.sh.setAttribute('hidden', '');
         K.clearInline([dom.sh].concat(
           Array.prototype.slice.call(dom.sh.querySelectorAll('*'))));
@@ -2506,7 +2761,6 @@
       })
       .then(function () { return Flow.wait(SHORT); })
       .then(function () {
-        dom.cfPane.classList.add('is-long');
         return C.ask({
           ask: lines.ask, options: lines.options, answer: lines.answer,
           wrong: lines.wrong, right: lines.right,
@@ -2518,12 +2772,619 @@
   }
 
   /* ======================================================================
+   * Page 10 -- the segment from its parts
+   * ====================================================================== */
+  function sceneFromParts() {
+    var lines = partsLines();
+    return K.wipeBoard()
+      .then(function () { return Flow.wait(BEAT); })
+      .then(function () { return drawSeg('val14cm'); })
+      .then(function () {
+        return Promise.all([
+          Flow.anim(K.collapseHeader(true)),
+          Flow.anim(Beats.slideArcs(dom.sh, SHIFT))
+        ]);
+      })
+      .then(function () { return Flow.wait(SHORT); })
+      .then(function () {
+        return C.ask({
+          ask: lines.ask, options: lines.options, answer: lines.answer,
+          wrong: lines.wrong, right: lines.right,
+          reveal: function () { return spotlight('segment'); }
+        });
+      })
+      .then(function () { return C.closeOut(dom.sh); })
+      .then(layoutSeg);
+  }
+
+  /* ======================================================================
+   * Pages 13 and 14 -- the major figure they share
+   * ====================================================================== */
+
+  /* How far a clip circle on the chord's middle has to grow to take in the
+     larger piece: the far side of the circle. */
+  function majorReach() {
+    return RR + RR * Math.cos(SE.span / 2 * Math.PI / 180) + 6;
+  }
+
+  /* The picture, written once: everything on it is fixed but the length. */
+  function layoutMajor() {
+    var a = SE.a, b = SE.a + SE.span;
+    var o = { x: CX, y: CY };
+    var pA = MAIN.pt(a), pB = MAIN.pt(b);
+    dom.siMajor.setAttribute('d', MAIN.arc(MJ.a, MJ.span) + ' Z');
+    dom.siMinor.setAttribute('d', MAIN.seg(a, SE.span));
+    dom.siArcMajor.setAttribute('d', MAIN.arc(MJ.a, MJ.span));
+    dom.siArcMinor.setAttribute('d', MAIN.arc(a, SE.span));
+    dom.siRadA.setAttribute('d', lineD(o, pA));
+    dom.siRadB.setAttribute('d', lineD(o, pB));
+    dom.siChord.setAttribute('d', lineD(pB, pA));
+    var k = SG_MARK;
+    dom.siMark.setAttribute('d',
+      'M' + (CX + k) + ' ' + CY + ' L' + (CX + k) + ' ' + (CY - k) + ' L' + CX + ' ' + (CY - k));
+    dom.siDotA.setAttribute('cx', pA.x); dom.siDotA.setAttribute('cy', pA.y);
+    dom.siDotB.setAttribute('cx', pB.x); dom.siDotB.setAttribute('cy', pB.y);
+    dom.siLen.setAttribute('x', round2((CX + pA.x) / 2));
+    dom.siLen.setAttribute('y', round2(CY + SH_LEN_DY + LABEL_DY));
+    dom.siDeg.setAttribute('x', SH_DEG.x);
+    dom.siDeg.setAttribute('y', SH_DEG.y);
+    var mid = MAIN.chordMid(a, SE.span);
+    dom.siClip.setAttribute('cx', mid.x);
+    dom.siClip.setAttribute('cy', mid.y);
+  }
+
+  /* The figure made as page 8's is, and then the other piece: the small
+     arc lit in blue over its pale segment, and the major arc swept round
+     as the major segment is coloured in from the chord. */
+  function drawMajor(lenKey) {
+    layoutMajor();
+    dom.siLen.textContent = T(lenKey);
+    dom.si.removeAttribute('hidden');
+    return Flow.anim(Beats.drawRim(dom.siRim, dom.siTip))
+      .then(function () { return Flow.wait(SHORT); })
+      .then(function () { return Flow.anim(Beats.fillDisc(dom.siDisc)); })
+      .then(function () { return Flow.wait(SHORT); })
+      .then(function () { return Flow.anim(Beats.plotDot(dom.siCentre, DOT_TIME)); })
+      .then(function () { return Flow.wait(BEAT); })
+      .then(function () { return Flow.anim(Beats.plotDot(dom.siDotA)); })
+      .then(function () { return grow(dom.siRadA, RADIUS_TIME); })
+      .then(function () { return Flow.anim(Beats.labelIn(dom.siLen)); })
+      .then(function () { return Flow.wait(SHORT); })
+      .then(function () { return Flow.anim(Beats.plotDot(dom.siDotB)); })
+      .then(function () { return grow(dom.siRadB, RADIUS_TIME); })
+      .then(function () { return Flow.wait(BEAT); })
+      .then(function () { return grow(dom.siMark, 0.5); })
+      .then(function () { return Flow.anim(Beats.labelIn(dom.siDeg)); })
+      .then(function () { return Flow.wait(BEAT); })
+      .then(function () { return grow(dom.siChord, CHORD_TIME); })
+      .then(function () { return Flow.wait(SHORT); })
+      .then(function () {
+        return Promise.all([
+          Flow.anim(Beats.growLine(dom.siArcMinor, 0.6, 'power2.inOut')),
+          Flow.anim(discIn(dom.siMinor))
+        ]);
+      })
+      .then(function () { return Flow.wait(SHORT); })
+      .then(function () {
+        return Promise.all([
+          Flow.anim(Beats.growLine(dom.siArcMajor, 1.1, 'power2.inOut')),
+          Flow.anim(Beats.segFill(dom.siMajor, dom.siClip, majorReach(), 1.0))
+        ]);
+      })
+      .then(function () { return Flow.anim(Beats.arcPulse([dom.siArcMajor])); })
+      .then(function () { return Flow.wait(BEAT); });
+  }
+
+  /* The region a step is about, on the major figure. */
+  function majorMarks(which) {
+    if (which === 'msector')  return { lines: [dom.siRadA, dom.siRadB], arcs: [dom.siArcMajor] };
+    if (which === 'triangle') return { lines: [dom.siRadA, dom.siRadB, dom.siChord], arcs: [] };
+    if (which === 'minor')    return { lines: [dom.siChord], arcs: [dom.siArcMinor] };
+    if (which === 'whole')    return { lines: [dom.siRim], arcs: [] };
+    return { lines: [dom.siChord], arcs: [dom.siArcMajor] };
+  }
+
+  /* ======================================================================
+   * Page 11 -- the major segment: the sector with the triangle put back
+   * ====================================================================== */
+
+  /* The picture, written once. */
+  function layoutMajorAnim() {
+    var a = SE.a, b = SE.a + SE.span;
+    var o = { x: CX, y: CY };
+    var pA = MAIN.pt(a), pB = MAIN.pt(b);
+    dom.sjMajor.setAttribute('d', MAIN.arc(MJ.a, MJ.span) + ' Z');
+    dom.sjTri.setAttribute('d', MAIN.tri(a, SE.span));
+    dom.sjArcMajor.setAttribute('d', MAIN.arc(MJ.a, MJ.span));
+    dom.sjArcMinor.setAttribute('d', MAIN.arc(a, SE.span));
+    dom.sjRadA.setAttribute('d', lineD(o, pA));
+    dom.sjRadB.setAttribute('d', lineD(o, pB));
+    dom.sjChord.setAttribute('d', lineD(pB, pA));
+    dom.sjDotA.setAttribute('cx', pA.x); dom.sjDotA.setAttribute('cy', pA.y);
+    dom.sjDotB.setAttribute('cx', pB.x); dom.sjDotB.setAttribute('cy', pB.y);
+    var mid = MAIN.chordMid(a, SE.span);
+    dom.sjClip.setAttribute('cx', mid.x);
+    dom.sjClip.setAttribute('cy', mid.y);
+  }
+
+  /* The bigger piece drawn back to the major sector: its apex carried
+     from the chord's middle to the centre, so what was the segment is
+     seen to become the sector with the triangle's room left empty. */
+  function drawBack() {
+    var c = { x: CX, y: CY };
+    var m = MAIN.chordMid(SE.a, SE.span);
+    var apex = { t: 0 };
+    function draw() {
+      var p = { x: round2(m.x + (c.x - m.x) * apex.t), y: round2(m.y + (c.y - m.y) * apex.t) };
+      dom.sjMajor.setAttribute('d', 'M' + p.x + ' ' + p.y + ' L' + MAIN.arc(MJ.a, MJ.span).slice(1) + ' Z');
+    }
+    var tl = M.timeline({ revert: function () { apex.t = 1; draw(); } });
+    tl.to(apex, { t: 1, duration: M.dur(PUT_TIME), ease: 'power2.inOut', onUpdate: draw });
+    return tl;
+  }
+
+  /* The triangle put back on: it comes in from outside the circle, along
+     the chord's middle line, and settles into its room between the radii
+     with a pop. However the timeline ends, it is in place. */
+  function putBack() {
+    var c = { x: CX, y: CY };
+    var m = MAIN.chordMid(SE.a, SE.span);
+    var dx = m.x - c.x, dy = m.y - c.y;
+    var len = Math.sqrt(dx * dx + dy * dy) || 1;
+    var far = RR * TRI_IN;
+    M.set(dom.sjTri, { x: round2(dx / len * far), y: round2(dy / len * far), opacity: 0 });
+    var tl = M.timeline({
+      willChange: dom.sjTri, willChangeValue: 'transform, opacity',
+      revert: function () { M.set(dom.sjTri, { opacity: 1, clearProps: 'transform' }); }
+    });
+    tl.to(dom.sjTri, { opacity: 1, duration: M.dur(0.3), ease: 'power2.out' }, 0)
+      .to(dom.sjTri, { x: 0, y: 0, duration: M.dur(PUT_TIME), ease: 'power2.out' }, 0)
+      .to(dom.sjTri, { scale: 1.05, transformOrigin: 'center center', duration: M.dur(0.14), ease: 'power2.out' }, M.gap(PUT_TIME))
+      .to(dom.sjTri, { scale: 1, duration: M.dur(0.4), ease: M.POP }, M.gap(PUT_TIME + 0.14));
+    tl.call(Beats.pop, null, M.gap(PUT_TIME));
+    return tl;
+  }
+
+  function sceneMajor() {
+    var L = majorLines();
+    return K.wipeBoard()
+      .then(function () { return Flow.wait(BEAT); })
+
+      /* ---- the circle, its centre, two points, and the chord ------------- */
+      .then(function () {
+        layoutMajorAnim();
+        dom.sj.removeAttribute('hidden');
+        return Flow.anim(Beats.drawRim(dom.sjRim, dom.sjTip));
+      })
+      .then(function () { return Flow.wait(SHORT); })
+      .then(function () { return Flow.anim(Beats.fillDisc(dom.sjDisc)); })
+      .then(function () { return Flow.wait(SHORT); })
+      .then(function () { return Flow.anim(Beats.plotDot(dom.sjCentre, DOT_TIME)); })
+      .then(function () { return Flow.wait(SHORT); })
+      .then(function () { return Flow.anim(Beats.plotDot(dom.sjDotA)); })
+      .then(function () { return Flow.wait(160); })
+      .then(function () { return Flow.anim(Beats.plotDot(dom.sjDotB)); })
+      .then(function () { return Flow.wait(SHORT); })
+      .then(function () { return grow(dom.sjChord, CHORD_TIME); })
+      .then(function () { return Flow.wait(SHORT); })
+
+      /* ---- "Now the bigger piece: the major segment." -- the bird comes
+         up; the bigger piece is coloured in from the chord on "bigger",
+         and its arc lights on "major" ------------------------------------- */
+      .then(function () {
+        return sayWith(L.big, [
+          { word: 'bigger', run: function () {
+            return Flow.anim(Beats.segFill(dom.sjMajor, dom.sjClip, majorReach(), FILL_TIME));
+          } },
+          { word: 'major', run: function () {
+            return Flow.anim(Beats.growLine(dom.sjArcMajor, 1.0, 'power2.inOut'))
+              .then(function () { return Flow.anim(Beats.arcPulse([dom.sjArcMajor])); });
+          } }
+        ], { arrive: true });
+      })
+      .then(function () { mascot.settle(); return Flow.wait(BEAT); })
+
+      /* ---- "It is the major sector with the triangle put back on." -- on
+         "major" the radii grow and the colour draws back to the sector,
+         leaving the triangle's room; on "triangle" the triangle comes in
+         from outside and settles into it; on "back" its three sides swell */
+      .then(function () {
+        return sayWith(L.back, [
+          { word: 'major', run: function () {
+            return Promise.all([
+              grow(dom.sjRadA, PUT_TIME),
+              grow(dom.sjRadB, PUT_TIME),
+              Flow.anim(drawBack())
+            ]);
+          } },
+          { word: 'triangle', run: function () { return Flow.anim(putBack()); } },
+          { word: 'back', run: function () {
+            return Flow.anim(Beats.linePulse([dom.sjRadA, dom.sjRadB, dom.sjChord]));
+          } }
+        ]);
+      })
+      .then(function () { mascot.settle(); return Flow.wait(BEAT); })
+
+      /* ---- Next -- and only its PRESS sends the bird away, with its line
+         and the picture. The header is left open for the next page. ------ */
+      .then(function () { return K.handOver(dom.nextBtn); })
+      .then(function () {
+        if (global.I18n) global.I18n.stop();
+        return Promise.all([
+          K.mascotJumpOut(true),
+          Flow.anim(Beats.lineOut(dom.promptLine)),
+          Flow.anim(Beats.clearFigure([dom.sj]))
+        ]);
+      })
+      .then(function () {
+        K.clearPrompt();
+        dom.sj.setAttribute('hidden', '');
+        K.clearInline([dom.sj].concat(
+          Array.prototype.slice.call(dom.sj.querySelectorAll('*'))));
+        layoutMajorAnim();
+      });
+  }
+
+  /* ======================================================================
+   * Page 12 -- the recap: major sector + triangle = major segment
+   * ====================================================================== */
+  function sceneMajorSummary() {
+    var L = majorSumLines();
+    return K.wipeBoard()
+      .then(function () { return Flow.wait(SHORT); })
+      .then(function () { return Flow.anim(K.collapseHeader(true)); })
+      .then(function () { return Flow.wait(SHORT); })
+      .then(function () {
+        dom.sk.removeAttribute('hidden');
+        return drawFig(kfigs[0]);
+      })
+      .then(function () { return Flow.anim(Beats.labelIn(dom.skLabels[0])); })
+      .then(function () { return Flow.wait(SHORT); })
+      .then(function () { return Flow.anim(Beats.labelIn(dom.skPlus)); })
+      .then(function () { return Flow.wait(SHORT); })
+      .then(function () { return drawFig(kfigs[1]); })
+      .then(function () { return Flow.anim(Beats.labelIn(dom.skLabels[1])); })
+      .then(function () { return Flow.wait(SHORT); })
+      .then(function () { return Flow.anim(Beats.labelIn(dom.skEquals)); })
+      .then(function () { return Flow.wait(SHORT); })
+      .then(function () { return drawFig(kfigs[2]); })
+      .then(function () { return Flow.anim(Beats.labelIn(dom.skLabels[2])); })
+      .then(function () { return Flow.wait(BEAT); })
+
+      /* ---- "Major segment = major sector + triangle." -- each figure
+         swells on its name ---------------------------------------------- */
+      .then(function () {
+        return sayWith(L.sum, [
+          { word: 'Major',    run: function () { return pulseFig(kfigs[2]); } },
+          { word: 'sector',   run: function () { return pulseFig(kfigs[0]); } },
+          { word: 'triangle', run: function () { return pulseFig(kfigs[1]); } }
+        ], { arrive: true });
+      })
+      .then(function () { mascot.settle(); return Flow.wait(BEAT); })
+
+      /* ---- "Or simply πr² − minor segment." -- the whole rim swells on
+         πr², the small blue piece on "minor" ------------------------------ */
+      .then(function () {
+        return sayWith(L.or, [
+          { word: 'πr²',   run: function () { return Flow.anim(Beats.linePulse([kfigs[2].rim], 3.4)); } },
+          { word: 'minor', run: function () {
+            return Promise.all([
+              Flow.anim(Beats.linePulse([kfigs[2].arcMinor], ARC_W)),
+              Flow.anim(Beats.linePulse([kfigs[2].chord]))
+            ]);
+          } }
+        ]);
+      })
+      .then(function () { mascot.settle(); return Flow.wait(BEAT); })
+
+      .then(function () { return K.handOver(dom.nextBtn); })
+      .then(function () {
+        if (global.I18n) global.I18n.stop();
+        return Promise.all([
+          K.mascotJumpOut(),
+          Flow.anim(Beats.lineOut(dom.promptLine)),
+          Flow.anim(Beats.clearFigure([dom.sk]))
+        ]);
+      })
+      .then(function () {
+        K.clearPrompt();
+        dom.sk.setAttribute('hidden', '');
+        K.clearInline([dom.sk].concat(
+          Array.prototype.slice.call(dom.sk.querySelectorAll('*'))));
+        return Flow.anim(K.collapseHeader(false));
+      });
+  }
+
+  /* ======================================================================
+   * Page 13 -- the major segment, worked
+   * ====================================================================== */
+  function sceneMajorWorked() {
+    var S = majorSteps();
+    var end = majorClose();
+    return K.wipeBoard()
+      .then(function () { return Flow.wait(BEAT); })
+      .then(function () { return drawMajor('val14cm'); })
+      .then(function () { return Flow.anim(Beats.slideArcs(dom.si, SHIFT)); })
+      .then(function () { return Flow.wait(SHORT); })
+      .then(function () { dom.sxPane.removeAttribute('hidden'); })
+      .then(function () { return dropStep(S[0], true); })
+      .then(function () { return dropStep(S[1], false); })
+      .then(function () { return dropStep(S[2], false); })
+      .then(function () { return K.speak(end.done, 'happy'); })
+      .then(function () { return Flow.wait(HINT_READ); })
+
+      /* ---- "Check it both ways: 56 + 560 = 616 = πr². The two segments
+         tile the whole circle." -- the small piece on 56, the big one on
+         560, the whole rim on 616 ----------------------------------------- */
+      .then(function () {
+        return sayWith(end.check, [
+          { word: '56',  run: function () { return spotlightOn(majorMarks('minor')); } },
+          { word: '560', run: function () { return spotlightOn(majorMarks('msegment')); } },
+          { word: '616', run: function () { return spotlightOn(majorMarks('whole')); } }
+        ], { mood: 'happy' });
+      })
+      .then(function () { mascot.settle(); return Flow.wait(BEAT); })
+
+      .then(function () { return K.handOver(dom.nextBtn); })
+      .then(function () {
+        hinting++;
+        if (global.I18n) global.I18n.stop();
+        return Promise.all([
+          K.mascotJumpOut(true),
+          Flow.anim(Beats.lineOut(dom.promptLine)),
+          Flow.anim(linesOut(dom.sxAll)),
+          Flow.anim(Beats.clearFigure([dom.si]))
+        ]);
+      })
+      .then(function () {
+        K.clearPrompt();
+        restoreWorked(dom.sxPane, dom.sxAll);
+        dom.si.setAttribute('hidden', '');
+        K.clearInline([dom.si].concat(
+          Array.prototype.slice.call(dom.si.querySelectorAll('*'))));
+        layoutMajor();
+      });
+  }
+
+  /* ======================================================================
+   * Page 14 -- the major segment, asked
+   * ====================================================================== */
+  function sceneMajorAsked() {
+    var lines = majorAskedLines();
+    return K.wipeBoard()
+      .then(function () { return Flow.wait(BEAT); })
+      .then(function () { return drawMajor('val7cm'); })
+      .then(function () {
+        return Promise.all([
+          Flow.anim(K.collapseHeader(true)),
+          Flow.anim(Beats.slideArcs(dom.si, SHIFT))
+        ]);
+      })
+      .then(function () { return Flow.wait(SHORT); })
+      .then(function () {
+        return C.ask({
+          ask: lines.ask, options: lines.options, answer: lines.answer,
+          wrong: lines.wrong, right: lines.right,
+          reveal: function () { return spotlightOn(majorMarks('msegment')); }
+        });
+      })
+      .then(function () { return C.closeOut(dom.si); })
+      .then(layoutMajor);
+  }
+
+  /* ======================================================================
+   * Pages 15 and 16 -- two stories
+   * ====================================================================== */
+
+  /* The right-angle mark at the centre between the radii at `a` and `b`:
+     a small square with its sides along the two radii. */
+  function markD(a, b) {
+    var c = { x: CX, y: CY };
+    var p = MAIN.pt(a, SG_MARK), q = MAIN.pt(b, SG_MARK);
+    var m = { x: round2(p.x + q.x - c.x), y: round2(p.y + q.y - c.y) };
+    return 'M' + p.x + ' ' + p.y + ' L' + m.x + ' ' + m.y + ' L' + q.x + ' ' + q.y;
+  }
+
+  /* The pipe, written once. */
+  function layoutPipe() {
+    var a = PIPE.a, b = PIPE.a + PIPE.span, mid = a + PIPE.span / 2;
+    var o = { x: CX, y: CY };
+    var pA = MAIN.pt(a), pB = MAIN.pt(b);
+    dom.slSeg.setAttribute('d', MAIN.seg(a, PIPE.span));
+    dom.slArc.setAttribute('d', MAIN.arc(a, PIPE.span));
+    dom.slRadA.setAttribute('d', lineD(o, pA));
+    dom.slRadB.setAttribute('d', lineD(o, pB));
+    dom.slChord.setAttribute('d', lineD(pA, pB));
+    dom.slMark.setAttribute('d', markD(a, b));
+    /* the length along the left radius, outside the sector, reading up
+       the line: the text is set at the radius's middle and turned with
+       it by the group round it, so the pop on the text itself is left
+       alone */
+    var lm = MAIN.pt(a, RR / 2);
+    var off = MAIN.pt(a - 90, PIPE_LEN_OFF);
+    var lx = round2(lm.x + off.x - CX), ly = round2(lm.y + off.y - CY + LABEL_DY);
+    dom.slLen.setAttribute('x', lx);
+    dom.slLen.setAttribute('y', ly);
+    dom.slLenG.setAttribute('transform', 'rotate(-45 ' + lx + ' ' + ly + ')');
+    var d = MAIN.pt(mid, PIPE_DEG_R);
+    dom.slDeg.setAttribute('x', d.x);
+    dom.slDeg.setAttribute('y', round2(d.y + LABEL_DY));
+    var w = MAIN.pt(mid, PIPE_WORD_R);
+    dom.slWord.setAttribute('x', w.x);
+    dom.slWord.setAttribute('y', round2(w.y + LABEL_DY));
+  }
+
+  /* The bed, written once: the quarter, as page 8's figure. */
+  function layoutBed() {
+    var a = SE.a, b = SE.a + SE.span;
+    var o = { x: CX, y: CY };
+    var pA = MAIN.pt(a), pB = MAIN.pt(b);
+    dom.smSeg.setAttribute('d', MAIN.seg(a, SE.span));
+    dom.smArc.setAttribute('d', MAIN.arc(a, SE.span));
+    dom.smRadA.setAttribute('d', lineD(o, pA));
+    dom.smRadB.setAttribute('d', lineD(o, pB));
+    dom.smChord.setAttribute('d', lineD(pB, pA));
+    dom.smMark.setAttribute('d', markD(a, b));
+    dom.smLen.setAttribute('x', round2((CX + pA.x) / 2));
+    dom.smLen.setAttribute('y', round2(CY + SH_LEN_DY + LABEL_DY));
+    dom.smDeg.setAttribute('x', SH_DEG.x);
+    dom.smDeg.setAttribute('y', SH_DEG.y);
+  }
+
+  /* The bird springs off the header with its line -- the header closes
+     behind it -- as the figure slides left; then it comes up in the pane
+     to ask (circum.js). */
+  function askFromPane(group, spec) {
+    return Promise.all([
+      K.mascotJumpOut(),
+      Flow.anim(Beats.lineOut(dom.promptLine)),
+      Flow.anim(Beats.slideArcs(group, SHIFT))
+    ])
+      .then(function () {
+        K.clearPrompt();
+        return Flow.wait(SHORT);
+      })
+      .then(function () { return C.ask(spec); })
+      .then(function () { return C.closeOut(group); });
+  }
+
+  /* Page 15 -- the pipe. "A pipe of radius 14 cm lies on its side with
+     water in it.": the pipe is drawn on its word, its centre and one
+     radius with the length follow, and the water -- its surface, its
+     colour, its arc, its name -- comes on "water". "The water surface
+     subtends 90° at the centre.": the surface swells on its word, the
+     other radius grows on "subtends", and the right angle with its "90°"
+     lands after it. Then the question from the pane. */
+  function scenePipe() {
+    var L = pipeLines();
+    var made = null;
+    return K.wipeBoard()
+      .then(function () { return Flow.wait(BEAT); })
+      .then(function () {
+        layoutPipe();
+        dom.sl.removeAttribute('hidden');
+      })
+      .then(function () {
+        return sayWith(L.pipe, [
+          { word: 'pipe', run: function () {
+            made = Flow.anim(Beats.drawRim(dom.slRim, dom.slTip))
+              .then(function () { return Flow.wait(SHORT); })
+              .then(function () { return Flow.anim(Beats.plotDot(dom.slCentre, DOT_TIME)); })
+              .then(function () { return Flow.wait(SHORT); })
+              .then(function () { return grow(dom.slRadA, RADIUS_TIME); })
+              .then(function () { return Flow.anim(Beats.labelIn(dom.slLen)); });
+            return made;
+          } },
+          { word: 'water', run: function () {
+            return (made || Promise.resolve())
+              .then(function () { return grow(dom.slChord, CHORD_TIME); })
+              .then(function () {
+                return Promise.all([
+                  Flow.anim(discIn(dom.slSeg)),
+                  Flow.anim(Beats.growLine(dom.slArc, 0.8, 'power2.inOut'))
+                ]);
+              })
+              .then(function () { return Flow.anim(Beats.labelIn(dom.slWord)); });
+          } }
+        ], { arrive: true });
+      })
+      .then(function () { mascot.settle(); return Flow.wait(BEAT); })
+      .then(function () {
+        return sayWith(L.subtends, [
+          { word: 'surface',  run: function () { return Flow.anim(Beats.linePulse([dom.slChord])); } },
+          { word: 'subtends', run: function () {
+            return grow(dom.slRadB, RADIUS_TIME)
+              .then(function () { return grow(dom.slMark, 0.5); })
+              .then(function () { return Flow.anim(Beats.labelIn(dom.slDeg)); });
+          } }
+        ]);
+      })
+      .then(function () { mascot.settle(); return Flow.wait(BEAT); })
+      .then(function () {
+        return askFromPane(dom.sl, {
+          ask: L.ask, options: L.options, answer: L.answer,
+          wrong: L.wrong, right: L.right,
+          reveal: function () { return spotlightOn({ lines: [dom.slChord], arcs: [dom.slArc] }); }
+        });
+      })
+      .then(layoutPipe);
+  }
+
+  /* Page 16 -- the flower bed. "A round flower bed of radius 21 m is cut
+     by a straight path.": the bed is drawn and coloured on "round", its
+     centre and one radius with the length follow, and the path is laid
+     on "cut". "The path subtends 90° at the centre.": the path swells,
+     the other radius grows on "subtends", and the right angle with its
+     "90°" lands after it. The smaller piece is coloured in as the
+     question is asked. */
+  function sceneBed() {
+    var L = bedLines();
+    var made = null;
+    return K.wipeBoard()
+      .then(function () { return Flow.wait(BEAT); })
+      .then(function () {
+        layoutBed();
+        dom.sm.removeAttribute('hidden');
+      })
+      .then(function () {
+        return sayWith(L.bed, [
+          { word: 'round', run: function () {
+            made = Flow.anim(Beats.drawRim(dom.smRim, dom.smTip))
+              .then(function () { return Flow.wait(SHORT); })
+              .then(function () { return Flow.anim(Beats.fillDisc(dom.smDisc)); })
+              .then(function () { return Flow.wait(SHORT); })
+              .then(function () { return Flow.anim(Beats.plotDot(dom.smCentre, DOT_TIME)); })
+              .then(function () { return Flow.wait(SHORT); })
+              .then(function () { return grow(dom.smRadA, RADIUS_TIME); })
+              .then(function () { return Flow.anim(Beats.labelIn(dom.smLen)); });
+            return made;
+          } },
+          { word: 'cut', run: function () {
+            return (made || Promise.resolve())
+              .then(function () { return grow(dom.smChord, CHORD_TIME); });
+          } }
+        ], { arrive: true });
+      })
+      .then(function () { mascot.settle(); return Flow.wait(BEAT); })
+      .then(function () {
+        return sayWith(L.subtends, [
+          { word: 'path',     run: function () { return Flow.anim(Beats.linePulse([dom.smChord])); } },
+          { word: 'subtends', run: function () {
+            return grow(dom.smRadB, RADIUS_TIME)
+              .then(function () { return grow(dom.smMark, 0.5); })
+              .then(function () { return Flow.anim(Beats.labelIn(dom.smDeg)); });
+          } }
+        ]);
+      })
+      .then(function () { mascot.settle(); return Flow.wait(BEAT); })
+      .then(function () {
+        return askFromPane(dom.sm, {
+          ask: L.ask, options: L.options, answer: L.answer,
+          wrong: L.wrong, right: L.right,
+          /* what the question is about: the smaller piece, coloured in
+             with its arc lit as the words arrive */
+          onAsk: function () {
+            return Promise.all([
+              Flow.anim(discIn(dom.smSeg)),
+              Flow.anim(Beats.growLine(dom.smArc, 0.8, 'power2.inOut'))
+            ]).then(function () { return Flow.anim(Beats.arcPulse([dom.smArc])); });
+          },
+          reveal: function () { return spotlightOn({ lines: [dom.smChord], arcs: [dom.smArc] }); }
+        });
+      })
+      .then(layoutBed);
+  }
+
+  /* ======================================================================
    * The hooks the board's housekeeping calls -- see addSection in pages.js
    * ====================================================================== */
 
   /* What this skill has on the figure: one group per page, each faded as
      a whole. */
-  function parts() { return [dom.sa, dom.sb, dom.sc, dom.sd, dom.se, dom.sf, dom.sg, dom.sh]; }
+  function parts() {
+    return [dom.sa, dom.sb, dom.sc, dom.sd, dom.se, dom.sf, dom.sg, dom.sh,
+            dom.si, dom.sj, dom.sk, dom.sl, dom.sm];
+  }
 
   /* And what it keeps outside the figure: the worked pane, if a wipe
      catches the working still up. The pane the asks speak from is
@@ -2531,7 +3392,10 @@
   function wipe() {
     var out = [];
     if (!dom.swPane.hasAttribute('hidden')) {
-      out.push(Flow.anim(linesOut()).then(restoreWorked));
+      out.push(Flow.anim(linesOut(dom.swAll)).then(function () { restoreWorked(dom.swPane, dom.swAll); }));
+    }
+    if (!dom.sxPane.hasAttribute('hidden')) {
+      out.push(Flow.anim(linesOut(dom.sxAll)).then(function () { restoreWorked(dom.sxPane, dom.sxAll); }));
     }
     return out;
   }
@@ -2565,7 +3429,17 @@
     layoutRight();
     dom.sh.setAttribute('hidden', '');
     layoutSeg();
-    restoreWorked();
+    restoreWorked(dom.swPane, dom.swAll);
+    dom.si.setAttribute('hidden', '');
+    layoutMajor();
+    dom.sj.setAttribute('hidden', '');
+    layoutMajorAnim();
+    dom.sk.setAttribute('hidden', '');
+    restoreWorked(dom.sxPane, dom.sxAll);
+    dom.sl.setAttribute('hidden', '');
+    layoutPipe();
+    dom.sm.setAttribute('hidden', '');
+    layoutBed();
     if (global.I18n) global.I18n.stop();
   }
 
@@ -2586,7 +3460,14 @@
       { name: 'Segment recap',    play: sceneSummary },
       { name: 'Triangle at 90°',  play: sceneRight },
       { name: 'Segment worked',   play: sceneWorked },
-      { name: 'Segment asked',    play: sceneAsked }
+      { name: 'Segment asked',    play: sceneAsked },
+      { name: 'Segment from parts',   play: sceneFromParts },
+      { name: 'Major segment',        play: sceneMajor },
+      { name: 'Major segment recap',  play: sceneMajorSummary },
+      { name: 'Major segment worked', play: sceneMajorWorked },
+      { name: 'Major segment asked',  play: sceneMajorAsked },
+      { name: 'Pipe: the water',      play: scenePipe },
+      { name: 'Flower bed: the path', play: sceneBed }
     ],
     build: build,
     parts: parts,
