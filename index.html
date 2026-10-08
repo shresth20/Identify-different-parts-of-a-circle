@@ -17,6 +17,9 @@
   <link rel="stylesheet" href="css/segarea.css" />
   <link rel="stylesheet" href="css/animations.css" />
   <link rel="stylesheet" href="css/responsive.css" />
+  <!-- Skill 3 last, as it was loaded on its own page: every rule in it is
+       scoped to body.sa-lesson, on only while skill 3 plays. -->
+  <link rel="stylesheet" href="css/sector-area.css" />
 </head>
 <body>
   <!-- One screen at a time lives inside #app. The background art is painted on
@@ -1755,6 +1758,12 @@
           <div class="pn-note" id="pnNote" hidden>
             <span class="pn-note__t" id="pnNoteText" data-i18n="p31Pi">Take π = 22⁄7</span>
           </div>
+
+          <!-- Skill 3 (js/sector-area.js): every scene builds its own
+               picture and panel in here, and the scene after it clears it
+               away. Last in the stage, so it is over the (empty) figure;
+               shown only while body.sa-lesson is on (sector-area.css). -->
+          <div class="sa-stage" id="saStage"></div>
         </div>
 
         <!-- The footer holds the five names the learner drags onto the
@@ -1777,6 +1786,10 @@
            so routing the activity through one means the wait is cancelled
            with the rest of the chain when a scene is retired. -->
       <span id="gate" hidden></span>
+
+      <!-- Skill 3 (js/sector-area.js): where a burst of confetti is thrown,
+           over everything in the frame. -->
+      <svg class="sa-burst" id="saBurst" aria-hidden="true"></svg>
 
       <!-- The round Next disc, as drawn in the spacecraft game: a rim set a
            little low so it reads as the thickness of a disc, a face lit from
@@ -1853,6 +1866,12 @@
        (#pa, #pb, #pc, #pw and #ck), #psPane, #pnPane and #pnNote are the
        whole of it. -->
   <script src="js/practice.js"></script>
+  <!-- Skill 3: area of a sector. Same board, same bird; its pictures are
+       built in #saStage, and its confetti thrown in #saBurst. Loaded here,
+       between skills 2 and 4, because a section's scenes join the lesson
+       in load order. To split it out later, this line, js/sector-area.js,
+       css/sector-area.css, #saStage and #saBurst are the whole of it. -->
+  <script src="js/sector-area.js"></script>
   <!-- Skill 4: area of a segment of a circle. Same board, same bird; its
        first page is answered on the header, its second asked from
        bubble-02 (circum.js), its third picked and explored on the figure

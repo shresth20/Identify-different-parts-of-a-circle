@@ -2657,6 +2657,10 @@
     clearBubble: function () { sayBubble.clear(); },
     restoreBubble: restoreBubble,
     sayAside: function () { return sayAside; },
+    /* the hero bubble's typer or the header's, itself -- for a section
+       that reserves a line before the bird has got to it (skill 3); one
+       typer per box, so it is handed over, never made twice */
+    typer: function (which) { return which === 'prompt' ? sayPrompt : sayBubble; },
     restoreAside: restoreAside,
     /* the speech card every stood-aside explanation wears: a section
        passes its own circle as the anchor, and hands the pane back

@@ -1,0 +1,1894 @@
+/* ==========================================================================
+   Skill 3 -- Area of a Sector (js/sector-area.js) -- this skill's own layer
+   --------------------------------------------------------------------------
+   One skill of four on the one board. EVERY rule in this file is scoped to
+   :where(body.sa-lesson) -- the class sector-area.js puts on <body> while
+   its scenes play and takes off in its reset() -- so none of it can reach
+   skills 1, 2 or 4. :where() weighs nothing, so each rule keeps exactly the
+   specificity it had when this skill was a page of its own; and this file
+   is loaded last, as it was then, so ties still go its way. A new rule here
+   is written the same way: `:where(body.sa-lesson) .selector { ... }`.
+   The only exceptions are the @font-face and the two resting rules for
+   this skill's containers, just below.
+
+   Loaded after style.css and animations.css, and built entirely out of their
+   tokens: the board, the bird, the bubble, the Next disc and the reveal are
+   the first lesson's, untouched. What is here is only what this lesson draws
+   that the first never did -- the title, the dropdown blanks, the worked
+   steps, the formula cards, the protractor and the wedge figures.
+
+   Colour. The storyboard's own fills were placeholders, so none of them is
+   used. Every ink below is mixed from the shared palette, and each one keeps
+   ONE meaning for the whole lesson, in the picture and in the sums alike:
+
+     angle  (θ, 60°, 360°)   the centre's magenta   --part-centre
+     radius (r, 21, 21²)     the radius's amber     --part-radius
+     π and πr²               a deep sky blue        from --blue-border
+     the minor sector        mint                   from --mint-*
+     the major sector        peach                  from --coral-*
+     an answer               the true green         --right-border
+
+   so a learner can follow a number from the circle into the working by its
+   colour alone.
+   ========================================================================== */
+
+@font-face {
+  font-family: "Lilita One";
+  src: url("../assets/fonts/lilita_one/lilitaone-regular.ttf") format("truetype");
+  font-weight: 400;
+  font-display: swap;
+}
+
+:where(body.sa-lesson) {
+  /* ---- the regions --------------------------------------------------- */
+  --sa-minor:        color-mix(in srgb, var(--mint-fill) 56%, #FFFFFF);
+  --sa-minor-lit:    color-mix(in srgb, var(--mint-fill) 78%, #FFFFFF);
+  --sa-minor-edge:   var(--mint-border);
+  /* Warm against the minor sector's cool mint, so the two pieces of one
+     circle are told apart at a glance -- and neither is the lavender of
+     the circle's own wash, which a sky blue sat too close to. */
+  --sa-major:        color-mix(in srgb, var(--coral-fill) 36%, #FFF4EC);
+  --sa-major-lit:    color-mix(in srgb, var(--coral-fill) 58%, #FFF4EC);
+  --sa-major-edge:   var(--coral-border);
+
+  /* ---- the inks, one meaning each ------------------------------------- */
+  --sa-angle:  var(--part-centre);
+  --sa-radius: color-mix(in srgb, var(--part-radius) 86%, #8A4B00);
+  --sa-pi:     color-mix(in srgb, var(--blue-border) 82%, var(--text-primary));
+  --sa-area:   color-mix(in srgb, var(--mint-border) 78%, var(--text-primary));
+  --sa-answer: color-mix(in srgb, var(--right-border) 78%, #0B5A1E);
+  --sa-tick:   color-mix(in srgb, var(--text-secondary) 70%, transparent);
+
+  /* The type size of everything set in the board's panels, keyed to the
+     board itself as the bubble's is, so the panel and the figure beside it
+     scale as one at every screen size. */
+  --sa-fs: clamp(14px, calc(var(--board-w) * .0208), 34px);
+}
+
+/* ---- The board ---------------------------------------------------------
+   The footer is KEPT open in this lesson. The first lesson closes it
+   whenever it is empty, which re-measures the picture; here a question's
+   answers come and go every minute, and a figure that shrinks each time
+   they arrive would be the busiest thing on the board. Its own band, held
+   steady, also gives the Next disc a clear corner. */
+body.sa-lesson .board { --row-bottom: 13% !important; }
+
+/* Header lines here are sometimes a full problem statement, so the line may
+   take a second row. Both halves of the reveal break at the same words. */
+.sa-lesson .prompt__line { max-width: 30em; }
+.sa-lesson .prompt__line .type,
+.sa-lesson .prompt__line .type-ghost { white-space: pre-wrap; }
+.sa-lesson .prompt__line { font-size: clamp(15px, 3.05vh, 30px); }
+
+/* ---- Welcome -----------------------------------------------------------
+   index.html's welcome, in this lesson's name: the same sunset over the
+   lake, with the painted bird on the shore, and a two-line title in the
+   same make -- chunky rounded letters, white over gold, a thick indigo
+   outline lifted off the sky by a soft glow, and sparks either side of the
+   second line. The art is index.html's own with its painted title taken
+   out, so the two lessons open on the same screen. */
+:where(body.sa-lesson) .welcome.sa-welcome {
+  background:
+    url("../assets/image/welcome-page-sector.png") center / cover no-repeat,
+    linear-gradient(180deg, var(--page-bg) 0%, var(--page-bg-deep) 100%);
+}
+@media (max-aspect-ratio: 4/3) {
+  :where(body.sa-lesson) .welcome.sa-welcome {
+    background: linear-gradient(180deg, var(--page-bg) 0%, var(--page-bg-deep) 100%);
+  }
+  :where(body.sa-lesson) .welcome.sa-welcome::before {
+    background: url("../assets/image/welcome-page-sector.png") center / cover no-repeat;
+  }
+  :where(body.sa-lesson) .welcome.sa-welcome::after {
+    background: url("../assets/image/welcome-page-sector.png") center / contain no-repeat;
+  }
+}
+
+:where(body.sa-lesson) .sa-title {
+  grid-row: 1;
+  align-self: center;
+  justify-self: center;
+  margin-top: -9vh;
+  text-align: center;
+  pointer-events: none;
+}
+:where(body.sa-lesson) .sa-title__main { margin: 0; line-height: 0; }
+/* Sized as the painted title in index.html is: about two thirds of the
+   screen's width, and never taller than a third of its height. */
+:where(body.sa-lesson) .sa-title__svg {
+  display: block;
+  width: min(74vw, 128vh);
+  height: auto;
+  overflow: visible;
+  /* lifted off the sky by a soft indigo glow, and a deeper shadow below */
+  filter: drop-shadow(0 .6vh 1.2vh rgba(38, 20, 140, .45))
+          drop-shadow(0 0 2.4vh rgba(120, 100, 255, .35));
+}
+:where(body.sa-lesson) .sa-tl text {
+  font-family: var(--font-display);
+  font-weight: 800;
+  font-size: 118px;
+  letter-spacing: 1px;
+  text-anchor: middle;
+  stroke-linejoin: round;
+  stroke-linecap: round;
+}
+/* The depth: the same words in deep indigo, dropped a little, outlined as
+   thickly as the face so the two read as one raised piece. */
+:where(body.sa-lesson) .sa-tl__depth {
+  fill: #2D1C96;
+  stroke: #2D1C96;
+  stroke-width: 22px;
+}
+/* The face: its gradient, inside one thick rounded indigo outline. The
+   outline is painted first so it sits outside the letters, not over them. */
+:where(body.sa-lesson) .sa-tl__face {
+  stroke: #4A36D8;
+  stroke-width: 22px;
+  paint-order: stroke fill;
+}
+/* The gloss: a sheen over the top half of the letters. */
+:where(body.sa-lesson) .sa-tl__gloss { stroke: none; pointer-events: none; }
+
+/* ==========================================================================
+   The stage: one scene at a time
+   ========================================================================== */
+/* At rest -- under any other skill -- this skill's two containers are not
+   drawn at all: unstyled, the stage would be one more item in the board's
+   grid and the confetti layer a 300x150 box in the frame. Unscoped on
+   purpose, and only these two. */
+.sa-stage,
+.sa-burst { display: none; }
+:where(body.sa-lesson) .sa-stage {
+  position: absolute;
+  inset: 0;
+  display: block;
+}
+:where(body.sa-lesson) .sa-scene {
+  position: absolute;
+  inset: 0;
+  display: grid;
+  align-items: center;
+  padding: 0 1.5%;
+  font-family: var(--font-display);
+  font-size: var(--sa-fs);
+  font-weight: 700;
+  color: var(--text-primary);
+}
+/* Picture on the left, words on the right -- the storyboard's usual page. */
+:where(body.sa-lesson) .sa-scene--split   { grid-template-columns: minmax(0, 1fr) minmax(0, 1.15fr); gap: 2.5%; }
+/* ...and the worked examples, which put the working first. */
+:where(body.sa-lesson) .sa-scene--work    { grid-template-columns: minmax(0, 1.35fr) minmax(0, .9fr); gap: 2%; }
+:where(body.sa-lesson) .sa-scene--solo    { grid-template-columns: minmax(0, 1fr); justify-items: center; }
+:where(body.sa-lesson) .sa-scene--pair    { grid-template-columns: minmax(0, 1.25fr) minmax(0, 1fr); gap: 3%; }
+/* Two circles side by side, and the working beside them. */
+:where(body.sa-lesson) .sa-scene--trio    { grid-template-columns: minmax(0, 1fr) minmax(0, 1fr) minmax(0, 1.1fr); gap: 1.5%; }
+:where(body.sa-lesson) .sa-scene--solo .sa-panel { gap: 1em; }
+
+:where(body.sa-lesson) .sa-fig-wrap {
+  position: relative;
+  height: 100%;
+  width: 100%;
+  min-height: 0;
+  min-width: 0;
+}
+:where(body.sa-lesson) .sa-fig {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  overflow: visible;
+  filter: drop-shadow(0 3px 5px var(--shadow-soft));
+}
+:where(body.sa-lesson) .sa-fig g[hidden] { display: none; }
+
+:where(body.sa-lesson) .sa-panel {
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  gap: .8em;
+  min-width: 0;
+  padding-right: 4%;
+  line-height: 1.3;
+}
+:where(body.sa-lesson) .sa-panel--centre { align-items: center; text-align: center; padding-right: 0; }
+:where(body.sa-lesson) .sa-line { margin: 0; }
+:where(body.sa-lesson) .sa-soft { color: var(--text-secondary); font-weight: 600; }
+
+/* ==========================================================================
+   The figure
+   ========================================================================== */
+/* The regions a sector scene colours. Their own fill transitions, so a
+   region lit or refused changes shade softly rather than flicking. */
+:where(body.sa-lesson) .s-region {
+  stroke: none;
+  opacity: 0;
+  transition: fill .3s ease;
+}
+:where(body.sa-lesson) .s-region--minor { fill: var(--sa-minor); }
+:where(body.sa-lesson) .s-region--major { fill: var(--sa-major); }
+:where(body.sa-lesson) .s-region--minor.is-lit { fill: var(--sa-minor-lit); }
+:where(body.sa-lesson) .s-region--major.is-lit { fill: var(--sa-major-lit); }
+:where(body.sa-lesson) .s-region.is-wrong { fill: color-mix(in srgb, var(--wrong-fill) 45%, #FFFFFF); }
+:where(body.sa-lesson) .s-region.is-tap { cursor: pointer; }
+
+/* The arc that bounds a sector, laid over the rim in the region's own
+   deeper ink, so "the arc" of "two radii and an arc" is a thing you see. */
+:where(body.sa-lesson) .s-arc {
+  fill: none;
+  /* The rim's own weight (.figure__rim): the arc IS a piece of the
+     circumference, recoloured, not a second, heavier line laid on it. */
+  stroke-width: 2.6;
+  stroke-linecap: round;
+  opacity: 0;
+}
+:where(body.sa-lesson) .s-arc--minor { stroke: var(--sa-minor-edge); }
+:where(body.sa-lesson) .s-arc--major { stroke: var(--sa-major-edge); }
+/* The breathing the first lesson gives a part it is naming. Its glow
+   filter lives in index.html's picture, so here the swell goes alone. */
+:where(body.sa-lesson) .s-arc.is-pulsing {
+  filter: none;
+  --pulse-w0: 2.6;
+  --pulse-w1: 5.4;
+  --pulse-times: infinite;
+}
+
+/* One degree of the circle: a hair of a wedge, in the angle's ink so it
+   is seen at all. */
+:where(body.sa-lesson) .s-sliver {
+  fill: color-mix(in srgb, var(--sa-angle) 40%, #FFFFFF);
+  stroke: var(--sa-angle);
+  stroke-width: 1.2;
+  stroke-linejoin: round;
+  opacity: 0;
+}
+
+:where(body.sa-lesson) .s-radius {
+  fill: none;
+  stroke: var(--part-radius);
+  stroke-width: var(--part-weight);
+  stroke-linecap: round;
+  opacity: 0;
+}
+:where(body.sa-lesson) .s-angle {
+  fill: none;
+  stroke: var(--sa-angle);
+  stroke-width: 2.6;
+  stroke-linecap: round;
+  opacity: 0;
+}
+:where(body.sa-lesson) .s-angle--major { stroke: var(--lavender-border); stroke-dasharray: 2 5; }
+:where(body.sa-lesson) .s-dot { fill: var(--part-point); opacity: 0; }
+:where(body.sa-lesson) .s-dot--pick { fill: var(--part-centre); }
+:where(body.sa-lesson) .s-hit { fill: transparent; cursor: pointer; outline: none; }
+:where(body.sa-lesson) .s-hit:focus-visible { stroke: var(--lavender-border); stroke-width: 2; stroke-dasharray: 3 3; }
+:where(body.sa-lesson) .sa-centre { opacity: 0; }
+
+/* Words set on the figure. In user units, so they scale with the circle. */
+:where(body.sa-lesson) .lbl {
+  font-family: var(--font-display);
+  font-weight: 800;
+  font-size: 22px;
+  letter-spacing: .2px;
+  fill: var(--text-primary);
+  opacity: 0;
+  paint-order: stroke;
+  stroke: color-mix(in srgb, #FFFFFF 75%, transparent);
+  stroke-width: 5px;
+  stroke-linejoin: round;
+}
+:where(body.sa-lesson) .lbl--angle  { fill: var(--sa-angle); }
+:where(body.sa-lesson) .lbl--radius { fill: var(--sa-radius); }
+:where(body.sa-lesson) .lbl--area   { fill: var(--sa-area); }
+:where(body.sa-lesson) .lbl--major  { fill: var(--lavender-border); }
+:where(body.sa-lesson) .lbl--pi     { fill: var(--sa-pi); }
+:where(body.sa-lesson) .lbl--soft   { fill: var(--text-secondary); font-weight: 700; font-size: 18px; }
+:where(body.sa-lesson) .lbl--big    { font-size: 30px; }
+:where(body.sa-lesson) .lbl--num    { font-size: 19px; fill: color-mix(in srgb, var(--yellow-border) 70%, #6B4A00); }
+
+/* The callout: the board's own ink, as the first lesson's is. */
+:where(body.sa-lesson) .s-callout {
+  fill: none;
+  stroke: var(--text-primary);
+  stroke-width: 2.6;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+  opacity: 0;
+}
+
+/* ---- The protractor ring ------------------------------------------------ */
+:where(body.sa-lesson) .s-tick { stroke: var(--sa-tick); stroke-width: 1.3; stroke-linecap: round; opacity: 0; }
+:where(body.sa-lesson) .s-tick--ten { stroke-width: 1.8; }
+:where(body.sa-lesson) .s-tick--big { stroke: var(--text-secondary); stroke-width: 2.6; }
+:where(body.sa-lesson) .s-tick-ring { fill: none; stroke: var(--sa-tick); stroke-width: 1.3; opacity: 0; }
+:where(body.sa-lesson) .s-deg {
+  font-family: var(--font-display);
+  font-weight: 700;
+  font-size: 15px;
+  fill: var(--text-secondary);
+  opacity: 0;
+}
+:where(body.sa-lesson) .s-deg.is-hot { fill: var(--sa-angle); font-weight: 800; font-size: 19px; }
+
+/* ---- Equal wedges and the 360 fine ones ---------------------------------- */
+:where(body.sa-lesson) .s-spoke {
+  stroke: color-mix(in srgb, var(--lavender-border) 40%, #FFFFFF);
+  stroke-width: 1.4;
+  opacity: 0;
+}
+:where(body.sa-lesson) .s-fine { stroke: color-mix(in srgb, var(--part-radius) 55%, #FFFFFF); stroke-width: .7; }
+:where(body.sa-lesson) .s-fine-fill { fill: color-mix(in srgb, var(--yellow-fill) 52%, #FFFFFF); }
+
+/* ---- The drag handle ------------------------------------------------------ */
+:where(body.sa-lesson) .s-handle { cursor: grab; outline: none; }
+:where(body.sa-lesson) .s-handle.is-held { cursor: grabbing; }
+:where(body.sa-lesson) .s-handle__ring { fill: #FFFFFF; stroke: var(--sa-angle); stroke-width: 3.5; }
+:where(body.sa-lesson) .s-handle__dot { fill: var(--sa-angle); }
+:where(body.sa-lesson) .s-handle__halo {
+  fill: color-mix(in srgb, var(--sa-angle) 30%, transparent);
+  transform-box: fill-box;
+  transform-origin: center;
+  animation: sa-halo 1.6s ease-in-out infinite;
+}
+:where(body.sa-lesson) .s-handle.is-held .s-handle__halo,
+:where(body.sa-lesson) .s-handle.is-done .s-handle__halo { animation: none; opacity: 0; }
+@keyframes sa-halo {
+  0%, 100% { transform: scale(.7); opacity: .2; }
+  50%      { transform: scale(1.25); opacity: .85; }
+}
+
+/* ---- The themed figures at the end --------------------------------------- */
+:where(body.sa-lesson) .s-fan-paper   { fill: color-mix(in srgb, var(--coral-fill) 40%, #FFF6EE); }
+:where(body.sa-lesson) .s-fan-fold    { fill: color-mix(in srgb, var(--coral-fill) 62%, #FFF6EE); }
+:where(body.sa-lesson) .s-fan-rib     { stroke: color-mix(in srgb, var(--yellow-border) 75%, #6B3F00); stroke-width: 2.6; stroke-linecap: round; fill: none; }
+:where(body.sa-lesson) .s-fan-edge    { fill: none; stroke: var(--coral-border); stroke-width: 4; stroke-linecap: round; }
+:where(body.sa-lesson) .s-fan-pin     { fill: var(--coral-border); stroke: #FFFFFF; stroke-width: 2.5; }
+
+:where(body.sa-lesson) .s-sea         { fill: color-mix(in srgb, var(--blue-fill) 22%, #F4FBFF); stroke: var(--blue-border); stroke-width: 2.6; }
+:where(body.sa-lesson) .s-sea-ring    { fill: none; stroke: color-mix(in srgb, var(--blue-border) 30%, #FFFFFF); stroke-width: 1.5; }
+:where(body.sa-lesson) .s-beam        { fill: color-mix(in srgb, var(--mint-fill) 62%, #FFFFFF); stroke: var(--mint-border); stroke-width: 2.4; stroke-linejoin: round; }
+:where(body.sa-lesson) .s-trail       { fill: var(--mint-fill); }
+
+:where(body.sa-lesson) .s-lawn        { fill: color-mix(in srgb, var(--mint-fill) 30%, #F2FFF9); stroke: var(--mint-border); stroke-width: 2.6; }
+:where(body.sa-lesson) .s-lawn-dry    { fill: color-mix(in srgb, var(--yellow-fill) 55%, #FFFBEA); }
+:where(body.sa-lesson) .s-spray       { fill: color-mix(in srgb, var(--blue-fill) 60%, #FFFFFF); stroke: var(--blue-border); stroke-width: 2.4; stroke-linejoin: round; }
+:where(body.sa-lesson) .s-drop        { fill: var(--blue-border); }
+
+/* ==========================================================================
+   Formulas and fractions
+   ========================================================================== */
+:where(body.sa-lesson) .frac {
+  display: inline-flex;
+  flex-direction: column;
+  align-items: center;
+  vertical-align: middle;
+  margin: 0 .12em;
+  line-height: 1.05;
+  font-size: .92em;
+}
+:where(body.sa-lesson) .frac__n { padding: 0 .16em .06em; border-bottom: .09em solid currentColor; }
+:where(body.sa-lesson) .frac__d { padding: .06em .16em 0; }
+/* The lesson's own .frac (style.css, for mathtext.js) is a different make
+   -- a short box, small figures, the bar on the denominator -- and its
+   rules would stack on this one's. What it sets that this skill does not
+   is handed back here, so a fraction is drawn as it was on its own page:
+   one bar, under the numerator, at full size. */
+:where(body.sa-lesson) .frac {
+  height: auto;
+  justify-content: normal;
+  font-weight: inherit;
+  letter-spacing: inherit;
+  text-align: inherit;
+  white-space: inherit;
+}
+:where(body.sa-lesson) .frac__n,
+:where(body.sa-lesson) .frac__d { font-size: inherit; }
+:where(body.sa-lesson) .frac__d { border-top: 0; }
+:where(body.sa-lesson) .c-ang { color: var(--sa-angle); }
+:where(body.sa-lesson) .c-r   { color: var(--sa-radius); }
+:where(body.sa-lesson) .c-pi  { color: var(--sa-pi); }
+:where(body.sa-lesson) .c-a   { color: var(--sa-area); }
+:where(body.sa-lesson) .c-ans { color: var(--sa-answer); }
+:where(body.sa-lesson) .c-maj { color: var(--lavender-border); }
+:where(body.sa-lesson) .op    { color: var(--text-secondary); margin: 0 .22em; font-weight: 700; }
+
+/* ---- Worked steps ---------------------------------------------------------
+   One row per step, a numbered badge in front: amber while it is the step
+   being worked, green once it is done -- the storyboard's own signal. */
+:where(body.sa-lesson) .steps {
+  display: flex;
+  flex-direction: column;
+  gap: .62em;
+  padding-left: 3%;
+}
+:where(body.sa-lesson) .step {
+  display: flex;
+  align-items: center;
+  gap: .55em;
+  min-height: 2.4em;
+  opacity: 0;
+}
+:where(body.sa-lesson) .step__badge {
+  flex: 0 0 auto;
+  display: grid;
+  place-items: center;
+  width: 1.45em;
+  height: 1.45em;
+  border-radius: 50%;
+  background: var(--part-radius);
+  color: #FFFFFF;
+  font-size: .78em;
+  font-weight: 800;
+  box-shadow: 0 2px 0 color-mix(in srgb, var(--part-radius) 60%, #6B3F00);
+  transition: background .3s ease, box-shadow .3s ease;
+}
+:where(body.sa-lesson) .step.is-done .step__badge {
+  background: var(--right-border);
+  box-shadow: 0 2px 0 color-mix(in srgb, var(--right-border) 60%, #0B4A1A);
+}
+:where(body.sa-lesson) .step__body { display: flex; align-items: center; flex-wrap: wrap; gap: 0 .1em; }
+:where(body.sa-lesson) .step__lead { color: var(--lavender-border); margin-right: .3em; }
+
+/* ==========================================================================
+   The dropdown blank
+   --------------------------------------------------------------------------
+   A dashed slot in the sentence, with a chevron: tap it and the choices
+   drop out under it. Waiting, it breathes, so the eye finds it; answered,
+   it is a solid green box with a tick, as the first lesson's name boxes are.
+   ========================================================================== */
+:where(body.sa-lesson) .dd {
+  position: relative;
+  display: inline-flex;
+  vertical-align: middle;
+  margin: 0 .2em;
+  z-index: 3;
+}
+:where(body.sa-lesson) .dd.is-open { z-index: 6; }
+:where(body.sa-lesson) .dd__face {
+  appearance: none;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: .35em;
+  min-width: 4.4em;
+  min-height: 1.85em;
+  padding: .12em .45em .12em .6em;
+  border: .12em dashed var(--lavender-border);
+  border-radius: .5em;
+  background: var(--board-highlight);
+  font: inherit;
+  color: var(--text-primary);
+  cursor: pointer;
+  transition: border-color .25s ease, background .25s ease, box-shadow .25s ease;
+}
+:where(body.sa-lesson) .dd__face:focus-visible { outline: 3px solid color-mix(in srgb, var(--lavender-fill) 70%, transparent); outline-offset: 2px; }
+:where(body.sa-lesson) .dd__val { min-width: 2.2em; text-align: center; }
+:where(body.sa-lesson) .dd__caret {
+  width: .7em;
+  height: .7em;
+  flex: 0 0 auto;
+  transition: transform .25s ease;
+}
+:where(body.sa-lesson) .dd__caret path { fill: none; stroke: var(--lavender-border); stroke-width: 2.4; stroke-linecap: round; stroke-linejoin: round; }
+:where(body.sa-lesson) .dd.is-open .dd__caret { transform: rotate(180deg); }
+:where(body.sa-lesson) .dd.is-asking .dd__face { animation: dd-call 1.8s ease-in-out infinite; }
+@keyframes dd-call {
+  0%, 100% { box-shadow: 0 0 0 0 color-mix(in srgb, var(--lavender-fill) 0%, transparent); }
+  50%      { box-shadow: 0 0 0 .28em color-mix(in srgb, var(--lavender-fill) 45%, transparent); }
+}
+:where(body.sa-lesson) .dd.is-open .dd__face { animation: none; background: color-mix(in srgb, var(--lavender-fill) 14%, #FFFFFF); }
+
+:where(body.sa-lesson) .dd__menu {
+  position: absolute;
+  top: calc(100% + .3em);
+  left: 50%;
+  min-width: 100%;
+  display: flex;
+  flex-direction: column;
+  gap: .12em;
+  padding: .28em;
+  border: .09em solid color-mix(in srgb, var(--lavender-fill) 55%, #FFFFFF);
+  border-radius: .62em;
+  background: linear-gradient(180deg, #FFFFFF 0%, #FBF8FF 100%);
+  box-shadow: 0 .5em 1.2em var(--shadow-deep), 0 .1em .2em var(--shadow-soft);
+  translate: -50% 0;
+  white-space: nowrap;
+}
+:where(body.sa-lesson) .dd--up .dd__menu { top: auto; bottom: calc(100% + .3em); }
+:where(body.sa-lesson) .dd__menu[hidden] { display: none; }
+:where(body.sa-lesson) .dd__opt {
+  appearance: none;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: .26em .8em;
+  border: 0;
+  border-radius: .42em;
+  background: transparent;
+  font: inherit;
+  color: var(--text-primary);
+  cursor: pointer;
+  transition: background .18s ease, opacity .2s ease;
+}
+:where(body.sa-lesson) .dd__opt:hover,
+:where(body.sa-lesson) .dd__opt:focus-visible { background: color-mix(in srgb, var(--lavender-fill) 22%, #FFFFFF); outline: none; }
+:where(body.sa-lesson) .dd__opt.is-out { opacity: .35; pointer-events: none; text-decoration: line-through; }
+
+:where(body.sa-lesson) .dd.is-wrong .dd__face {
+  border-style: solid;
+  border-color: var(--wrong-border);
+  background: color-mix(in srgb, var(--wrong-fill) 26%, #FFFFFF);
+}
+:where(body.sa-lesson) .dd.is-right .dd__face {
+  border-style: solid;
+  border-color: var(--right-border);
+  background: color-mix(in srgb, var(--right-fill) 26%, #FFFFFF);
+  color: var(--sa-answer);
+  cursor: default;
+  padding-right: .6em;
+}
+:where(body.sa-lesson) .dd.is-right .dd__caret { display: none; }
+/* The tick on the box's corner, as on an answered name box. */
+:where(body.sa-lesson) .dd__tick {
+  position: absolute;
+  top: -.42em;
+  right: -.42em;
+  width: .95em;
+  height: .95em;
+  opacity: 0;
+  pointer-events: none;
+}
+:where(body.sa-lesson) .dd__tick circle { fill: var(--right-border); stroke: #FFFFFF; stroke-width: 2.5; }
+:where(body.sa-lesson) .dd__tick path { fill: none; stroke: #FFFFFF; stroke-width: 3; stroke-linecap: round; stroke-linejoin: round; }
+
+/* ==========================================================================
+   The answers in the footer
+   The first lesson's own .choice pill; this lesson asks with four, and
+   some of them are fractions, so they are set a shade tighter.
+   ========================================================================== */
+.sa-lesson .tray--choice { gap: clamp(10px, 2.2%, 34px); }
+.sa-lesson .choice {
+  min-width: 5.4em;
+  padding: .26em 1.15em .3em;
+  font-size: clamp(14px, min(2.9vh, 2vw), 27px);
+}
+.sa-lesson .choice .frac { font-size: .82em; }
+:where(body.sa-lesson) .choice.is-out { opacity: .42 !important; pointer-events: none; }
+:where(body.sa-lesson) .choice.is-done:not(.is-right) { opacity: .55 !important; }
+
+/* ==========================================================================
+   Cards
+   ========================================================================== */
+/* The note: what the bird would say after an answer -- the working behind
+   it. Made the way the first lesson's speech card is made: a white face
+   deepening to lavender at the foot, a lavender rim, a gloss, and three
+   soft shadows, none with a hard edge. */
+:where(body.sa-lesson) .sa-note {
+  --note-rim: #C7AEF5;
+  --note-rim-low: #A586E6;
+  position: relative;
+  max-width: 100%;
+  padding: .7em 1em .8em;
+  border: .09em solid transparent;
+  border-radius: 1.1em;
+  background:
+    linear-gradient(180deg, #FFFFFF 0%, #FBF8FF 45%, #EFE5FF 100%) padding-box,
+    linear-gradient(180deg, var(--note-rim) 0%, var(--note-rim-low) 100%) border-box;
+  box-shadow: inset 0 0 0 .05em #FFFFFFE6,
+              inset 0 .22em .3em -.12em #FFFFFF;
+  filter: drop-shadow(0 .1em .07em #9673DBB3)
+          drop-shadow(0 .25em .22em #5B3FA547)
+          drop-shadow(0 .6em .8em #3F2A8A40);
+  font-size: .9em;
+  line-height: 1.4;
+  color: var(--text-primary);
+  opacity: 0;
+}
+:where(body.sa-lesson) .sa-note b { color: var(--lavender-border); }
+:where(body.sa-lesson) .sa-note--wide { max-width: 34em; }
+:where(body.sa-lesson) .sa-note .frac { font-size: .85em; }
+
+/* The rule: a formula the lesson has built, set on a plate of its own. */
+:where(body.sa-lesson) .sa-rule {
+  position: relative;
+  display: inline-flex;
+  flex-direction: column;
+  align-items: center;
+  gap: .35em;
+  padding: .7em 1.4em .8em;
+  border-radius: 1.2em;
+  border: .1em solid transparent;
+  background:
+    linear-gradient(180deg, #FFFFFF 0%, #F8F4FF 55%, #ECE2FF 100%) padding-box,
+    linear-gradient(180deg, #D7C6FA 0%, var(--lavender-fill) 100%) border-box;
+  box-shadow: inset 0 .2em .3em -.12em #FFFFFF;
+  filter: drop-shadow(0 .12em .08em #8C6BD8A0)
+          drop-shadow(0 .5em .8em #3F2A8A45);
+  opacity: 0;
+}
+:where(body.sa-lesson) .sa-rule__tag {
+  font-size: .78em;
+  font-weight: 800;
+  letter-spacing: .04em;
+  color: var(--lavender-border);
+}
+:where(body.sa-lesson) .sa-rule__eq { font-size: 1.22em; font-weight: 800; white-space: nowrap; }
+:where(body.sa-lesson) .sa-rule--small .sa-rule__eq { font-size: 1.02em; }
+:where(body.sa-lesson) .sa-rule.is-glow {
+  animation: sa-rule-glow 2.4s ease-in-out infinite;
+}
+@keyframes sa-rule-glow {
+  0%, 100% { filter: drop-shadow(0 .12em .08em #8C6BD8A0) drop-shadow(0 .5em .8em #3F2A8A45); }
+  50%      { filter: drop-shadow(0 .12em .08em #8C6BD8A0) drop-shadow(0 0 1.1em #9691FDB0); }
+}
+
+/* The read-out beside the drag figure: θ, r and A, each in its own ink. */
+:where(body.sa-lesson) .sa-readout {
+  display: grid;
+  grid-template-columns: auto auto;
+  gap: .25em .6em;
+  align-items: baseline;
+  justify-content: start;
+  padding: .7em 1.2em;
+  border-radius: 1em;
+  background: color-mix(in srgb, #FFFFFF 82%, transparent);
+  border: .09em solid color-mix(in srgb, var(--lavender-fill) 45%, #FFFFFF);
+  box-shadow: 0 .3em .9em var(--shadow-soft);
+  font-size: 1.12em;
+  opacity: 0;
+}
+:where(body.sa-lesson) .sa-readout dt { color: var(--text-secondary); font-weight: 700; }
+:where(body.sa-lesson) .sa-readout dd { margin: 0; font-weight: 800; min-width: 5.2em; font-variant-numeric: tabular-nums; }
+
+/* A small heading over a figure: "Circle I", "Circle II". */
+:where(body.sa-lesson) .sa-cap {
+  font-weight: 800;
+  color: var(--text-secondary);
+}
+
+/* ---- Confetti --------------------------------------------------------- */
+:where(body.sa-lesson) .sa-burst {
+  display: block;
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  overflow: visible;
+  pointer-events: none;
+  z-index: 8;
+}
+:where(body.sa-lesson) .qz-bit { pointer-events: none; }
+:where(body.sa-lesson) .qz-bit--blue     { fill: var(--blue-fill); }
+:where(body.sa-lesson) .qz-bit--mint     { fill: var(--mint-fill); }
+:where(body.sa-lesson) .qz-bit--lavender { fill: var(--lavender-fill); }
+:where(body.sa-lesson) .qz-bit--coral    { fill: var(--coral-fill); }
+:where(body.sa-lesson) .qz-bit--yellow   { fill: var(--yellow-fill); }
+
+@media (prefers-reduced-motion: reduce) {
+  :where(body.sa-lesson) .dd.is-asking .dd__face,
+  :where(body.sa-lesson) .s-handle__halo,
+  :where(body.sa-lesson) .sa-rule.is-glow { animation: none; }
+}
+
+/* A value and its unit are one word. */
+:where(body.sa-lesson) .c-ans, :where(body.sa-lesson) .sa-note b { white-space: nowrap; }
+
+/* The arrows from a sentence to the parts it names: a guide for the eye,
+   not a mark on the figure, so they are drawn light and thin. Stroke
+   opacity, because the beats that draw them write the element's own. */
+:where(body.sa-lesson) .s-callout--soft {
+  stroke-width: 1.8;
+  stroke-opacity: .45;
+}
+
+/* ---- The two sectors, lit in turn ---------------------------------------
+   While a question is about both pieces of a circle, each glows in its own
+   colour for half a beat and rests while the other does: the minor sector
+   on the first half of the loop, the major on the second. The glow is a
+   deeper shade of the region's own fill plus a soft halo of its edge ink. */
+:where(body.sa-lesson) .s-region.is-glow-a,
+:where(body.sa-lesson) .s-region.is-glow-b { animation: sa-region-glow 2.4s ease-in-out infinite; }
+:where(body.sa-lesson) .s-region.is-glow-b { animation-delay: -1.2s; }
+:where(body.sa-lesson) .s-region--minor { --glow-rest: var(--sa-minor); --glow-lit: var(--sa-minor-lit); --glow-ink: var(--sa-minor-edge); }
+:where(body.sa-lesson) .s-region--major { --glow-rest: var(--sa-major); --glow-lit: var(--sa-major-lit); --glow-ink: var(--sa-major-edge); }
+@keyframes sa-region-glow {
+  0%, 50%, 100% { fill: var(--glow-rest); filter: none; }
+  25%           { fill: var(--glow-lit);  filter: drop-shadow(0 0 7px var(--glow-ink)); }
+}
+@media (prefers-reduced-motion: reduce) {
+  :where(body.sa-lesson) .s-region.is-glow-a,
+  :where(body.sa-lesson) .s-region.is-glow-b { animation: none; }
+}
+
+/* Answers set on the page, under their question: two by two. */
+:where(body.sa-lesson) .sa-mcq {
+  display: grid;
+  grid-template-columns: repeat(2, max-content);
+  gap: .7em 1em;
+  justify-content: start;
+}
+:where(body.sa-lesson) .sa-mcq .choice { font-size: clamp(14px, min(2.9vh, 2vw), 27px); min-width: 8.5em; }
+
+/* ---- The bird on the page ------------------------------------------------
+   Swiftee standing in the panel, above the answers, with the question in a
+   bubble beside it: the hero bubble's own make -- the board's lavender, a
+   white rim, the glow it is lifted off the page by -- with its tail on the
+   left, reaching back to the bird. */
+:where(body.sa-lesson) .sa-speak {
+  display: flex;
+  align-items: center;
+  gap: .9em;
+  margin-bottom: .2em;
+}
+:where(body.sa-lesson) .sa-perch {
+  position: relative;
+  flex: 0 0 auto;
+  width: 5.4em;
+  aspect-ratio: 1;
+  pointer-events: none;
+}
+:where(body.sa-lesson) .sa-bubble {
+  position: relative;
+  max-width: 15em;
+  padding: .55em .95em .6em;
+  border: 4px solid var(--bubble-rim);
+  border-radius: .62em;
+  background: var(--bubble-bg);
+  box-shadow:
+    0 0 14px 2px var(--glow-board-soft),
+    0 0 34px 10px var(--glow-board-dim),
+    0 10px 26px var(--shadow-soft);
+  font-weight: 700;
+  line-height: 1.25;
+  color: var(--bubble-ink);
+}
+/* The catch-light in the corner, as on the hero bubble. */
+:where(body.sa-lesson) .sa-bubble::before {
+  content: "";
+  position: absolute;
+  left: .4em;
+  top: .3em;
+  width: .5em;
+  height: .2em;
+  border-radius: 999px;
+  background: var(--bubble-sheen);
+  transform: rotate(-22deg);
+}
+/* The tail: a white-rimmed point on the left edge, aimed at the bird. */
+:where(body.sa-lesson) .sa-bubble::after {
+  content: "";
+  position: absolute;
+  left: -.62em;
+  top: 50%;
+  width: .9em;
+  height: .9em;
+  margin-top: -.45em;
+  background: var(--bubble-bg);
+  border-left: 4px solid var(--bubble-rim);
+  border-bottom: 4px solid var(--bubble-rim);
+  border-bottom-left-radius: .18em;
+  transform: rotate(45deg) skew(8deg, 8deg);
+}
+:where(body.sa-lesson) .sa-bubble .type-wrap { display: inline-block; vertical-align: top; }
+:where(body.sa-lesson) .sa-bubble .type,
+:where(body.sa-lesson) .sa-bubble .type-ghost { white-space: pre-wrap; }
+
+/* ==========================================================================
+   Which one is a sector? -- three cards
+   --------------------------------------------------------------------------
+   Three white cards with a hairline lavender rim, each holding one circle
+   drawn large. The two pieces of each circle wear two clearly different
+   colours, and the piece the card is about is lit -- a deeper fill and a
+   soft breathing halo in its own ink -- while the other steps back.
+   ========================================================================== */
+:where(body.sa-lesson) .sa-scene--cards {
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 2.2%;
+  align-items: stretch;
+  padding: .6% 1.2% 1.6%;
+}
+:where(body.sa-lesson) .sa-card {
+  appearance: none;
+  position: relative;
+  min-height: 0;
+  padding: 0;
+  border: 1.5px solid color-mix(in srgb, var(--lavender-fill) 38%, #FFFFFF);
+  border-radius: 1.3em;
+  background: linear-gradient(180deg, #FFFFFF 0%, #FBF9FF 60%, #F5F0FF 100%);
+  box-shadow: inset 0 1px 0 #FFFFFF,
+              0 .35em .9em rgba(63, 42, 138, .10),
+              0 .1em .25em rgba(63, 42, 138, .08);
+  font: inherit;
+  cursor: default;
+  transition: border-color .25s ease, box-shadow .25s ease, opacity .3s ease;
+}
+:where(body.sa-lesson) .sa-card__fig {
+  position: absolute;
+  inset: 5%;
+  width: 90%;
+  height: 90%;
+  overflow: visible;
+  filter: drop-shadow(0 3px 5px var(--shadow-soft));
+}
+:where(body.sa-lesson) .is-live .sa-card:not(.is-tried) { cursor: pointer; }
+:where(body.sa-lesson) .is-live .sa-card:not(.is-tried):hover,
+:where(body.sa-lesson) .is-live .sa-card:not(.is-tried):focus-visible {
+  outline: none;
+  border-color: var(--lavender-fill);
+  box-shadow: inset 0 1px 0 #FFFFFF,
+              0 0 0 .2em color-mix(in srgb, var(--lavender-fill) 28%, transparent),
+              0 .6em 1.4em rgba(63, 42, 138, .16);
+}
+:where(body.sa-lesson) .sa-card.is-wrong {
+  border-color: var(--wrong-border);
+  box-shadow: 0 0 0 .2em color-mix(in srgb, var(--wrong-fill) 40%, transparent);
+}
+:where(body.sa-lesson) .sa-card.is-tried { opacity: .55 !important; }
+:where(body.sa-lesson) .sa-card.is-done:not(.is-right) { opacity: .5 !important; }
+:where(body.sa-lesson) .sa-card.is-right {
+  border: 2px solid var(--right-border);
+  box-shadow: 0 0 0 .22em color-mix(in srgb, var(--right-fill) 45%, transparent),
+              0 .6em 1.4em rgba(30, 120, 60, .18);
+}
+/* The tick on the right card's corner, as on an answered box. */
+:where(body.sa-lesson) .sa-card.is-right::after {
+  content: "";
+  position: absolute;
+  top: -.55em;
+  right: -.55em;
+  width: 1.5em;
+  height: 1.5em;
+  background: no-repeat center / contain url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'><circle cx='12' cy='12' r='10.5' fill='%232FB84B' stroke='white' stroke-width='2.5'/><path d='M7 12.5 10.5 16 17 8.5' fill='none' stroke='white' stroke-width='3' stroke-linecap='round' stroke-linejoin='round'/></svg>");
+}
+
+/* The segment card's two regions: sunshine and sky. */
+:where(body.sa-lesson) .s-seg { stroke: none; opacity: 0; transition: fill .4s ease; }
+:where(body.sa-lesson) .s-seg--minor { fill: color-mix(in srgb, var(--yellow-fill) 70%, #FFFFFF); --focus: var(--yellow-border); }
+:where(body.sa-lesson) .s-seg--major { fill: color-mix(in srgb, var(--blue-fill) 50%, #FFFFFF); --focus: var(--blue-border); }
+:where(body.sa-lesson) .s-seg--minor.is-focus { fill: var(--yellow-fill); }
+:where(body.sa-lesson) .s-seg--major.is-focus { fill: color-mix(in srgb, var(--blue-fill) 78%, #FFFFFF); }
+:where(body.sa-lesson) .s-chord { stroke-width: 3.2; }
+
+/* The sector card reuses the lesson's mint and peach. */
+:where(body.sa-lesson) .s-region--minor { --focus: var(--sa-minor-edge); }
+:where(body.sa-lesson) .s-region--major { --focus: var(--sa-major-edge); }
+:where(body.sa-lesson) .s-region--minor.is-focus { fill: var(--sa-minor-lit); }
+:where(body.sa-lesson) .s-region--major.is-focus { fill: var(--sa-major-lit); }
+
+/* The arc card: a white circle, and its two arcs in coral and sky. */
+:where(body.sa-lesson) .figure__disc.s-disc--white { fill: #FFFFFF; }
+:where(body.sa-lesson) .s-arcpiece {
+  fill: none;
+  stroke-width: 6;
+  stroke-linecap: round;
+  opacity: 0;
+}
+:where(body.sa-lesson) .s-arcpiece--minor { stroke: var(--coral-border); --focus: var(--coral-border); }
+:where(body.sa-lesson) .s-arcpiece--major { stroke: var(--blue-border);  --focus: var(--blue-border); }
+
+/* Lit: a halo of the piece's own ink, breathing. */
+:where(body.sa-lesson) .is-focus { animation: sa-focus 1.7s ease-in-out infinite; }
+:where(body.sa-lesson) .s-arcpiece.is-focus { animation: sa-focus 1.7s ease-in-out infinite, sa-focus-line 1.7s ease-in-out infinite; }
+@keyframes sa-focus {
+  0%, 100% { filter: drop-shadow(0 0 2px var(--focus)); }
+  50%      { filter: drop-shadow(0 0 9px var(--focus)) drop-shadow(0 0 3px var(--focus)); }
+}
+@keyframes sa-focus-line {
+  0%, 100% { stroke-width: 6; }
+  50%      { stroke-width: 9; }
+}
+/* Stepped back: the other piece of the same circle. */
+:where(body.sa-lesson) .is-dim { opacity: .55 !important; transition: opacity .6s ease; }
+
+@media (prefers-reduced-motion: reduce) {
+  :where(body.sa-lesson) .is-focus, :where(body.sa-lesson) .s-arcpiece.is-focus { animation: none; filter: drop-shadow(0 0 6px var(--focus)); }
+}
+
+/* ==========================================================================
+   Name the sectors -- the circle in the middle, a blank box either side,
+   the two names to drag underneath
+   ========================================================================== */
+:where(body.sa-lesson) .sa-scene--name {
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1.2fr) minmax(0, 1fr);
+  grid-template-rows: minmax(0, 1fr) auto;
+  align-items: center;
+  padding: 0 2% 1.2%;
+}
+:where(body.sa-lesson) .sa-name__fig { position: relative; height: 100%; min-height: 0; grid-column: 2; grid-row: 1; }
+:where(body.sa-lesson) .sa-flip { position: absolute; inset: 0; }
+:where(body.sa-lesson) .sa-fig.sa-fig--moved { position: absolute; inset: 0; width: 100%; height: 100%; }
+:where(body.sa-lesson) .sa-name__ink {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  overflow: visible;
+  pointer-events: none;
+  z-index: 1;
+}
+/* The arrows: dotted, in the board's softer ink, light -- guides, not marks. */
+:where(body.sa-lesson) .s-callout--dots {
+  stroke: var(--text-secondary);
+  stroke-width: 3;
+  stroke-dasharray: .1 9;
+  stroke-linecap: round;
+  stroke-opacity: .75;
+}
+:where(body.sa-lesson) .s-callout--dothead { stroke: var(--text-secondary); stroke-width: 2.4; stroke-opacity: .75; }
+
+/* The blank boxes: dotted and rounded, waiting; green with a tick once a
+   name is in. */
+:where(body.sa-lesson) .sa-drop {
+  grid-row: 1;
+  position: relative;
+  z-index: 2;
+  display: grid;
+  place-items: center;
+  min-width: 8.6em;
+  min-height: 2.5em;
+  padding: .3em .9em;
+  border: .13em dashed var(--lavender-border);
+  border-radius: .9em;
+  background: color-mix(in srgb, #FFFFFF 78%, transparent);
+  font-weight: 800;
+  color: var(--text-primary);
+  outline: none;
+  transition: background .25s ease, border-color .25s ease, box-shadow .25s ease;
+}
+:where(body.sa-lesson) .sa-drop--l { grid-column: 1; justify-self: end; margin-right: 6%; align-self: start; margin-top: 18%; }
+:where(body.sa-lesson) .sa-drop--r { grid-column: 3; justify-self: start; margin-left: 6%; align-self: end; margin-bottom: 18%; }
+:where(body.sa-lesson) .sa-drop.is-over,
+:where(body.sa-lesson) .sa-drop:focus-visible {
+  background: color-mix(in srgb, var(--lavender-fill) 18%, #FFFFFF);
+  box-shadow: 0 0 0 .22em color-mix(in srgb, var(--lavender-fill) 30%, transparent);
+}
+:where(body.sa-lesson) .sa-drop.is-wrong {
+  border-style: solid;
+  border-color: var(--wrong-border);
+  background: color-mix(in srgb, var(--wrong-fill) 26%, #FFFFFF);
+}
+:where(body.sa-lesson) .sa-drop.is-right {
+  border: .12em solid var(--right-border);
+  background: color-mix(in srgb, var(--right-fill) 26%, #FFFFFF);
+  color: var(--sa-answer);
+}
+:where(body.sa-lesson) .sa-drop.is-right::after {
+  content: "";
+  position: absolute;
+  top: -.5em;
+  right: -.5em;
+  width: 1.15em;
+  height: 1.15em;
+  background: no-repeat center / contain url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'><circle cx='12' cy='12' r='10.5' fill='%232FB84B' stroke='white' stroke-width='2.5'/><path d='M7 12.5 10.5 16 17 8.5' fill='none' stroke='white' stroke-width='3' stroke-linecap='round' stroke-linejoin='round'/></svg>");
+}
+
+/* The names to drag, under the circle: raised cards in their own colours
+   -- violet and sky, neither of them a sector's colour, so the colour is
+   never the answer. */
+:where(body.sa-lesson) .sa-name__tray {
+  grid-column: 1 / -1;
+  grid-row: 2;
+  display: flex;
+  justify-content: center;
+  gap: 3em;
+  padding-top: .4em;
+}
+:where(body.sa-lesson) .sa-chip {
+  --edge: 5px;
+  --sink: 0px;
+  --chip-top: #FFFFFF;
+  position: relative;
+  z-index: 4;
+  appearance: none;
+  display: inline-flex;
+  align-items: center;
+  gap: .55em;
+  padding: .42em 1.3em .48em;
+  border: 3px solid #FFFFFF;
+  border-radius: .85em;
+  font: inherit;
+  font-weight: 800;
+  font-size: 1.02em;
+  letter-spacing: .01em;
+  cursor: grab;
+  touch-action: none;
+  user-select: none;
+  -webkit-user-select: none;
+  translate: 0 var(--sink);
+  transition: filter .18s ease, box-shadow .2s ease;
+}
+:where(body.sa-lesson) .sa-chip--a {
+  color: #3B2E9E;
+  background: linear-gradient(180deg, #F3EFFF 0%, #DCD3FF 55%, #C6B9FF 100%);
+  box-shadow: 0 var(--edge) 0 #9A89EE, 0 calc(var(--edge) + 4px) 12px rgba(74, 52, 180, .28);
+}
+:where(body.sa-lesson) .sa-chip--b {
+  color: #0F5E86;
+  background: linear-gradient(180deg, #EEFAFF 0%, #C9EEFD 55%, #A6E1FA 100%);
+  box-shadow: 0 var(--edge) 0 #5EB8E3, 0 calc(var(--edge) + 4px) 12px rgba(20, 110, 160, .26);
+}
+:where(body.sa-lesson) .sa-chip:hover { filter: brightness(1.03); }
+:where(body.sa-lesson) .sa-chip:focus-visible { outline: 3px solid var(--lavender-border); outline-offset: 3px; }
+:where(body.sa-lesson) .sa-chip.is-lifted { cursor: grabbing; z-index: 9; filter: drop-shadow(0 12px 16px rgba(40, 24, 120, .3)); }
+:where(body.sa-lesson) .sa-chip.is-picked { outline: 3px dashed var(--lavender-border); outline-offset: 4px; }
+:where(body.sa-lesson) .sa-chip.is-docked { visibility: hidden; pointer-events: none; }
+
+
+/* The word a bubble line is about, picked out as a pill: in the minor
+   sector's mint, so "sector" is worn in the colour the lesson has shown
+   it in, and breathing softly while it is read. */
+:where(body.sa-lesson) .bubble .wd.wd--key {
+  display: inline-block;
+  padding: 0 .38em .04em;
+  margin: 0 .06em;
+  border-radius: 999px;
+  color: color-mix(in srgb, var(--mint-border) 70%, #0B3B36);
+  background: linear-gradient(180deg, #E3FBF5 0%, color-mix(in srgb, var(--mint-fill) 70%, #FFFFFF) 100%);
+  box-shadow: inset 0 0 0 .05em color-mix(in srgb, var(--mint-border) 55%, #FFFFFF),
+              inset 0 .08em .06em #FFFFFFB3,
+              0 .06em .04em color-mix(in srgb, var(--mint-border) 45%, transparent);
+  white-space: nowrap;
+}
+:where(body.sa-lesson) .bubble .type .wd.wd--key.in { animation: wd-in .46s cubic-bezier(.2, .7, .3, 1) both, sa-key-glow 2s ease-in-out .5s infinite; }
+@keyframes sa-key-glow {
+  0%, 100% { box-shadow: inset 0 0 0 .05em color-mix(in srgb, var(--mint-border) 55%, #FFFFFF), inset 0 .08em .06em #FFFFFFB3, 0 0 0 0 transparent; }
+  50%      { box-shadow: inset 0 0 0 .05em color-mix(in srgb, var(--mint-border) 55%, #FFFFFF), inset 0 .08em .06em #FFFFFFB3, 0 0 .55em .1em color-mix(in srgb, var(--mint-fill) 75%, transparent); }
+}
+
+/* The angle mark, lit: its own magenta halo. */
+:where(body.sa-lesson) .s-angle, :where(body.sa-lesson) .lbl--angle { --focus: var(--sa-angle); }
+
+/* ==========================================================================
+   Tap the area -- a warm question bubble and four colour tiles
+   ========================================================================== */
+/* The bubble, in sunshine against the lavender board: a cream face, an
+   amber rim, a warm glow under it. Its tail takes the same face and rim. */
+:where(body.sa-lesson) .sa-bubble.sa-bubble--sun {
+  --bubble-bg: #FFF4D2;
+  --bubble-rim: #F5BE45;
+  color: #4A2E86;
+  box-shadow:
+    0 0 14px 2px rgba(255, 205, 90, .35),
+    0 0 30px 8px rgba(255, 190, 70, .18),
+    0 10px 24px rgba(120, 80, 20, .16);
+}
+:where(body.sa-lesson) .sa-bubble.sa-bubble--sun::before { background: #FFFFFF; opacity: .9; }
+
+/* The tiles: two by two, all in one lavender, each with a white rim and a
+   raised edge in a deeper lavender. */
+:where(body.sa-lesson) .sa-mcq.sa-mcq--tiles {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: .8em 1em;
+  width: min(100%, 22em);
+}
+.sa-lesson .choice.sa-opt {
+  --edge: 5px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 0;
+  padding: .55em .9em .6em;
+  border: 3px solid #FFFFFF;
+  border-radius: .9em;
+  font-size: clamp(14px, min(2.8vh, 1.9vw), 26px);
+  font-weight: 800;
+  color: #43349E;
+  background: linear-gradient(180deg, #F4F1FF 0%, #DCD5FF 60%, #C8BEFF 100%);
+  box-shadow: 0 var(--edge) 0 #9C8EEB, 0 calc(var(--edge) + 4px) 12px rgba(80, 60, 180, .22);
+}
+:where(body.sa-lesson) .sa-opt__txt { white-space: nowrap; }
+:where(body.sa-lesson) .choice.sa-opt:hover { filter: brightness(1.04) saturate(1.05); }
+/* Answered: the shared green and red still win over a tile's own colour. */
+:where(body.sa-lesson) .choice.sa-opt.is-right {
+  color: var(--sa-answer);
+  background: linear-gradient(180deg, #FFFFFF 0%, color-mix(in srgb, var(--right-fill) 45%, #FFFFFF) 100%);
+  border-color: var(--right-border);
+  box-shadow: 0 var(--edge) 0 var(--right-border), 0 calc(var(--edge) + 4px) 12px rgba(30, 120, 60, .22);
+}
+:where(body.sa-lesson) .choice.sa-opt.is-wrong {
+  background: linear-gradient(180deg, #FFFFFF 0%, color-mix(in srgb, var(--wrong-fill) 45%, #FFFFFF) 100%);
+  border-color: var(--wrong-border);
+  box-shadow: 0 var(--edge) 0 var(--wrong-border), 0 calc(var(--edge) + 4px) 12px rgba(170, 40, 40, .2);
+}
+
+/* The perch with its bubble ABOVE the bird: the words rise out of its beak.
+   The bubble stands clear of the bird, set in from its left edge so its
+   tail, on the bubble's underside, comes down onto the beak. */
+:where(body.sa-lesson) .sa-speak.sa-speak--above {
+  flex-direction: column-reverse;
+  align-items: flex-start;
+  gap: .9em;
+}
+:where(body.sa-lesson) .sa-speak--above .sa-perch { width: 5.2em; }
+:where(body.sa-lesson) .sa-speak--above .sa-bubble { margin-left: 1.3em; }
+:where(body.sa-lesson) .sa-speak--above .sa-bubble::after {
+  left: 1.25em;
+  top: auto;
+  bottom: -.62em;
+  margin-top: 0;
+  border-left: 0;
+  border-bottom: 4px solid var(--bubble-rim);
+  border-right: 4px solid var(--bubble-rim);
+  border-bottom-left-radius: 0;
+  border-bottom-right-radius: .18em;
+  transform: rotate(45deg) skew(8deg, 8deg);
+}
+
+/* The bird has gone up to the header: its bubble stays as the question's
+   card, and the tail that pointed at it fades away. */
+:where(body.sa-lesson) .sa-speak.is-left .sa-bubble::after { opacity: 0; transition: opacity .3s ease; }
+
+/* ==========================================================================
+   Area for θ -- the working, line under line
+   ========================================================================== */
+:where(body.sa-lesson) .sa-eqs {
+  display: flex;
+  flex-direction: column;
+  gap: .75em;
+}
+:where(body.sa-lesson) .sa-eq {
+  margin: 0;
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 0 .12em;
+  font-size: 1.04em;
+  line-height: 1.3;
+}
+:where(body.sa-lesson) .sa-eq .frac { font-size: .9em; }
+/* The number in flight between two lines of the working. */
+:where(body.sa-lesson) .sa-fly {
+  position: absolute;
+  z-index: 9;
+  font-family: var(--font-display);
+  line-height: 1;
+  pointer-events: none;
+  transform-origin: 50% 50%;
+  text-shadow: 0 .1em .25em rgba(245, 27, 136, .35);
+}
+
+/* A row whose dropdown is open sits over the rows around it. */
+:where(body.sa-lesson) .step.has-open, :where(body.sa-lesson) .sa-eq.has-open, :where(body.sa-lesson) .sa-line.has-open { position: relative; z-index: 20; }
+
+/* Lit twice, then at rest: the same halo as .is-focus, two breaths only. */
+:where(body.sa-lesson) .is-flash2 { animation: sa-focus 1.3s ease-in-out 2; }
+:where(body.sa-lesson) .s-region--minor.is-flash2 { animation: sa-focus 1.3s ease-in-out 2, sa-flash-fill 1.3s ease-in-out 2; }
+@keyframes sa-flash-fill {
+  0%, 100% { fill: var(--sa-minor); }
+  50%      { fill: var(--sa-minor-lit); }
+}
+
+/* The question bubble wearing a verdict: red for a wrong answer's
+   feedback, green for a right one's, easing between them. Its tail takes
+   the same face and rim, since both read the bubble's own colours. */
+:where(body.sa-lesson) .sa-bubble.sa-bubble--sun {
+  transition: background-color .3s ease, border-color .3s ease, color .3s ease, box-shadow .3s ease;
+}
+:where(body.sa-lesson) .sa-bubble.sa-bubble--sun::after { transition: background-color .3s ease, border-color .3s ease; }
+:where(body.sa-lesson) .sa-bubble.sa-bubble--sun.is-no {
+  --bubble-bg: #FFECEC;
+  --bubble-rim: var(--wrong-border);
+  color: #A3161D;
+  box-shadow:
+    0 0 14px 2px rgba(232, 50, 58, .28),
+    0 0 30px 8px rgba(232, 50, 58, .14),
+    0 10px 24px rgba(120, 20, 20, .14);
+}
+:where(body.sa-lesson) .sa-bubble.sa-bubble--sun.is-yes {
+  --bubble-bg: #E9FBEA;
+  --bubble-rim: var(--right-border);
+  color: #17702C;
+  box-shadow:
+    0 0 14px 2px rgba(47, 184, 75, .28),
+    0 0 30px 8px rgba(47, 184, 75, .14),
+    0 10px 24px rgba(20, 90, 40, .14);
+}
+
+/* ---- A result, on one line ----------------------------------------------
+   A solid rounded card with a fine lavender rim: a white face easing to
+   lavender at its foot, a soft lift off the board, and a small green tick
+   to say it is the answer. */
+:where(body.sa-lesson) .sa-result {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  gap: .6em;
+  padding: .55em 1.3em .6em .9em;
+  border: 1.5px solid color-mix(in srgb, var(--lavender-fill) 70%, #FFFFFF);
+  border-radius: 1em;
+  background: linear-gradient(180deg, #FFFFFF 0%, #FAF7FF 55%, #EFE8FF 100%);
+  box-shadow: inset 0 1px 0 #FFFFFF,
+              0 .5em 1.2em rgba(63, 42, 138, .14),
+              0 .12em .3em rgba(63, 42, 138, .10);
+  font-size: 1.25em;
+  font-weight: 800;
+  color: var(--text-primary);
+  white-space: nowrap;
+}
+:where(body.sa-lesson) .sa-result__tick {
+  flex: 0 0 auto;
+  width: 1.05em;
+  height: 1.05em;
+  background: no-repeat center / contain url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'><circle cx='12' cy='12' r='11' fill='%232FB84B'/><path d='M7 12.5 10.5 16 17 8.5' fill='none' stroke='white' stroke-width='3' stroke-linecap='round' stroke-linejoin='round'/></svg>");
+}
+
+/* The bubble on the field wraps a long line onto a second row rather than
+   running off the screen. Both halves of the reveal break at the same
+   words, so the box is its final size from the first word. */
+.sa-lesson .bubble:not(.bubble--aside) { max-width: min(19em, calc(100vw - 24px)); }
+.sa-lesson .bubble:not(.bubble--aside) .type,
+.sa-lesson .bubble:not(.bubble--aside) .type-ghost { white-space: pre-wrap; text-align: left; }
+
+/* ---- Practice: tiles on the right, the formula under them ---------------- */
+:where(body.sa-lesson) .sa-panel--practice { align-items: center; gap: 1.4em; }
+:where(body.sa-lesson) .sa-panel--practice .sa-mcq.sa-mcq--tiles { width: min(100%, 20em); }
+:where(body.sa-lesson) .sa-panel--practice .sa-rule,
+:where(body.sa-lesson) .sa-panel--practice .sa-note { align-self: center; }
+:where(body.sa-lesson) .lbl--along { font-size: 19px; }
+
+/* Practice, asked from a perch: everything kept compact so the bubble, the
+   bird, the tiles and the formula all fit the panel's height. */
+:where(body.sa-lesson) .sa-panel--practice { gap: .75em; }
+:where(body.sa-lesson) .sa-panel--practice .sa-speak--above { gap: .55em; }
+:where(body.sa-lesson) .sa-panel--practice .sa-speak--above .sa-perch { width: 4.2em; }
+:where(body.sa-lesson) .sa-panel--practice .sa-bubble { font-size: .92em; max-width: 16em; }
+:where(body.sa-lesson) .sa-panel--practice .sa-mcq.sa-mcq--tiles { gap: .6em .8em; }
+:where(body.sa-lesson) .sa-panel--practice .sa-rule { padding: .4em 1.1em .5em; gap: .15em; font-size: .86em; }
+
+/* ---- The magnifying glass ------------------------------------------------ */
+:where(body.sa-lesson) .s-lens__spot { fill: none; stroke: var(--lavender-border); stroke-width: 2; stroke-dasharray: 3 3; }
+:where(body.sa-lesson) .s-lens__lead { fill: none; stroke: var(--lavender-border); stroke-width: 1.8; stroke-opacity: .7; }
+:where(body.sa-lesson) .s-lens__back { fill: #FFFFFF; }
+:where(body.sa-lesson) .s-lens__disc { fill: var(--part-circle-fill); }
+:where(body.sa-lesson) .s-lens__wedge { opacity: 1; }
+:where(body.sa-lesson) .s-lens__edge { fill: none; stroke: var(--part-circle); stroke-width: 2.6; }
+:where(body.sa-lesson) .s-lens__radius { fill: none; stroke: var(--part-radius); stroke-width: 3.5; stroke-linecap: round; }
+:where(body.sa-lesson) .s-lens__angle { fill: none; stroke: var(--sa-angle); stroke-width: 2.4; }
+:where(body.sa-lesson) .s-lens__lbl { font-size: 18px; }
+:where(body.sa-lesson) .s-lens__sheen { fill: none; stroke: #FFFFFF; stroke-width: 5; stroke-linecap: round; stroke-opacity: .7; }
+:where(body.sa-lesson) .s-lens__rim {
+  fill: none;
+  stroke: #6F5BE0;
+  stroke-width: 7;
+  filter: drop-shadow(0 3px 5px rgba(50, 30, 140, .35));
+}
+:where(body.sa-lesson) .s-lens__handle { stroke: #4B36C2; stroke-width: 11; stroke-linecap: round; }
+
+/* ---- Practice: bigger bird and type, answers in rows, the formula under
+   the figure on the left. ------------------------------------------------ */
+:where(body.sa-lesson) .sa-scene--practice { grid-template-rows: minmax(0, 1fr) auto; row-gap: .3em; }
+:where(body.sa-lesson) .sa-scene--practice > .sa-fig-wrap { grid-column: 1; grid-row: 1; }
+:where(body.sa-lesson) .sa-scene--practice > .sa-panel { grid-column: 2; grid-row: 1 / span 2; min-height: 0; }
+:where(body.sa-lesson) .sa-scene--practice > .sa-rule {
+  grid-column: 1;
+  grid-row: 2;
+  justify-self: center;
+  flex-direction: row;
+  gap: .9em;
+  padding: .35em 1.4em .4em;
+  margin-bottom: .4em;
+  font-size: .95em;
+}
+:where(body.sa-lesson) .sa-scene--practice > .sa-rule .sa-rule__tag { font-size: .85em; }
+:where(body.sa-lesson) .sa-panel--practice .sa-speak--above .sa-perch { width: 5.4em; }
+:where(body.sa-lesson) .sa-panel--practice .sa-bubble { font-size: 1.12em; max-width: 15em; }
+:where(body.sa-lesson) .sa-panel--practice .sa-mcq.sa-mcq--tiles {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  width: 22em;
+  max-width: 100%;
+}
+:where(body.sa-lesson) .sa-panel--practice .sa-mcq.sa-mcq--tiles:has(> :nth-child(3):last-child) {
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  width: 26em;
+}
+:where(body.sa-lesson) .sa-panel--practice .choice.sa-opt { font-size: clamp(15px, min(3.2vh, 2.2vw), 30px); padding-inline: .5em; }
+
+/* ==========================================================================
+   Which is bigger? -- two matching cards in the middle of the board
+   ========================================================================== */
+:where(body.sa-lesson) .sa-scene--compare {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  justify-content: center;
+  align-items: stretch;
+  gap: 4%;
+  padding: .4% 9% 1.2%;
+}
+:where(body.sa-lesson) .sa-cmp {
+  position: relative;
+  display: grid;
+  grid-template-rows: auto minmax(0, 1fr) auto;
+  justify-items: center;
+  min-height: 0;
+  padding: 1.6em .8em .7em;
+  border: 1.5px solid color-mix(in srgb, var(--lavender-fill) 38%, #FFFFFF);
+  border-radius: 1.3em;
+  background: linear-gradient(180deg, #FFFFFF 0%, #FBF9FF 60%, #F5F0FF 100%);
+  box-shadow: inset 0 1px 0 #FFFFFF,
+              0 .35em .9em rgba(63, 42, 138, .10),
+              0 .1em .25em rgba(63, 42, 138, .08);
+  transition: border-color .4s ease, box-shadow .4s ease;
+}
+/* The name on a tag sitting on the card's top edge. */
+:where(body.sa-lesson) .sa-cmp__tag {
+  position: absolute;
+  top: 0;
+  left: 50%;
+  translate: -50% -50%;
+  padding: .2em 1.1em .26em;
+  border: 2px solid #FFFFFF;
+  border-radius: 999px;
+  background: linear-gradient(180deg, #F4F1FF 0%, #DCD5FF 100%);
+  box-shadow: 0 3px 0 #9C8EEB, 0 6px 12px rgba(80, 60, 180, .18);
+  font-weight: 800;
+  font-size: .95em;
+  color: #43349E;
+  white-space: nowrap;
+}
+:where(body.sa-lesson) .sa-cmp__fig {
+  grid-row: 2;
+  width: 100%;
+  height: 100%;
+  min-height: 0;
+  overflow: visible;
+  filter: drop-shadow(0 3px 5px var(--shadow-soft));
+}
+:where(body.sa-lesson) .sa-cmp__work {
+  grid-row: 3;
+  display: flex;
+  align-items: center;
+  gap: 0 .1em;
+  min-height: 2.4em;
+  font-size: .95em;
+  white-space: nowrap;
+}
+:where(body.sa-lesson) .sa-cmp.is-match {
+  border-color: var(--right-border);
+  box-shadow: 0 0 0 .2em color-mix(in srgb, var(--right-fill) 40%, transparent),
+              0 .5em 1.2em rgba(30, 120, 60, .14);
+}
+
+/* The colour of the sector an answer belongs to, as a small chip in front
+   of it. */
+:where(body.sa-lesson) .sa-chip-dot {
+  display: inline-block;
+  width: .7em;
+  height: .7em;
+  margin-right: .45em;
+  border-radius: 50%;
+  vertical-align: middle;
+  box-shadow: inset 0 0 0 2px rgba(255, 255, 255, .8);
+}
+:where(body.sa-lesson) .sa-chip-dot--minor { background: var(--sa-minor-lit); border: 1.5px solid var(--sa-minor-edge); }
+:where(body.sa-lesson) .sa-chip-dot--major { background: var(--sa-major-lit); border: 1.5px solid var(--sa-major-edge); }
+
+/* What has been found so far, building up under the questions. */
+:where(body.sa-lesson) .sa-found { display: flex; flex-direction: column; gap: .45em; align-items: center; }
+:where(body.sa-lesson) .sa-found:empty { display: none; }
+:where(body.sa-lesson) .sa-found__row {
+  margin: 0;
+  display: flex;
+  align-items: center;
+  gap: 0 .1em;
+  padding: .35em 1em;
+  border: 1.5px solid color-mix(in srgb, var(--lavender-fill) 60%, #FFFFFF);
+  border-radius: .8em;
+  background: linear-gradient(180deg, #FFFFFF 0%, #F6F1FF 100%);
+  box-shadow: 0 .25em .7em rgba(63, 42, 138, .10);
+  font-size: .92em;
+  white-space: nowrap;
+}
+
+/* A piece of the picture stepped back and softened, so the other piece is
+   the one looked at. */
+:where(body.sa-lesson) .is-blur { filter: blur(1.6px); }
+
+/* ---- The radar ------------------------------------------------------------ */
+:where(body.sa-lesson) .s-radar-line { fill: none; stroke: var(--part-radius); stroke-width: var(--part-weight); stroke-linecap: round; }
+:where(body.sa-lesson) .s-beam { --focus: var(--mint-border); --sa-minor: color-mix(in srgb, var(--mint-fill) 62%, #FFFFFF); --sa-minor-lit: color-mix(in srgb, var(--mint-fill) 85%, #FFFFFF); }
+:where(body.sa-lesson) .s-beam.is-flash2 { animation: sa-focus 1.3s ease-in-out 2; }
+:where(body.sa-lesson) .s-beam--sweep { fill: color-mix(in srgb, var(--mint-fill) 75%, #FFFFFF); stroke: none; }
+
+/* ---- Working set out: one step a line, equals signs in a column ---------- */
+:where(body.sa-lesson) .sa-work {
+  display: grid;
+  grid-template-columns: auto auto 1fr;
+  gap: .55em .45em;
+  align-items: center;
+  padding: .9em 1.4em 1em;
+  border: 1.5px solid color-mix(in srgb, var(--lavender-fill) 55%, #FFFFFF);
+  border-radius: 1.1em;
+  background: linear-gradient(180deg, #FFFFFF 0%, #FAF7FF 60%, #F2ECFF 100%);
+  box-shadow: inset 0 1px 0 #FFFFFF, 0 .5em 1.2em rgba(63, 42, 138, .12);
+  font-size: 1.12em;
+  font-weight: 800;
+}
+:where(body.sa-lesson) .sa-work__row { display: contents; }
+:where(body.sa-lesson) .sa-work__l { justify-self: end; }
+:where(body.sa-lesson) .sa-work__eq { color: var(--text-secondary); }
+:where(body.sa-lesson) .sa-work__r { display: flex; align-items: center; gap: 0 .1em; white-space: nowrap; }
+:where(body.sa-lesson) .sa-work__row.is-answer .sa-work__r {
+  padding: .1em .6em;
+  border-radius: .6em;
+  background: color-mix(in srgb, var(--right-fill) 28%, #FFFFFF);
+  box-shadow: inset 0 0 0 1.5px var(--right-border);
+  justify-self: start;
+}
+:where(body.sa-lesson) .sa-work__bit { display: inline-flex; align-items: center; }
+:where(body.sa-lesson) .s-found-lbl { font-size: 17px; }
+:where(body.sa-lesson) .s-beam.is-focus { animation: sa-focus 1.7s ease-in-out infinite; }
+:where(body.sa-lesson) .s-fan-paper, :where(body.sa-lesson) .s-fan-fold { --focus: var(--coral-border); }
+:where(body.sa-lesson) .s-fan-paper.is-flash2, :where(body.sa-lesson) .s-fan-fold.is-flash2 { animation: sa-focus 1.3s ease-in-out 2; }
+:where(body.sa-lesson) .s-found-lbl--fan { font-size: 26px; }
+
+/* What a problem gives, set across the top of the board on its own: no
+   bird beside it, centred, on a soft card. */
+:where(body.sa-lesson) .board.has-given .prompt__mascot { display: none; }
+:where(body.sa-lesson) .board.has-given .prompt__line {
+  max-width: 46em;
+  padding: .35em 1.1em .4em;
+  border: 1.5px solid color-mix(in srgb, var(--lavender-fill) 50%, #FFFFFF);
+  border-radius: .8em;
+  background: linear-gradient(180deg, #FFFFFF 0%, #F6F1FF 100%);
+  box-shadow: 0 .3em .8em rgba(63, 42, 138, .10);
+  text-align: center;
+}
+:where(body.sa-lesson) .board.has-given .prompt__line .type,
+:where(body.sa-lesson) .board.has-given .prompt__line .type-ghost { text-align: center; }
+
+/* An answer tile is one colour throughout: the inks that pick out an angle,
+   a radius or π in the working are not used on the answers, so no part of
+   an option stands out from the rest of it. */
+:where(body.sa-lesson) .choice.sa-opt [class^="c-"],
+:where(body.sa-lesson) .choice.sa-opt [class*=" c-"],
+:where(body.sa-lesson) .choice.sa-opt .frac { color: inherit; }
+
+/* ==========================================================================
+   Area for θ -- the derivation as numbered step cards
+   ========================================================================== */
+:where(body.sa-lesson) .sa-derive {
+  display: flex;
+  flex-direction: column;
+  gap: .55em;
+  width: 100%;
+  max-width: 24em;
+}
+:where(body.sa-lesson) .sa-dstep {
+  position: relative;
+  display: grid;
+  grid-template-columns: auto 1fr;
+  gap: .65em;
+  align-items: start;
+  padding: .55em .9em .6em .6em;
+  border: 1.5px solid color-mix(in srgb, var(--lavender-fill) 50%, #FFFFFF);
+  border-radius: .9em;
+  background: linear-gradient(180deg, #FFFFFF 0%, #F9F6FF 100%);
+  box-shadow: 0 .3em .8em rgba(63, 42, 138, .10);
+  overflow: visible;
+  transition: opacity .45s ease, box-shadow .45s ease, border-color .45s ease;
+}
+:where(body.sa-lesson) .sa-dstep.has-open { z-index: 20; }
+/* A step already worked steps back, so the eye stays on the new one. */
+:where(body.sa-lesson) .sa-dstep.is-past {
+  opacity: .5;
+  box-shadow: none;
+  border-color: color-mix(in srgb, var(--lavender-fill) 30%, #FFFFFF);
+}
+:where(body.sa-lesson) .sa-dstep__n {
+  display: grid;
+  place-items: center;
+  width: 1.5em;
+  height: 1.5em;
+  margin-top: .05em;
+  border-radius: 50%;
+  background: var(--lavender-border);
+  color: #FFFFFF;
+  font-size: .78em;
+  font-weight: 800;
+  box-shadow: 0 2px 0 color-mix(in srgb, var(--lavender-border) 60%, #1E1660);
+}
+:where(body.sa-lesson) .sa-dstep:not(.is-past) .sa-dstep__n { background: var(--part-radius); box-shadow: 0 2px 0 color-mix(in srgb, var(--part-radius) 60%, #6B3F00); }
+:where(body.sa-lesson) .sa-dstep__body { min-width: 0; }
+:where(body.sa-lesson) .sa-dstep__cap {
+  margin: 0 0 .25em;
+  font-size: .82em;
+  font-weight: 700;
+  color: var(--text-secondary);
+  line-height: 1.25;
+}
+:where(body.sa-lesson) .sa-dstep__eq {
+  margin: 0;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: .1em .12em;
+  font-size: 1em;
+  font-weight: 800;
+  line-height: 1.2;
+}
+:where(body.sa-lesson) .sa-dstep__bit { display: inline-flex; align-items: center; white-space: nowrap; }
+:where(body.sa-lesson) .sa-dstep__eq .frac { font-size: .88em; }
+
+/* The 360 one-degree sectors: hair-fine spokes. */
+:where(body.sa-lesson) .s-spokes .s-fine { stroke: var(--mint-border); stroke-width: .9; stroke-opacity: .7; }
+
+/* The formula on its own, larger. */
+:where(body.sa-lesson) .sa-rule.sa-rule--hero { font-size: 1.15em; padding: .9em 1.8em 1em; }
+
+/* Try it: a line of its own under the formula. */
+:where(body.sa-lesson) .sa-try {
+  display: flex;
+  align-items: center;
+  gap: .6em;
+  margin: 1em 0 0;
+  padding: .45em 1em .5em .5em;
+  border: 1.5px dashed color-mix(in srgb, var(--part-centre) 45%, #FFFFFF);
+  border-radius: 999px;
+  background: color-mix(in srgb, #FFFFFF 80%, transparent);
+  font-weight: 800;
+}
+:where(body.sa-lesson) .sa-try__tag {
+  padding: .15em .7em .2em;
+  border-radius: 999px;
+  background: var(--part-centre);
+  color: #FFFFFF;
+  font-size: .8em;
+}
+:where(body.sa-lesson) .sa-try__eq { display: flex; align-items: center; gap: 0 .15em; white-space: nowrap; font-variant-numeric: tabular-nums; }
+
+/* Which is a sector? -- the look before the question, and the marks that
+   define each part, lit as they are named. */
+:where(body.sa-lesson) .sa-card.is-look {
+  border-color: var(--lavender-fill);
+  box-shadow: inset 0 1px 0 #FFFFFF, 0 0 0 .22em color-mix(in srgb, var(--lavender-fill) 30%, transparent),
+              0 .6em 1.4em rgba(63, 42, 138, .16);
+}
+:where(body.sa-lesson) .sa-card.is-named { opacity: 1 !important; }
+:where(body.sa-lesson) .s-chord.is-defining,
+:where(body.sa-lesson) .s-radius.is-defining { stroke: var(--part-centre); filter: drop-shadow(0 0 4px color-mix(in srgb, var(--part-centre) 60%, transparent)); }
+:where(body.sa-lesson) .s-arc.is-defining,
+:where(body.sa-lesson) .s-arcpiece.is-defining { filter: drop-shadow(0 0 5px currentColor); stroke-width: 7; }
+:where(body.sa-lesson) .s-arc.is-defining { opacity: 1 !important; stroke: var(--part-centre); }
+:where(body.sa-lesson) .s-seg--minor { --focus: var(--yellow-border); }
+:where(body.sa-lesson) .s-seg.is-flash2 { animation: sa-focus 1.3s ease-in-out 2; }
+:where(body.sa-lesson) .sa-result--two { align-items: flex-start; white-space: normal; }
+:where(body.sa-lesson) .sa-result--two .sa-result__tick { margin-top: .15em; }
+:where(body.sa-lesson) .sa-result__lines { display: flex; flex-direction: column; gap: .2em; }
+:where(body.sa-lesson) .sa-result__txt, :where(body.sa-lesson) .sa-result__sub { white-space: nowrap; display: flex; align-items: center; gap: 0 .1em; }
+:where(body.sa-lesson) .sa-result__sub { font-size: .72em; font-weight: 700; color: var(--text-secondary); }
+/* Short symbol answers set larger, so the tiles do not look empty. */
+:where(body.sa-lesson) .sa-qslot--big .choice.sa-opt { font-size: clamp(18px, min(4vh, 2.8vw), 38px); padding-block: .4em .45em; }
+:where(body.sa-lesson) .s-over-lbl { font-size: 22px; fill: var(--text-primary); }
+
+/* The angle's value while it is a number that changes: its own violet, in
+   the working and on the figure alike. */
+:where(body.sa-lesson) .c-val { color: #7C3AED; }
+:where(body.sa-lesson) .lbl.is-val { fill: #7C3AED; }
+:where(body.sa-lesson) .s-angle.is-val { stroke: #7C3AED; }
+
+/* ---- Worked example: given and formula set out above the steps ---------- */
+:where(body.sa-lesson) .sa-wk { display: flex; flex-direction: column; gap: .7em; min-width: 0; padding-left: 3%; }
+:where(body.sa-lesson) .sa-wk .steps { padding-left: 0; gap: .45em; }
+:where(body.sa-lesson) .sa-wk .step { min-height: 2.15em; }
+:where(body.sa-lesson) .sa-wk__head {
+  display: flex;
+  flex-direction: column;
+  gap: .3em;
+  padding: .55em 1em .6em;
+  border: 1.5px solid color-mix(in srgb, var(--lavender-fill) 50%, #FFFFFF);
+  border-radius: .9em;
+  background: linear-gradient(180deg, #FFFFFF 0%, #F7F3FF 100%);
+  box-shadow: 0 .3em .8em rgba(63, 42, 138, .08);
+  align-self: flex-start;
+}
+:where(body.sa-lesson) .sa-wk__given, :where(body.sa-lesson) .sa-wk__formula { margin: 0; display: flex; align-items: center; gap: 0 .15em; white-space: nowrap; }
+:where(body.sa-lesson) .sa-wk__given b, :where(body.sa-lesson) .sa-wk__formula b { color: var(--lavender-border); margin-right: .35em; }
+:where(body.sa-lesson) .sa-wk .sa-work__bit { display: inline-flex; align-items: center; }
+
+/* The footer band lies over the bottom of the stage. Empty, it must not
+   take the taps meant for what reaches into it -- an open dropdown menu,
+   most of all -- so only the answers inside it are hit. */
+.sa-lesson .board__bottom { pointer-events: none; }
+.sa-lesson .board__bottom .choice { pointer-events: auto; }
+/* And an open menu is drawn over the band, not under it. */
+.sa-lesson .board__stage:has(.dd.is-open) { z-index: 5; }
+:where(body.sa-lesson) .sa-panel--centre > .sa-wk__head { align-self: center; margin-bottom: .2em; }
+:where(body.sa-lesson) .s-whole { fill: color-mix(in srgb, var(--wrong-fill) 45%, #FFFFFF); pointer-events: none; }
+:where(body.sa-lesson) .s-dia-dash { fill: none; stroke: var(--part-radius); stroke-width: 2.5; stroke-dasharray: 6 5; stroke-linecap: round; }
+:where(body.sa-lesson) .sa-cmp__work { flex-direction: column; gap: .3em; }
+:where(body.sa-lesson) .sa-cmp__row { display: flex; align-items: center; gap: 0 .1em; white-space: nowrap; }
+:where(body.sa-lesson) .s-turn { fill: none; stroke: #7C3AED; stroke-width: 4; filter: drop-shadow(0 0 6px #A78BFA); pointer-events: none; }
+:where(body.sa-lesson) .s-angle--major { --focus: var(--lavender-border); }
+:where(body.sa-lesson) .lbl--major { --focus: var(--lavender-border); }
+
+/* ==========================================================================
+   DESIGN PASS
+   --------------------------------------------------------------------------
+   One visual system over every screen: three meaning colours, a clearer
+   hierarchy of type, consistent cards, badges and feedback. Everything in
+   this block overrides what is above it; the files in backup-before-design/
+   are the lesson as it was before it.
+   ========================================================================== */
+.sa-lesson {
+  /* meaning colours: angle, radius, answer -- everything else is ink */
+  --ink-main: var(--text-primary);
+  --sa-angle: #D6247F;
+  --sa-radius: #C27306;
+  --sa-answer: #14833A;
+  --right-border: #16A34A;
+  --right-fill: #6EE7A0;
+  /* the minor sector a cool aqua, the major a warm sand: neither is the
+     green of a right answer nor the red of a wrong one */
+  --sa-minor:      #9EE6EF;
+  --sa-minor-lit:  #6FD6E4;
+  --sa-minor-edge: #0E8FA3;
+  --sa-major:      #FBE3BF;
+  --sa-major-lit:  #F7CF92;
+  --sa-major-edge: #C98A2E;
+  /* the circle's own wash, lighter, so it stands off the lavender board */
+  --part-circle-fill: #EEEDFF;
+  --part-circle-fill-deep: #E6E4FF;
+  /* the Next disc in the brand violet, apart from every figure colour */
+  --next-rim:    #4C3BC9;
+  --next-face-1: #A99BFF;
+  --next-face-2: #7B68F0;
+  --next-face-3: #5E4BDB;
+  /* one shadow for every card */
+  --sa-card-shadow: 0 .35em .9em rgba(63, 42, 138, .12), 0 .08em .2em rgba(63, 42, 138, .08);
+  --sa-fs: clamp(15px, calc(var(--board-w) * .0218), 36px);
+}
+
+/* ---- maths ink: only three colours carry meaning ---------------------- */
+.sa-lesson .c-a, .sa-lesson .c-pi { color: var(--ink-main); }
+.sa-lesson .c-val { color: var(--sa-angle); }
+.sa-lesson .c-ang { color: var(--sa-angle); }
+.sa-lesson .c-r   { color: var(--sa-radius); }
+.sa-lesson .c-ans { color: var(--sa-answer); }
+.sa-lesson .lbl.is-val { fill: var(--sa-angle); }
+.sa-lesson .s-angle.is-val { stroke: var(--sa-angle); }
+.sa-lesson .lbl--pi, .sa-lesson .lbl--area { fill: var(--ink-main); }
+/* the centre is a point, not an angle: navy, not magenta */
+.sa-lesson .sa-fig .centre__dot,
+.sa-lesson .sa-card__fig .centre__dot,
+.sa-lesson .sa-cmp__fig .centre__dot { fill: var(--text-primary); }
+/* one yellow: the segment card takes the bubble's cream-gold */
+.sa-lesson .s-seg--minor { fill: #FFE6A6; }
+.sa-lesson .s-seg--minor.is-focus { fill: #FFD777; }
+/* the circle's rim a touch stronger, so a pale circle never fades out */
+.sa-lesson .figure__rim { stroke-width: 3; }
+
+/* ---- type: a hierarchy of weight and size -------------------------------- */
+.sa-lesson .sa-scene { font-weight: 700; }
+.sa-lesson .prompt__line { font-size: clamp(17px, 3.6vh, 34px); font-weight: 800; }
+.sa-lesson .prompt__mascot { height: 135%; }
+.sa-lesson .sa-dstep__cap,
+.sa-lesson .sa-soft { font-weight: 600; }
+.sa-lesson .sa-dstep__cap { font-size: .86em; color: color-mix(in srgb, var(--text-secondary) 85%, #000); }
+.sa-lesson .c-ans,
+.sa-lesson .sa-work__row.is-answer .sa-work__r,
+.sa-lesson .sa-result__txt { font-weight: 800; }
+/* fractions: larger digits and a clearer bar */
+.sa-lesson .frac { font-size: .98em; margin: 0 .16em; }
+.sa-lesson .frac__n { border-bottom-width: .1em; padding: 0 .2em .08em; }
+.sa-lesson .frac__d { padding: .08em .2em 0; }
+.sa-lesson .choice.sa-opt .frac { font-size: .9em; }
+/* small caps tags: larger and darker */
+.sa-lesson .sa-rule__tag { font-size: .84em; color: #4A36C2; letter-spacing: .05em; }
+.sa-lesson .sa-wk__given b, .sa-lesson .sa-wk__formula b { color: #4A36C2; }
+
+/* ---- labels on the figures: larger, with a soft white halo ---------------- */
+.sa-lesson .lbl { font-size: 24px; stroke-width: 6px; }
+.sa-lesson .lbl--big { font-size: 32px; }
+.sa-lesson .lbl--along { font-size: 21px; }
+.sa-lesson .lbl--soft { font-size: 20px; }
+.sa-lesson .s-found-lbl { font-size: 23px; stroke: rgba(255, 255, 255, .92); stroke-width: 9px; }
+.sa-lesson .s-found-lbl--fan { font-size: 28px; }
+
+/* ---- faded things stay readable ------------------------------------------- */
+.sa-lesson .sa-dstep.is-past { opacity: .7; }
+.sa-lesson .choice.is-out { opacity: .6 !important; filter: grayscale(.6); }
+.sa-lesson .choice.is-done:not(.is-right) { opacity: .62 !important; }
+.sa-lesson .sa-card.is-tried { opacity: .65 !important; filter: grayscale(.5); }
+.sa-lesson .sa-card.is-done:not(.is-right) { opacity: .62 !important; }
+.sa-lesson .dd__opt.is-out { opacity: .5; }
+
+/* ---- layout: the figure always on the left, the working on the right ------ */
+.sa-lesson .sa-scene--work { grid-template-columns: minmax(0, 1fr) minmax(0, 1.25fr); gap: 3%; }
+.sa-lesson .sa-scene--work > .sa-fig-wrap { order: -1; }
+.sa-lesson .sa-scene--work > .sa-wk,
+.sa-lesson .sa-scene--work > .steps { padding-left: 0; padding-right: 3%; }
+.sa-lesson .sa-panel { justify-content: center; }
+
+/* ---- step badges: amber while worked, green once done --------------------- */
+.sa-lesson .step__badge,
+.sa-lesson .sa-dstep__n,
+.sa-lesson .sa-dstep:not(.is-past) .sa-dstep__n {
+  background: var(--part-radius);
+  box-shadow: 0 2px 0 color-mix(in srgb, var(--part-radius) 60%, #6B3F00);
+  color: #FFFFFF;
+}
+.sa-lesson .step.is-done .step__badge,
+.sa-lesson .sa-dstep.is-past .sa-dstep__n {
+  background: var(--right-border);
+  box-shadow: 0 2px 0 color-mix(in srgb, var(--right-border) 60%, #0B4A1A);
+}
+
+/* ---- one card make: white face, fine lavender rim, one shadow ------------- */
+.sa-lesson .sa-wk__head,
+.sa-lesson .sa-work,
+.sa-lesson .sa-workcard,
+.sa-lesson .sa-dstep,
+.sa-lesson .sa-result,
+.sa-lesson .sa-found__row,
+.sa-lesson .sa-try,
+.sa-lesson .sa-card,
+.sa-lesson .sa-cmp,
+.sa-lesson .board.has-given .prompt__line {
+  border: 1.5px solid color-mix(in srgb, var(--lavender-fill) 45%, #FFFFFF);
+  background: linear-gradient(180deg, #FFFFFF 0%, #F8F5FF 100%);
+  box-shadow: var(--sa-card-shadow);
+}
+.sa-lesson .sa-try { border-style: dashed; border-color: color-mix(in srgb, var(--sa-angle) 40%, #FFFFFF); }
+.sa-lesson .sa-card.is-right { border: 2px solid var(--right-border); }
+.sa-lesson .sa-card.is-wrong { border-color: var(--wrong-border); }
+.sa-lesson .sa-cmp.is-match { border-color: var(--right-border); }
+.sa-lesson .sa-workcard {
+  display: flex;
+  flex-direction: column;
+  gap: .7em;
+  padding: 1em 1.4em;
+  border-radius: 1.1em;
+  font-size: 1.05em;
+}
+.sa-lesson .board.has-given .prompt__line { border-radius: .9em; }
+
+/* ---- the dropdown: a clear "your turn" ------------------------------------ */
+.sa-lesson .dd__face {
+  min-width: 5em;
+  min-height: 2.05em;
+  border-width: .13em;
+  background: color-mix(in srgb, var(--lavender-fill) 12%, #FFFFFF);
+}
+.sa-lesson .dd.is-right .dd__face { background: color-mix(in srgb, var(--right-fill) 26%, #FFFFFF); }
+.sa-lesson .dd.is-wrong .dd__face { background: color-mix(in srgb, var(--wrong-fill) 26%, #FFFFFF); }
+
+/* ---- answer tiles in the footer (Which is bigger?) ----------------------- */
+.sa-lesson .board__bottom .choice.sa-opt { min-width: 9em; padding: .45em 1.2em .5em; }
+
+/* ---- the fan ------------------------------------------------------------- */
+.sa-lesson .s-fan-edge { stroke-width: 4.5; }
+
+/* ---- bubbles: one shape; feedback as a calm coloured stripe -------------- */
+.sa-lesson .sa-bubble,
+.sa-lesson .bubble:not(.bubble--aside) { border-radius: .7em; }
+.sa-lesson .sa-bubble.sa-bubble--sun.is-no,
+.sa-lesson .sa-bubble.sa-bubble--sun.is-yes {
+  --bubble-bg: #FFFFFF;
+  color: var(--text-primary);
+  padding-left: 1.4em;
+  padding-right: 1.9em;
+}
+.sa-lesson .sa-bubble.sa-bubble--sun.is-no {
+  --bubble-rim: #F2A7AB;
+  box-shadow: inset .42em 0 0 var(--wrong-border), 0 0 14px 2px rgba(232, 50, 58, .14), 0 10px 24px rgba(120, 20, 20, .1);
+}
+.sa-lesson .sa-bubble.sa-bubble--sun.is-yes {
+  --bubble-rim: #9FDDB4;
+  box-shadow: inset .42em 0 0 var(--right-border), 0 0 14px 2px rgba(22, 163, 74, .14), 0 10px 24px rgba(20, 90, 40, .1);
+}
+.sa-lesson .sa-bubble.sa-bubble--sun.is-no::before,
+.sa-lesson .sa-bubble.sa-bubble--sun.is-yes::before {
+  content: "\2717";
+  left: auto;
+  right: .55em;
+  top: .4em;
+  width: auto;
+  height: auto;
+  background: none;
+  transform: none;
+  font-size: .95em;
+  font-weight: 800;
+  color: var(--wrong-border);
+  opacity: 1;
+}
+.sa-lesson .sa-bubble.sa-bubble--sun.is-yes::before { content: "\2713"; color: var(--right-border); }
+
+/* ---- the finish: a banner in the welcome title's own make ---------------- */
+:where(body.sa-lesson) .sa-done {
+  position: absolute;
+  left: 50%;
+  bottom: 2.2%;
+  z-index: 7;
+  display: flex;
+  align-items: center;
+  gap: .7em;
+  padding: .5em .9em .5em .6em;
+  border: 2px solid #FFFFFF;
+  border-radius: 999px;
+  background: linear-gradient(180deg, #7B68F0 0%, #4C3BC9 100%);
+  box-shadow: 0 .4em 1.2em rgba(40, 24, 140, .35), 0 0 0 .3em rgba(255, 255, 255, .35);
+  translate: -50% 0;
+  font-family: var(--font-display);
+  font-size: var(--sa-fs);
+  white-space: nowrap;
+}
+:where(body.sa-lesson) .sa-done__badge {
+  display: grid;
+  place-items: center;
+  width: 1.7em;
+  height: 1.7em;
+  border-radius: 50%;
+  background: linear-gradient(180deg, #FFE69A, #F4B63C);
+  color: #8A4B00;
+  font-size: 1.05em;
+  box-shadow: inset 0 -.1em 0 rgba(0, 0, 0, .12);
+}
+:where(body.sa-lesson) .sa-done__title {
+  font-weight: 800;
+  font-size: 1.25em;
+  color: #FFFFFF;
+  text-shadow: 0 .06em 0 #2D1C96, 0 0 .4em rgba(160, 140, 255, .6);
+}
+:where(body.sa-lesson) .sa-done__again {
+  appearance: none;
+  border: 2px solid #FFFFFF;
+  border-radius: 999px;
+  padding: .3em 1em .35em;
+  background: linear-gradient(180deg, #FFFFFF, #EDE7FF);
+  color: #3B2E9E;
+  font: inherit;
+  font-weight: 800;
+  font-size: .9em;
+  cursor: pointer;
+  box-shadow: 0 3px 0 #B5A8F2;
+}
+:where(body.sa-lesson) .sa-done__again:hover { filter: brightness(1.04); }
+:where(body.sa-lesson) .sa-done__again:focus-visible { outline: 3px solid #FFFFFF; outline-offset: 2px; }
+
+/* Figure labels: a thin halo in the board's own lavender rather than white --
+   barely seen, but it still lifts a letter off a line it touches. */
+.sa-lesson .lbl { stroke: rgba(240, 236, 255, .7); stroke-width: 3px; }
+.sa-lesson .s-found-lbl { stroke: rgba(240, 236, 255, .6); stroke-width: 3.5px; }
+
+/* Equations in a column: every = lined up under the one above. */
+:where(body.sa-lesson) .sa-eqgrid {
+  display: grid;
+  grid-template-columns: auto auto 1fr;
+  gap: .6em .45em;
+  align-items: center;
+}
+.sa-lesson .sa-work__l { white-space: nowrap; }
+.sa-lesson .sa-work__r { flex-wrap: nowrap; }
+:where(body.sa-lesson) .sa-work__r.has-open { position: relative; z-index: 20; }
+/* Which is bigger?: each card's working lines start at one edge, with the
+   symbol before each = the same width, so the = signs fall in a column. */
+.sa-lesson .sa-cmp__work { align-items: flex-start; justify-self: center; }
+.sa-lesson .sa-cmp__row > .sa-work__bit:first-child { min-width: 2.1em; justify-content: flex-end; }
+/* Worked: major -- the left side of every step the same width, set to the
+   right, so each step's first = falls in one column. */
+.sa-lesson .sa-wk--align .step__body > :first-child {
+  display: inline-block;
+  min-width: 4.3em;
+  text-align: right;
+}
+/* the first worked example has only "A" on the left: a narrower column */
+.sa-lesson .sa-wk--align:not(:has(.step__body > .c-ang:first-child)) .step__body > :first-child { min-width: 1em; }

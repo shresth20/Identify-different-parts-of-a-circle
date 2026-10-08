@@ -65,8 +65,12 @@
 /* ---- The cards (page 1) -------------------------------------------------
    Each card rests at nothing; cardIn (segarea.js) brings it up and leaves
    it standing. Live -- a hand over it, a press on it -- only while the
-   question is open, and never once it has been pressed. */
-.sa-card {
+   question is open, and never once it has been pressed.
+     Skill 3 (sector-area.js) has cards and a centre of the same names, so
+   the three rules here that could reach them stand down while it plays
+   (body.sa-lesson). :where() weighs nothing: under this skill they are
+   exactly what they were. */
+:where(body:not(.sa-lesson)) .sa-card {
   opacity: 0;
   outline: none;
   cursor: default;
@@ -106,7 +110,7 @@
    A pale ring, the colour poured in a shade paler still. Both rest
    invisible; the beats reveal them. Nothing on the circle is a target:
    the press lands on the card. */
-.sa-card * { pointer-events: none; }
+:where(body:not(.sa-lesson)) .sa-card * { pointer-events: none; }
 .sa-card .sa-card__face { pointer-events: inherit; }
 .sa-rim {
   fill: none;
@@ -151,7 +155,7 @@
   stroke-linecap: round;
   opacity: 0;
 }
-.sa-centre {
+:where(body:not(.sa-lesson)) .sa-centre {
   fill: var(--part-centre);
   stroke: var(--board-highlight);
   stroke-width: 2;
