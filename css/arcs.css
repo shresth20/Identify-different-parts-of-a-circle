@@ -30,6 +30,23 @@
   --arc-weight: 7;
 }
 
+/* Skill 1's own arcs wear the major segment's pair from skill 4 (--sa-arc-
+   major and --sa-arc-blue in segarea.css): violet for the larger, sky blue
+   for the smaller. Scoped to this section's figure, because skill 2's arcs
+   (arclen, circum, central, practice) read the same variables and keep
+   theirs. The words are set a step deeper than the strokes, to read as
+   text on the pale board. */
+.figure__arcs {
+  --part-arc-minor: #38B6F5;
+  --part-arc-major: #A35CF0;
+  --part-arc-minor-ink: #1E96D8;
+  --part-arc-major-ink: #9B51F5;
+  /* Name the arcs (page 7) wears the same pair as the page before it,
+     rather than a pair of its own. */
+  --part-arc-minor-quiz: var(--part-arc-minor);
+  --part-arc-major-quiz: var(--part-arc-major);
+}
+
 /* The figure is pressed and dragged on in this section -- points placed on
    the rim, points slid along it -- and a browser that takes a finger on it
    for a scroll cancels the pointer mid-gesture. The page never scrolls, so
@@ -55,10 +72,11 @@
 }
 
 /* ---- The glow -----------------------------------------------------------
-   While a point is being picked the rim breathes: a wide indigo stroke under
-   it, blurred to a haze, brightening and dimming. Opacity alone, so the
-   filtered circle is rasterised once and only composited after. It rests at
-   nothing and stops the moment the second point is down. */
+   Off in this section: the arcs' circle does not glow at all while its
+   points are picked -- the plain rim and the instruction are the cue. The
+   element stays at rest at nothing. The keyframes below are still the ones
+   the later sections' rims breathe with (central, segments, sectors,
+   segarea). */
 .arc-glow {
   fill: none;
   stroke: var(--part-circle);
@@ -66,9 +84,6 @@
   opacity: 0;
   filter: url(#arcGlowBlur);
   pointer-events: none;
-}
-.figure__arcs.is-picking .arc-glow {
-  animation: arc-glow 1.7s ease-in-out infinite;
 }
 @keyframes arc-glow {
   0%, 100% { opacity: .14; }
@@ -184,16 +199,6 @@
   opacity: 0;
 }
 
-/* ---- Reduced motion -----------------------------------------------------
-   The blanket rule in animations.css would run the glow's loop once, in a
-   hundredth of a second, and leave it dark. Stated outright instead: the
-   rim is lit, it just does not breathe. */
-@media (prefers-reduced-motion: reduce) {
-  .figure__arcs.is-picking .arc-glow {
-    animation: none !important;
-    opacity: .4;
-  }
-}
 
 /* ---- Labels and callouts ------------------------------------------------
    "Arc" set beside a piece, and the callouts that name the two pieces at
@@ -374,4 +379,20 @@
   color: var(--part-circle);
   -webkit-text-stroke: .025em currentColor;
   paint-order: stroke fill;
+}
+
+/* ---- The semicircle's central angle ------------------------------------
+   A small arc round the centre over the diameter, and "180°" above it.
+   Both rest invisible; growLine and labelIn bring them in. */
+.arc-angle {
+  fill: none;
+  stroke: var(--text-primary);
+  stroke-width: 2.6;
+  stroke-linecap: round;
+  opacity: 0;
+}
+.arc-angle__label {
+  fill: var(--text-primary);
+  font-size: 22px;
+  opacity: 0;
 }

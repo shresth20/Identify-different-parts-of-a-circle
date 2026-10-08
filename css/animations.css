@@ -92,6 +92,21 @@
   0%, 100% { opacity: 0;   transform: scale(.72); }
   50%      { opacity: .85; transform: scale(1.22); }
 }
+/* Named by the voice, not asked for: the same halo held small and soft
+   round the dot, so the dot keeps its size and the light stays thin. It
+   breathes in opacity only; centreUnglow (animations.js) fades it out at
+   the same size (.is-glow-out). */
+.figure__centre.is-glowing .centre__glow,
+.figure__centre.is-glow-out .centre__glow {
+  transform: scale(.5);
+}
+.figure__centre.is-glowing .centre__glow {
+  animation: dot-glow-soft 1.6s ease-in-out infinite;
+}
+@keyframes dot-glow-soft {
+  0%, 100% { opacity: 0; }
+  50%      { opacity: .55; }
+}
 /* Answered: the halo settles to a quiet ring instead of stopping dead. It
    is then faded off by quietCentre in animations.js. */
 .figure__centre.is-found .centre__glow {
@@ -234,6 +249,11 @@
     animation: none !important;
     opacity: .6;
     transform: scale(1);
+  }
+  /* ...and the soft glow the voice names it under: lit, small, steady. */
+  .figure__centre.is-glowing .centre__glow {
+    animation: none !important;
+    opacity: .45;
   }
   /* The same for the lit rim: lit, steadily. */
   .rim-light.is-lit .rim-light__glow { animation: none !important; }

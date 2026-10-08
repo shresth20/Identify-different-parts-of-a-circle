@@ -203,6 +203,11 @@
                     x="579" y="246" text-anchor="middle">Radius</text>
               <text class="figure-label dia__r" id="rLabelLeft"
                     x="421" y="246" text-anchor="middle">Radius</text>
+              <!-- The diameter's name, written under the line it names
+                   once the voice has said it (sceneParts, page 4). -->
+              <text class="figure-label dia__name" id="diaName"
+                    x="500" y="246" text-anchor="middle"
+                    data-i18n="s1LblDiameter">Diameter</text>
               <!-- The rule the merge has just shown, set under the circle
                    once the halves are one line. Each name in the colour of
                    the line it names -- the diameter's blue, the radius's
@@ -224,9 +229,9 @@
             <g class="figure__quiz" id="quiz" hidden></g>
 
             <g class="figure__centre" id="centre" hidden>
-              <circle class="centre__glow" cx="500" cy="210" r="30" />
-              <circle class="centre__dot"  cx="500" cy="210" r="7" />
-              <!-- A finger-sized hit area over a 14px dot. -->
+              <circle class="centre__glow" cx="500" cy="210" r="22" />
+              <circle class="centre__dot"  cx="500" cy="210" r="5" />
+              <!-- A finger-sized hit area over a 10px dot. -->
               <circle class="centre__hit"  id="centreHit" cx="500" cy="210" r="34"
                       role="button" tabindex="0"
                       aria-label="Tap the dot at the centre of the circle" />
@@ -510,10 +515,10 @@
                 <path class="arc-piece arc-piece--major" id="qzArcMajor" d="" />
                 <path class="arc-piece arc-piece--minor" id="qzArcMinor" d="" />
                 <g class="figure__centre is-quiet" id="qzCentre" hidden>
-                  <circle class="centre__dot" id="qzCentreDot" cx="500" cy="210" r="7" />
+                  <circle class="centre__dot" id="qzCentreDot" cx="500" cy="210" r="5" />
                 </g>
-                <circle class="arc-dot" id="qzPointA" cx="500" cy="52" r="6.5" />
-                <circle class="arc-dot" id="qzPointB" cx="500" cy="52" r="6.5" />
+                <circle class="arc-dot" id="qzPointA" cx="500" cy="52" r="4.5" />
+                <circle class="arc-dot" id="qzPointB" cx="500" cy="52" r="4.5" />
               </g>
               <!-- The one box, and the leader that ties it to the part it
                    asks about -- built afresh by quiz.js for each part.

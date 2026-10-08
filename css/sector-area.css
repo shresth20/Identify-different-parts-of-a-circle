@@ -1647,11 +1647,6 @@ body.sa-lesson .board { --row-bottom: 13% !important; }
   /* the circle's own wash, lighter, so it stands off the lavender board */
   --part-circle-fill: #EEEDFF;
   --part-circle-fill-deep: #E6E4FF;
-  /* the Next disc in the brand violet, apart from every figure colour */
-  --next-rim:    #4C3BC9;
-  --next-face-1: #A99BFF;
-  --next-face-2: #7B68F0;
-  --next-face-3: #5E4BDB;
   /* one shadow for every card */
   --sa-card-shadow: 0 .35em .9em rgba(63, 42, 138, .12), 0 .08em .2em rgba(63, 42, 138, .08);
   --sa-fs: clamp(15px, calc(var(--board-w) * .0218), 36px);

@@ -255,7 +255,11 @@
        One proxy drives every layer, so the head and its trail cannot drift
      apart; the ease is gentle at both ends and even through the middle,
      which is what reads as something travelling rather than being thrown. */
-  function rimRun(run, seconds) {
+  /* `opts.laps` makes it a current instead: the light flows round at an
+     even speed, that many times, for `seconds`. Each dash then repeats
+     every rim (its gap is the rest of the rim), so the light passes twelve
+     o'clock without a seam; it fades in where it is and out where it ends. */
+  function rimRun(run, seconds, opts) {
     var paths = Array.prototype.slice.call(run.querySelectorAll('path'));
     var len = pathLength(paths[0]) || 1;
     var tails = paths.map(function (p) {
@@ -263,6 +267,29 @@
     });
     function place(h) {
       paths.forEach(function (p, i) { p.style.strokeDashoffset = tails[i] - h; });
+    }
+    var laps = opts && opts.laps;
+    if (laps) {
+      paths.forEach(function (p, i) {
+        p.style.strokeDasharray = tails[i] + ' ' + Math.max(1, len - tails[i]);
+      });
+      place(0);
+      var flow = { h: 0 };
+      var cur = M.timeline({
+        willChange: run, willChangeValue: 'opacity',
+        revert: function () {
+          undash(paths);
+          M.set(run, { clearProps: 'opacity' });
+        }
+      });
+      cur.fromTo(run, { opacity: 0 }, { opacity: 1, duration: M.dur(0.35), ease: 'power2.out' }, 0)
+        .to(flow, {
+          h: len * laps, duration: M.dur(seconds), ease: 'none',
+          onUpdate: function () { place(flow.h); }
+        }, 0)
+        .to(run, { opacity: 0, duration: M.dur(0.45), ease: 'power2.in' },
+            M.gap(Math.max(0, seconds - 0.45)));
+      return cur;
     }
     paths.forEach(function (p, i) {
       p.style.strokeDasharray = tails[i] + ' ' + (len + tails[i]);
@@ -327,6 +354,31 @@
     return M.correct(dot);
   }
 
+  /* The dot glowing while it is named, without asking for a tap: a thin,
+     soft halo held close to the dot (.is-glowing, animations.css), so the
+     dot keeps its size. A loop of unknown length, so a class. */
+  function centreGlow(group) {
+    group.classList.add('is-glowing');
+  }
+
+  /* ...and put out from whatever brightness it has reached: the breath's
+     opacity is taken onto the halo before the class goes, then eased off. */
+  function centreUnglow(group, glow) {
+    var from = getComputedStyle(glow).opacity;
+    group.classList.remove('is-glowing');
+    group.classList.add('is-glow-out');
+    M.set(glow, { opacity: from });
+    var tl = M.timeline({
+      willChange: glow, willChangeValue: 'opacity',
+      revert: function () {
+        group.classList.remove('is-glow-out');
+        M.set(glow, { clearProps: 'opacity' });
+      }
+    });
+    tl.to(glow, { opacity: 0, duration: M.dur(0.42), ease: 'power2.in' });
+    return tl;
+  }
+
   /* Named, and done asking: the halo fades and the dot is left as a plain
      point on the diagram -- the same state a `call: false` plant lands in. */
   function quietCentre(group, glow) {
@@ -367,17 +419,76 @@
     M.set([arrow, head], { opacity: 1 });
     M.set(label, { opacity: 0, scale: 0.72, transformOrigin: '0% 60%' });
 
+    /* The shaft is dashed (.mark__arrow), and a dashed line cannot be
+       drawn with the dash trick -- the trick IS a dash pattern -- so it is
+       drawn through a mask, as the activity's leaders are (see boxIn): a
+       solid path over the same curve is stroked out from the label, and
+       the dashes show wherever it has reached. */
+    var reveal = dashedShaft(arrow);
+
     var tl = M.timeline({
       willChange: label, willChangeValue: 'transform, opacity',
-      revert: function () { undash([arrow, head]); }
+      revert: function () { undash([arrow, head, reveal]); }
     });
-    stroke(tl, arrow, 0, 0.46 * k, 'power2.inOut');
+    stroke(tl, reveal, 0, 0.46 * k, 'power2.inOut');
     stroke(tl, head, 0.38 * k, 0.16 * k, 'power2.out');
     tl.to(label, {
       opacity: 1, scale: 1,
       duration: M.dur(0.32 * k), ease: k > 1 ? 'back.out(1.2)' : 'back.out(1.7)'
     }, M.gap(0.5 * k));
     return tl;
+  }
+
+  /* The mask a callout's dashed shaft is drawn through, made the first time
+     that arrow is aimed and kept on it after. The callers write the shaft
+     from the label to the tip; it is turned round here so its dash pattern
+     starts AT the tip -- a dash always meets the head, whatever the length
+     -- while the mask keeps the label-to-tip direction the stroke is drawn
+     in. Hands back the mask's path. */
+  var shaftMasks = 0;
+
+  function reverseQuad(d) {
+    var n = String(d).replace(/[MQ,]/g, ' ').trim().split(/\s+/).map(Number);
+    if (n.length !== 6 || n.some(isNaN)) return d;
+    return 'M' + n[4] + ' ' + n[5] + ' Q' + n[2] + ' ' + n[3] + ' ' + n[0] + ' ' + n[1];
+  }
+
+  function dashedShaft(arrow) {
+    var NS = 'http://www.w3.org/2000/svg';
+    if (!arrow.__mask) {
+      var svg = arrow.ownerSVGElement;
+      /* a defs of their own, straight under the picture: the first one in
+         it may be inside a section's group, hidden while that section is */
+      var defs = svg.querySelector('#shaftDefs');
+      if (!defs) {
+        defs = svg.insertBefore(document.createElementNS(NS, 'defs'), svg.firstChild);
+        defs.setAttribute('id', 'shaftDefs');
+      }
+      var id = 'shaftMask' + (++shaftMasks);
+      var mask = document.createElementNS(NS, 'mask');
+      mask.setAttribute('id', id);
+      mask.setAttribute('maskUnits', 'userSpaceOnUse');
+      /* the whole picture and well past it: a level shaft's own box has no
+         height for a mask to be measured against, and the circle the
+         callout is on may have been slid aside */
+      mask.setAttribute('x', -1000); mask.setAttribute('y', -1000);
+      mask.setAttribute('width', 3000); mask.setAttribute('height', 3000);
+      var path = document.createElementNS(NS, 'path');
+      path.setAttribute('class', 'mark__arrow-mask');
+      mask.appendChild(path);
+      defs.appendChild(mask);
+      arrow.setAttribute('mask', 'url(#' + id + ')');
+      arrow.__mask = path;
+    }
+    /* the shaft as the caller wrote it -- label to tip -- unless it is still
+       the turned-round one from the last aim */
+    var d = arrow.getAttribute('d');
+    if (arrow.__rev && d === arrow.__rev) d = arrow.__fwd;
+    arrow.__fwd = d;
+    arrow.__rev = reverseQuad(d);
+    arrow.setAttribute('d', arrow.__rev);
+    arrow.__mask.setAttribute('d', d);
+    return arrow.__mask;
   }
 
   /* And taken away again, as one thing. The group is hidden and every inline
@@ -663,6 +774,55 @@
       stroke(tl, it.line, at + 0.2, 0.46, 'power2.out');
       at += CHORD_STEP;
     });
+    return tl;
+  }
+
+  /* A chord carried straight up (or down) the circle until it is at
+     `o.to`, its two points riding the rim and the line lengthening between
+     them -- then, on arrival, taking the diameter's colour.
+       Transforms only. The line that moves is pages.js's lift: a level line
+     wider than the circle, clipped to the disc, so carrying it up is a plain
+     translate and the circle cuts it to the right chord at every height.
+     It takes over from the drawn chord (`o.solid`) in the first frame --
+     same place, same ink, so the swap is not seen. The two points are
+     translated along the rim from a proxy, read once per frame; everything
+     about where the rim is was worked out before the tween starts.
+       o.lines   [the chord's line, the diameter-coloured copy over it]
+       o.ends    the chord's two points, left then right
+       o.from/to the chord's height now, and where it stops (picture units)
+       o.cy/r    the circle's centre height and radius */
+  function liftChord(o) {
+    var r2 = o.r * o.r;
+    var h0 = o.from - o.cy;
+    var x0 = Math.sqrt(Math.max(0, r2 - h0 * h0));
+    var rise = o.to - o.from;
+    var all = o.lines.concat(o.ends);
+
+    M.set(o.lines[0], { opacity: 1 });
+    M.set(o.lines[1], { opacity: 0 });
+    M.set(o.solid, { opacity: 0 });
+
+    var pen = { t: 0 };
+    var tl = M.timeline({ willChange: all, willChangeValue: 'transform' });
+    tl.to(pen, {
+      t: 1, duration: M.dur(o.seconds || 2), ease: 'sine.inOut',
+      onUpdate: function () {
+        var y = rise * pen.t;
+        var h = h0 + y;
+        var half = Math.sqrt(Math.max(0, r2 - h * h));
+        M.set(o.lines, { y: y });
+        M.set(o.ends[0], { x: x0 - half, y: y });
+        M.set(o.ends[1], { x: half - x0, y: y });
+      }
+    }, 0);
+    /* Arrived: the line takes the diameter's ink and its points give one
+       pop, so the stop is felt as well as seen. */
+    var end = (o.seconds || 2);
+    tl.call(pop, null, M.gap(end));
+    tl.to(o.lines[1], { opacity: 1, duration: M.dur(0.45), ease: 'power2.out' }, M.gap(end));
+    tl.to(o.ends, { scale: 1.4, transformOrigin: 'center center',
+                    duration: M.dur(0.16), ease: 'power2.out' }, M.gap(end))
+      .to(o.ends, { scale: 1, duration: M.dur(0.34), ease: M.POP }, M.gap(end + 0.16));
     return tl;
   }
 
@@ -1179,19 +1339,29 @@
   /* The pieces pulled apart, and put back. Each slides a little way out
      along its own middle -- `away` is one {x, y} per path -- and the gap
      that opens between them is what "two pieces" means. */
-  function arcSplit(paths, away) {
+  function arcSplit(paths, away, fade) {
     var tl = M.timeline({ willChange: paths, willChangeValue: 'transform' });
     paths.forEach(function (p, i) {
       tl.to(p, { x: away[i].x, y: away[i].y, duration: M.dur(0.55), ease: 'power2.out' }, 0);
     });
+    /* `fade`: marks that go as the pieces part -- the points between them,
+       so the gap reads as a gap and not as two dots on a ring. */
+    if (fade && fade.length) {
+      tl.to(fade, { opacity: 0, duration: M.dur(0.3), ease: 'power2.in' }, 0);
+    }
     return tl;
   }
-  function arcJoin(paths) {
+  /* `show`: marks that come back as the pieces close -- the points arcSplit
+     faded -- landing once the circle is whole again. */
+  function arcJoin(paths, show) {
     var tl = M.timeline({
       willChange: paths, willChangeValue: 'transform',
       revert: function () { M.set(paths, { clearProps: 'transform' }); }
     });
     tl.to(paths, { x: 0, y: 0, duration: M.dur(0.5), ease: 'power2.inOut' });
+    if (show && show.length) {
+      tl.to(show, { opacity: 1, duration: M.dur(0.3), ease: 'power2.out' }, M.gap(0.35));
+    }
     return tl;
   }
 
@@ -1681,12 +1851,14 @@
      secFill), because the region has to be SEEN to be made. */
   var QZ_DIM = 0.18;
 
-  function quizFocus(on, off, arcs) {
+  /* `dim`, if given, is how far `off` stands back (QZ_DIM otherwise). */
+  function quizFocus(on, off, arcs, dim) {
     var tl = M.timeline({
       willChange: on.concat(off), willChangeValue: 'opacity',
       revert: function () { if (arcs && arcs.length) unswell(arcs); }
     });
-    if (off.length) tl.to(off, { opacity: QZ_DIM, duration: M.dur(0.45), ease: 'power2.inOut' }, 0);
+    if (off.length) tl.to(off, { opacity: dim != null ? dim : QZ_DIM,
+                                 duration: M.dur(0.45), ease: 'power2.inOut' }, 0);
     if (on.length) tl.to(on, { opacity: 1, duration: M.dur(0.35), ease: 'power2.out' }, 0);
     if (arcs && arcs.length) swell(tl, arcs, 0.12);
     return tl;
@@ -1752,7 +1924,38 @@
     return tl;
   }
 
+  /* ---- the figure's own speed -------------------------------------------
+     How fast the picture is made, apart from everything around it: the
+     circle drawn, its points and lines put on, its pieces swept, filled,
+     lit and slid. A section sets it (pages.js does, per skill) and every
+     figure beat's timeline is played at that rate -- the whole timeline,
+     so its eases and the spacing inside it are kept and it is the same
+     motion, only quicker. The bird, the bubbles and the controls are not
+     figure beats and keep their own pace. */
+  var figSpeed = 1;
+  function figure(beat) {
+    return function () {
+      var tl = beat.apply(null, arguments);
+      if (figSpeed !== 1 && tl && typeof tl.timeScale === 'function') tl.timeScale(figSpeed);
+      return tl;
+    };
+  }
+  var FIGURE_BEATS = [
+    'drawRim', 'fillDisc', 'rimLight', 'rimUnlight', 'rimRun',
+    'plantCentre', 'confirmCentre', 'quietCentre', 'callout', 'calloutOut',
+    'plotDot', 'growLine', 'radiusSweep', 'marksOut', 'copyRadius',
+    'joinDiameter', 'showRule', 'drawChords', 'liftChord', 'plotPart', 'dimPair',
+    'showParts', 'clearFigure',
+    'arcSweep', 'arcPulse', 'arcSplit', 'arcJoin', 'arcFocus', 'arcUnfocus',
+    'labelIn', 'labelsOut', 'dashedIn', 'turnArcs', 'slideArcs', 'snapDot',
+    'arcsEqual', 'areaIn', 'areaPulse', 'rimTo', 'rimFull', 'segFill',
+    'segReveal', 'linePulse', 'segFocus', 'segUnfocus', 'secFill', 'secSweep',
+    'fillOut'
+  ];
+
   global.Beats = {
+    /* 1 as written; 1.4 makes every figure beat 1.4 times as quick */
+    figureSpeed: function (s) { figSpeed = s > 0 ? s : 1; },
     sfx: sfx,
     pop: pop,
     boardIn: boardIn,
@@ -1767,6 +1970,8 @@
     plantCentre: plantCentre,
     callCentre: callCentre,
     confirmCentre: confirmCentre,
+    centreGlow: centreGlow,
+    centreUnglow: centreUnglow,
     quietCentre: quietCentre,
     /* the callout */
     callout: callout,
@@ -1783,6 +1988,7 @@
     joinDiameter: joinDiameter,
     showRule: showRule,
     drawChords: drawChords,
+    liftChord: liftChord,
     /* the activity */
     plotPart: plotPart,
     boxIn: boxIn,
@@ -1854,4 +2060,7 @@
     fillOut: fillOut,
     confetti: confetti
   };
+  FIGURE_BEATS.forEach(function (name) {
+    global.Beats[name] = figure(global.Beats[name]);
+  });
 })(window);

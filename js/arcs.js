@@ -48,26 +48,19 @@
   }
   var K = Pages.kit;
 
-  /* ---- the script ------------------------------------------------------- */
-  var LINES = {
-    intro: 'Let’s explore more parts of the circle.',
-    pick:  'Tap any two points on the circle.',
-    arcs:  'Circumference is divided into two pieces, each piece is called an arc.',
+  /* ---- the script -------------------------------------------------------
+     The first scene's lines are read by key from locales/locales.json
+     (arc...), each with the recording filed under the same key. */
+  function T(key) { return global.T ? global.T(key) : key; }
+  function keyed(key) { return { text: T(key), vo: key }; }
+  /* A line's recording, for a line typed somewhere speak() does not reach
+     -- the speech card. Not under Skip: nothing is heard in a skip. */
+  function voice(key) {
+    if (global.I18n && !Flow.isFast()) K.quiet(global.I18n.say(key));
+  }
 
-    minorIs: 'The smaller piece is called the minor arc.',
-    majorIs: 'The larger piece is called the major arc.',
 
-    drag:  'Drag each name to the correct box.',
-    major: 'Larger piece of the circle is the major arc.',
-    minor: 'Smaller piece of the circle is the minor arc.',
-
-    equal: 'Move both points to make the arcs equal.',
-    which: 'What is this arc called?',
-    semi:  'A semicircle is half of a circle.',
-    semi2: 'A diameter divides a circle into two semicircles.'
-  };
-
-  var BEAT = K.BEAT, SHORT = K.SHORT, HOLD_ASK = K.HOLD_ASK;
+  var BEAT = K.BEAT, SHORT = K.SHORT;
   var CX = K.CX, CY = K.CY, RR = K.RR;
   var round2 = K.round2, el = K.el;
 
@@ -94,6 +87,9 @@
   var SNAP = 7;           /* degrees: a point this close to its mark is caught */
   var BAND = 46;          /* picture units either side of the rim that count as ON it */
   var ARC_W = 7;          /* --arc-weight in arcs.css                      */
+  var ANGLE_R = 34;       /* the 180° mark's radius round the centre       */
+  var SPLIT = 26;         /* how far each piece is pulled out along its middle
+                             when the circumference is shown as two pieces */
 
   function norm(d)    { d = d % 360; return d < 0 ? d + 360 : d; }   /* [0, 360)    */
   function norm180(d) { d = norm(d); return d > 180 ? d - 360 : d; } /* (-180, 180] */
@@ -130,7 +126,6 @@
   var callouts = {};      /* minor, major: named callouts; arrow: an arrow alone */
   var nudges = [];        /* the two pointing hands                         */
   var chips = [];
-  var choiceBtns = [];
 
   function $(id) { return document.getElementById(id); }
 
@@ -175,6 +170,16 @@
     callouts.major = callout('arc-callout--major');
     callouts.arrow = callout('');
     nudges = [hand(), hand()];
+
+    /* The semicircle's central angle: a small arc round the centre over
+       the diameter, from three o'clock to nine, and its size above it. */
+    dom.arcAngle = el('path', { 'class': 'arc-angle',
+      d: 'M' + (CX + ANGLE_R) + ' ' + CY + ' A' + ANGLE_R + ' ' + ANGLE_R +
+         ' 0 0 0 ' + (CX - ANGLE_R) + ' ' + CY });
+    dom.arcAngleLabel = el('text', { 'class': 'figure-label arc-angle__label',
+      x: CX, y: CY - ANGLE_R - 12, 'text-anchor': 'middle' });
+    dom.arcMarks.appendChild(dom.arcAngle);
+    dom.arcMarks.appendChild(dom.arcAngleLabel);
     reset();
   }
 
@@ -302,8 +307,10 @@
 
   /* A word set just outside a piece, at its middle. */
   var LABEL_OUT = 34;
-  function aimLabel(text, deg, str) {
-    var p = P(deg, RR + LABEL_OUT);
+  /* `out` carries the word further out with a piece pulled away from the
+     circle (see apart), so it stays beside its own piece. */
+  function aimLabel(text, deg, str, out) {
+    var p = P(deg, RR + LABEL_OUT + (out || 0));
     text.setAttribute('x', p.x);
     text.setAttribute('y', p.y + 9);
     text.textContent = str;
@@ -314,7 +321,7 @@
      level out from under the word before it curves in to the tip -- the
      shape section 1's callouts have. Kept inside the picture top and
      bottom, where the circle comes close to the edge. */
-  var CALL_TIP = 14, CALL_REACH = 96, CALL_LIFT = 22, CALL_BEND = 42;
+  var CALL_TIP = 12, CALL_REACH = 46, CALL_LIFT = 16, CALL_BEND = 22;
   function aimCallout(c, deg, str) {
     var t = deg * Math.PI / 180;
     var side = Math.cos(t) >= -0.001 ? 1 : -1;
@@ -454,6 +461,18 @@
     return i < 0 ? 0 : i * global.Typer.TYPE_MS;
   }
   function at(ms, fn) { return Flow.wait(ms).then(fn); }
+
+  /* The sentence on the speech card swapped for the next one: the old one
+     leaves the way a header line does, and the new one is laid out in its
+     place -- the card easing to the new line's size, since the card is the
+     typer's box. Hands back the reveal, for the caller to say in step with
+     whatever goes with it. */
+  function nextCardLine(text) {
+    return Flow.anim(Beats.lineOut(dom.asideType)).then(function () {
+      M.set(dom.asideType, { clearProps: 'opacity,transform,filter' });
+      return K.sayAside().reserve(text);
+    });
+  }
 
   /* ======================================================================
    * The interaction: two points on the circle
@@ -683,50 +702,59 @@
   /* ======================================================================
    * The interaction: the points moved until the pieces are equal
    * ----------------------------------------------------------------------
-   * Each point slides along the rim under the finger, and no further than
-   * the mark it is heading for: the right-hand point between where it is
-   * and three o'clock, the left-hand one between where it is and nine. The
-   * two pieces are redrawn under them as they go, so the smaller piece is
-   * SEEN to grow. Within a few degrees of its mark a point is caught by it
-   * -- one pop, and it stays -- and when both have been caught the two
-   * pieces are halves.
+   * Each point slides along the rim under the finger, either way round --
+   * up or down, as far as the learner likes -- and the two pieces are
+   * redrawn under them as they go, so the pieces are SEEN to grow and
+   * shrink. The colours stay with the sizes: whichever piece is the smaller
+   * at that moment wears the minor arc's colour. A point cannot be put on
+   * top of the other one (it stops GAP degrees short).
+   *   The moment the two points are within SNAP degrees of being opposite
+   * each other, the point in hand is caught exactly opposite -- one pop on
+   * each, and they stay -- and the two pieces are halves. Where round the
+   * rim that happens does not matter; the scene turns the cut onto the
+   * dashed diameter afterwards.
    *
    * Once `ready` settles -- the instruction has been read -- a faint hand
-   * on each point shows it being carried to its mark, over and over, until
-   * that point is taken hold of.
+   * on each point shows one way to do it (each point carried down to the
+   * dashed diameter), over and over, until that point is taken hold of.
    *
-   * Keyboard: each point's hit area takes focus; the arrows walk it, down
-   * being towards its mark.
+   * Keyboard: each point's hit area takes focus; the arrows walk it the way
+   * they point on the screen.
    * ====================================================================== */
+  var GAP = 12;           /* degrees: how close the two points may come */
+
   function slidePoints(ready) {
     var live = true;
     var held = null;                /* { s, id } -- the point under a finger */
-    var b0 = arc.a + arc.span;
+    var ang = [arc.a, arc.a + arc.span];      /* each point's own angle   */
     var pts = [
-      { p: dom.pointA, hand: nudges[0], target: 0, from: arc.a,
-        get: function () { return arc.a; },
-        set: function (v) { var b = arc.a + arc.span; arc.a = v; arc.span = b - v; } },
-      { p: dom.pointB, hand: nudges[1], target: 180, from: b0,
-        get: function () { return arc.a + arc.span; },
-        set: function (v) { arc.span = v - arc.a; } }
+      { i: 0, p: dom.pointA, hand: nudges[0], target: 0,   from: ang[0] },
+      { i: 1, p: dom.pointB, hand: nudges[1], target: 180, from: ang[1] }
     ];
-    pts.forEach(function (s) {
-      s.lo = Math.min(s.target, s.from);
-      s.hi = Math.max(s.target, s.from);
-      s.done = false;
-      s.moved = false;
-      s.nudge = null;
-    });
+    pts.forEach(function (s) { s.moved = false; s.nudge = null; });
 
     dom.arcs.classList.add('is-sliding');
     pts.forEach(function (s) { s.p.hit.setAttribute('tabindex', '0'); });
+
+    /* The pieces from the two angles: the smaller one, whichever way round
+       it now runs, is the one drawn as the minor arc. Each dot then goes
+       back on its OWN angle, so the point in hand stays the point in hand. */
+    function draw() {
+      var d = norm(ang[1] - ang[0]);
+      if (d <= 180) { arc.a = ang[0]; arc.span = d; }
+      else { arc.a = ang[1]; arc.span = 360 - d; }
+      arc.origin = 'a';
+      redraw();
+      place(dom.pointA, ang[0]);
+      place(dom.pointB, ang[1]);
+    }
 
     /* ---- the hands ---- */
     function showHands() {
       if (!live) return;
       dom.arcNudges.removeAttribute('hidden');
       pts.forEach(function (s) {
-        if (s.done || s.moved || s.nudge) return;
+        if (s.moved || s.nudge) return;
         s.nudge = Beats.nudgeSlide(s.hand, function (t, gap) {
           handAt(s.hand, s.from + (s.target - s.from) * t, gap);
         });
@@ -743,40 +771,30 @@
       for (var i = 0; i < pts.length; i++) if (pts[i].p.hit === node) return pts[i];
       return null;
     }
-    /* The angle under the finger, brought into the point's own stretch:
-       outside it, the nearer end. */
-    function angleFor(s, ev) {
-      var deg = polar(dom.arcs, ev).deg;
-      if (deg < s.lo || deg > s.hi) {
-        var toLo = Math.abs(norm180(deg - s.lo)), toHi = Math.abs(norm180(deg - s.hi));
-        deg = toLo <= toHi ? s.lo : s.hi;
-      }
-      return deg;
-    }
+
     function moveTo(s, deg) {
-      if (s.done) return;
-      var v = clamp(deg, s.lo, s.hi);
-      if (Math.abs(v - s.target) <= SNAP) v = s.target;
-      if (!s.moved && Math.abs(v - s.from) > 0.5) {
+      if (!live) return;
+      var other = ang[1 - s.i];
+      /* not onto the other point: stopped GAP short, on the side it is on */
+      var g = norm(deg - other);
+      if (g < GAP) deg = other + GAP;
+      else if (g > 360 - GAP) deg = other - GAP;
+      if (!s.moved && Math.abs(norm180(deg - ang[s.i])) > 0.5) {
         s.moved = true;
         restHand(s);
       }
-      s.set(v);
-      redraw();
-      if (v === s.target) {
-        s.done = true;
-        s.p.g.classList.remove('is-held');
-        s.p.g.classList.add('is-set');
-        Beats.snapDot(s.p.dot);
-        if (held && held.s === s) held = null;
-        if (pts.every(function (x) { return x.done; })) finish();
-      }
+      /* opposite, near enough: caught there */
+      var caught = Math.abs(norm(deg - other) - 180) <= SNAP;
+      if (caught) deg = other + 180;
+      ang[s.i] = deg;
+      draw();
+      if (caught) finish();
     }
 
     function onDown(ev) {
       if (!live || held) return;
       var s = ptOf(ev.currentTarget);
-      if (!s || s.done) return;
+      if (!s) return;
       ev.preventDefault();
       held = { s: s, id: ev.pointerId };
       s.p.g.classList.add('is-held');
@@ -787,29 +805,37 @@
     }
     function onMove(ev) {
       if (!live || !held || ev.pointerId !== held.id) return;
-      moveTo(held.s, angleFor(held.s, ev));
+      moveTo(held.s, polar(dom.arcs, ev).deg);
     }
     function onUp(ev) {
       if (!held || ev.pointerId !== held.id) return;
       held.s.p.g.classList.remove('is-held');
       held = null;
     }
+    /* The arrows move a point the way they point: which way round the rim
+       that is depends on where on the rim the point is. */
     function onKey(ev) {
       var s = ptOf(ev.currentTarget);
-      if (!live || !s || s.done) return;
-      var k = ev.key, toward = 0;
-      if (k === 'ArrowDown') toward = 1;
-      else if (k === 'ArrowUp') toward = -1;
-      else if (k === 'ArrowRight') toward = s.target === 0 ? 1 : -1;
-      else if (k === 'ArrowLeft') toward = s.target === 0 ? -1 : 1;
-      if (!toward) return;
+      if (!live || !s) return;
+      var t = ang[s.i] * Math.PI / 180;
+      var k = ev.key, dir = 0;
+      if (k === 'ArrowUp') dir = Math.cos(t) >= 0 ? 1 : -1;
+      else if (k === 'ArrowDown') dir = Math.cos(t) >= 0 ? -1 : 1;
+      else if (k === 'ArrowLeft') dir = Math.sin(t) >= 0 ? 1 : -1;
+      else if (k === 'ArrowRight') dir = Math.sin(t) >= 0 ? -1 : 1;
+      if (!dir) return;
       ev.preventDefault();
-      var step = (ev.shiftKey ? 15 : 4) * toward * (s.target === 0 ? -1 : 1);
-      moveTo(s, s.get() + step);
+      moveTo(s, ang[s.i] + dir * (ev.shiftKey ? 15 : 4));
     }
     function finish() {
       if (!live) return;
       live = false;
+      pts.forEach(function (s) {
+        s.p.g.classList.remove('is-held');
+        s.p.g.classList.add('is-set');
+        Beats.snapDot(s.p.dot);
+      });
+      held = null;
       dom.gate.dispatchEvent(new MouseEvent('click'));
     }
     function off() {
@@ -836,12 +862,13 @@
     document.addEventListener('pointerup', onUp);
     document.addEventListener('pointercancel', onUp);
 
-    /* And what a skip slides for them: each point straight to the mark it
-       was heading for, through moveTo(), so it snaps and sets the way a
-       hand-slid one does. */
+    /* And what a skip does for them: each point straight to the mark its
+       hand was showing, so the cut lands on the dashed diameter. */
     function fillIn() {
       if (!live) return;
-      pts.forEach(function (s) { moveTo(s, s.target); });
+      ang[0] = 0; ang[1] = 180;
+      draw();
+      finish();
     }
 
     return Flow.once(dom.gate, { auto: true }).then(
@@ -869,7 +896,8 @@
       .then(function () {
         mascot.state('talking');
         Beats.bubbleArm(dom.bubble);
-        var said = K.sayBubble(LINES.intro);
+        voice('arcIntro');
+        var said = K.sayBubble(T('arcIntro'));
         Beats.bubbleIn(dom.bubble);
         return said;
       })
@@ -898,7 +926,7 @@
          learner who does not wait to be told is not made to. */
       .then(function () {
         picked = K.quiet(pickPoints(pickCtx()));
-        return K.arriveSaying(LINES.pick);
+        return K.arriveSaying(keyed('arcPick'));
       })
       .then(function () {
         mascot.settle();
@@ -929,32 +957,45 @@
           Flow.anim(Beats.slideArcs(dom.arcs, SHIFT))
         ]);
       })
-      /* The two pieces breathe under the card from the moment it opens --
-         which is the old "Circumference" swell, held instead of one-shot
-         -- and still act the line out under the words as it is said. */
+      /* Two sentences on the card, one at a time, each acted out on the
+         circle as it is said. The first: the circumference is divided into
+         two parts -- and on "divided" the two pieces pull well apart and
+         the two points between them fade away, so what is left on the board
+         is two separate pieces. The second takes the first one's place:
+         each part is called an arc -- and on "arc" the word goes on both. */
       .then(function () {
         dom.arcMarks.removeAttribute('hidden');
-        return K.cardUp(LINES.arcs, pieces(), 'arc', dom.arcRim);
+        return K.cardUp(T('arcLook'), pieces(), null, dom.arcRim);
       })
       .then(function (reveals) {
-        var text = LINES.arcs;
+        var text = T('arcLook');
         mascot.state('talking');
+        voice('arcLook');
         return Promise.all([
           reveals[0](),
-          /* "divided into two pieces": pulled apart at the two points */
           at(cue(text, 'divided'), function () {
-            return Flow.anim(Beats.arcSplit(pieces(), apart(10)));
-          }),
-          /* "each piece is called an arc": back together, and each named */
-          at(cue(text, 'each'), function () {
-            return Flow.anim(Beats.arcJoin(pieces())).then(function () {
-              aimLabel(labels.minor, bisMinor(), 'Arc');
-              return Flow.anim(Beats.labelIn(labels.minor));
-            });
-          }),
-          at(cue(text, 'an arc'), function () {
-            aimLabel(labels.major, bisMajor(), 'Arc');
-            return Flow.anim(Beats.labelIn(labels.major));
+            return Flow.anim(Beats.arcSplit(pieces(), apart(SPLIT), dots()));
+          })
+        ]);
+      })
+      .then(function () {
+        mascot.settle();
+        return Flow.wait(BEAT);
+      })
+      .then(function () { return nextCardLine(T('arcEach')); })
+      .then(function (reveal) {
+        var text = T('arcEach');
+        aimLabel(labels.minor, bisMinor(), T('arcLbl'), SPLIT);
+        aimLabel(labels.major, bisMajor(), T('arcLbl'), SPLIT);
+        mascot.state('talking');
+        voice('arcEach');
+        return Promise.all([
+          reveal(),
+          at(cue(text, 'arc'), function () {
+            return Promise.all([
+              Flow.anim(Beats.labelIn(labels.minor)),
+              Flow.wait(140).then(function () { return Flow.anim(Beats.labelIn(labels.major)); })
+            ]);
           })
         ]);
       })
@@ -982,7 +1023,11 @@
         M.set([labels.minor, labels.major], { clearProps: 'opacity,transform' });
         return Promise.all([
           Flow.anim(K.collapseHeader(false)),
-          Flow.anim(Beats.slideArcs(dom.arcs, 0))
+          Flow.anim(Beats.slideArcs(dom.arcs, 0)),
+          /* the two pieces, pulled apart on the scene before, back together
+             into one circle as it comes back to the middle -- and the two
+             points that cut it back on it */
+          Flow.anim(Beats.arcJoin(pieces(), dots()))
         ]);
       })
       .then(function () { return Flow.wait(SHORT); })
@@ -991,12 +1036,12 @@
          name them. */
       .then(function () { return K.mascotJumpIn(); })
 
-      /* ---- the smaller piece ------------------------------------------------ */
+      /* ---- the smaller part ------------------------------------------------- */
       .then(function () {
         dom.arcMarks.removeAttribute('hidden');
-        var text = LINES.minorIs;
+        var text = T('arcMinorIs');
         return Promise.all([
-          K.speak(text),
+          K.speak(keyed('arcMinorIs')),
           at(cue(text, 'smaller'), function () {
             return Flow.anim(Beats.arcFocus([dom.arcMinor], [dom.arcMajor]));
           }),
@@ -1008,13 +1053,15 @@
       })
       .then(function () { return Flow.wait(BEAT); })
 
-      /* ---- the larger piece ------------------------------------------------- */
+      /* ---- the larger part -------------------------------------------------- */
       .then(function () {
-        var text = LINES.majorIs;
+        var text = T('arcMajorIs');
         return Promise.all([
-          K.speak(text),
+          K.speak(keyed('arcMajorIs')),
+          /* the smaller part stands back with its name and arrow, so the
+             larger one and its name are the only thing at full */
           at(cue(text, 'larger'), function () {
-            return Flow.anim(Beats.arcFocus([dom.arcMajor], [dom.arcMinor]));
+            return Flow.anim(Beats.arcFocus([dom.arcMajor], [dom.arcMinor, callouts.minor.g]));
           }),
           at(cue(text, 'major arc'), function () {
             aimCallout(callouts.major, bisMajor(), 'Major arc');
@@ -1025,7 +1072,9 @@
       .then(function () { return Flow.wait(BEAT); })
       /* Both back to full, both named: the picture the learner is about
          to be asked about, read as one thing. */
-      .then(function () { return Flow.anim(Beats.arcUnfocus(pieces())); })
+      .then(function () {
+        return Flow.anim(Beats.arcUnfocus(pieces().concat([callouts.minor.g, callouts.major.g])));
+      })
       .then(function () { return Flow.wait(SHORT); })
       .then(function () { return K.handOver(dom.nextBtn); });
   }
@@ -1035,11 +1084,10 @@
    * nothing: drawn, its two points put back where the learner cut it, and
    * the two pieces coloured -- in two NEW colours, so the names have to be
    * given for the pieces' sizes and not for the colours the lesson used.
-   * Then two boxes, two names to drag, and the explanation either way.
+   * Then two boxes and two names to drag, with the bird watching.
    * ====================================================================== */
   function sceneNameArcs() {
     var span = arc.span;            /* the learner's cut, kept across the wipe */
-    var outcome = { right: true };
 
     return K.wipeBoard()
       .then(function () { return Flow.wait(BEAT); })
@@ -1066,86 +1114,34 @@
       .then(function () { return Flow.anim(Beats.boxIn(boxFor('Minor arc'))); })
       .then(function () { return Flow.wait(SHORT); })
 
-      /* ---- the names, and the one instruction ------------------------------ */
+      /* ---- the names, placed with the bird watching -------------------------
+         See namePair in pages.js: the bird stays until both are in, a wrong
+         drop is answered in one line, and the page turns itself. */
       .then(function () {
-        chips = K.chips(K.buildChips(dom.tray, coin('Minor arc', 'Major arc')));
-        return Flow.anim(Beats.trayIn(dom.tray, chips));
-      })
-      .then(function () { return K.arriveSaying(LINES.drag); })
-      .then(function () {
-        mascot.settle();
-        return Flow.wait(HOLD_ASK);
-      })
-      .then(function () {
-        return Promise.all([K.mascotJumpOut(), Flow.anim(Beats.lineOut(dom.promptLine))]);
-      })
-      .then(function () {
-        K.clearPrompt();
-        return Flow.anim(K.collapseHeader(true));
-      })
-      .then(function () {
-        /* two tries: a first wrong drop goes home to be tried again, a
-           second is answered for the learner */
-        return K.armQuiz({ boxes: boxes }, chips,
-                         { group: dom.arcBoxes, wrong: 'reveal', chances: 2 });
-      })
-
-      /* ---- answered, and explained -----------------------------------------
-         Right or wrong, the lesson is the same one -- only the word in
-         front of it changes. Each piece is lit as it is named, the other
-         stood back, and the box that names it pulses under the word. */
-      .then(function (result) {
-        outcome = result || outcome;
-        return Flow.wait(SHORT);
-      })
-      .then(function () { return Flow.anim(K.collapseHeader(false)); })
-      .then(function () {
-        return K.arriveSaying(outcome.right ? K.LINES.ackRight : K.LINES.ackWrong,
-                              outcome.right ? 'happy' : 'confused');
-      })
-      .then(function () { return Flow.wait(BEAT); })
-      .then(function () {
-        var text = LINES.major;
-        return Promise.all([
-          K.speak(text),
-          at(cue(text, 'Larger'), function () {
-            return Flow.anim(Beats.arcFocus([dom.arcMajor], [dom.arcMinor]));
-          }),
-          at(cue(text, 'major arc'), function () {
-            return Flow.anim(Beats.boxPulse(boxFor('Major arc')));
-          })
-        ]);
-      })
-      .then(function () { return Flow.wait(BEAT); })
-      .then(function () {
-        var text = LINES.minor;
-        return Promise.all([
-          K.speak(text),
-          at(cue(text, 'Smaller'), function () {
-            return Flow.anim(Beats.arcFocus([dom.arcMinor], [dom.arcMajor]));
-          }),
-          at(cue(text, 'minor arc'), function () {
-            return Flow.anim(Beats.boxPulse(boxFor('Minor arc')));
-          })
-        ]);
-      })
-      .then(function () { return Flow.wait(BEAT); })
-      .then(function () { return Flow.anim(Beats.arcUnfocus(pieces())); })
-      .then(function () { return Flow.wait(SHORT); })
-      .then(function () { return K.handOver(dom.nextBtn); });
+        var names = coin('Minor arc', 'Major arc');
+        var done = K.namePair({
+          boxes: boxes, group: dom.arcBoxes, names: names, ask: 'dragNames',
+          wrong: { 'Minor arc': 'arcWrongMinor', 'Major arc': 'arcWrongMajor' }
+        });
+        chips = K.chips();
+        return done;
+      });
   }
 
   /* ======================================================================
    * Scene 4 -- the semicircle. The boxes go and the pieces take back the
-   * colours they were taught in; the smaller piece is turned to the top, a
+   * colours they were taught in; the smaller part is turned to the top, a
    * dashed diameter shows where half would be, and the learner moves the
-   * two points down to it. Then the question.
+   * two points -- either way round the rim -- until the two arcs are equal.
+   * Then the cut is set on the dashed diameter, the 180° angle at the centre
+   * is shown, the two halves are lit in turn as the bird says each is a
+   * semicircle, and each is named -- above and below the circle.
    * ====================================================================== */
+  var SEMI_FLIPS = 2;     /* times each half is lit in turn, as it is said */
+  var SEMI_HOLD  = 520;   /* ms: one half lit before the other takes over  */
+
   function sceneSemicircle() {
     var armed = null;               /* the points, being moved            */
-    var picked = null;              /* the answer, once one is pressed    */
-    var options = ['Circumference', 'Semicircle'];
-    var answer = 1;
 
     return Promise.all([
         Flow.anim(Beats.clearFigure([dom.arcBoxes])),
@@ -1164,7 +1160,7 @@
         return Flow.wait(BEAT);
       })
 
-      /* ---- the smaller piece turned to the top ----------------------------- */
+      /* ---- the smaller part turned to the top ------------------------------ */
       .then(function () { return turnTo(UP); })
       .then(function () { return Flow.wait(SHORT); })
 
@@ -1173,87 +1169,71 @@
       .then(function () { return Flow.wait(SHORT); })
 
       /* ---- the ask ----------------------------------------------------------
-         Armed before the line, as every tap in the lesson is; the hands
+         The bird left with the naming; it comes back up with this line.
+         Armed before the line, as every move in the lesson is; the hands
          that show the move wait for the words to finish. */
       .then(function () {
-        var said = K.speak(LINES.equal);
+        var said = K.arriveSaying(keyed('arcEqual'));
         armed = K.quiet(slidePoints(said));
         return said;
       })
-      .then(function () { return armed; })
+      .then(function () {
+        mascot.settle();
+        return armed;
+      })
       .then(function () { return Flow.anim(Beats.arcsEqual(pieces(), dots())); })
-      .then(function () { return Flow.wait(BEAT); })
+      .then(function () { return Flow.wait(SHORT); })
 
-      /* ---- the question -----------------------------------------------------
-         The two answers arrive first, then the arrow picks out the upper
-         half and the rest stands back, and only then is it asked -- so
-         there is no doubt which arc "this arc" is. Listening starts the
-         moment the answers are on the board, as every tap in the lesson
-         does: a learner who presses one while the question is still being
-         asked has answered, not missed. */
+      /* ---- the cut on the diameter, and the angle at the centre ------------
+         Made equal anywhere round the rim, the cut is turned onto the
+         dashed diameter (nothing to turn if it was made there), the centre
+         goes on, and the straight angle between the two radii is marked
+         180°. */
+      .then(function () { return turnTo(UP); })
       .then(function () {
-        choiceBtns = K.choices(K.buildChoices(dom.choices, options));
-        return Flow.anim(Beats.trayIn(dom.choices, choiceBtns));
-      })
-      .then(function () {
-        picked = K.quiet(K.askChoice(choiceBtns, { answer: answer }));
         dom.arcMarks.removeAttribute('hidden');
-        aimCallout(callouts.arrow, 58, '');
-        return Promise.all([
-          showCallout(callouts.arrow),
-          Flow.anim(Beats.arcFocus([dom.arcMinor], [dom.arcMajor, dom.arcDia]))
-        ]);
+        return Flow.anim(Beats.plantCentre(dom.arcCentre, dom.arcCentreDot, { call: false }));
       })
-      .then(function () { return K.speak(LINES.which); })
-      .then(function () { return picked; })
+      .then(function () { return Flow.wait(SHORT); })
+      .then(function () {
+        dom.arcAngleLabel.textContent = T('lbl180');
+        return Flow.anim(Beats.growLine(dom.arcAngle, 0.6, 'power2.inOut'));
+      })
+      .then(function () { return Flow.anim(Beats.labelIn(dom.arcAngleLabel)); })
+      .then(function () { return Flow.wait(BEAT); })
 
-      /* ---- answered: one chance, and the definition either way ------------- */
-      .then(function (i) {
-        var right = i === answer;
-        var marked = right
-          ? Flow.anim(Beats.choiceRight(choiceBtns[answer]))
-          : Flow.anim(Beats.choiceWrong(choiceBtns[i])).then(function () {
-              return Flow.anim(Beats.choiceRight(choiceBtns[answer]));
-            });
-        var said = K.speak(right ? K.LINES.ackRight : K.LINES.ackWrong,
-                           right ? 'happy' : 'confused');
-        return Promise.all([marked, said]);
+      /* ---- each half a semicircle -------------------------------------------
+         The two halves lit in turn -- one up, the other stood back, then
+         the other way -- while the line is said, and both back to full
+         once it has been. */
+      .then(function () {
+        var flips = [];
+        for (var i = 0; i < SEMI_FLIPS; i++) {
+          flips.push([dom.arcMinor], [dom.arcMajor]);
+        }
+        var lit = flips.reduce(function (chain, on, k) {
+          return chain.then(function () {
+            var off = on[0] === dom.arcMinor ? [dom.arcMajor] : [dom.arcMinor];
+            return Flow.anim(Beats.arcFocus(on, off));
+          }).then(function () { return Flow.wait(SEMI_HOLD); });
+        }, Promise.resolve());
+        return Promise.all([K.speak(keyed('arcEachSemi')), lit]);
+      })
+      .then(function () { return Flow.anim(Beats.arcUnfocus(pieces())); })
+      .then(function () { return Flow.wait(SHORT); })
+
+      /* ---- and each named: the word set straight above the top half and
+         straight below the bottom one, in that half's colour, no arrow ---- */
+      .then(function () {
+        aimLabel(labels.minor, bisMinor(), T('lblSemicircle'));
+        return Flow.anim(Beats.labelIn(labels.minor));
+      })
+      .then(function () { return Flow.wait(240); })
+      .then(function () {
+        aimLabel(labels.major, bisMajor(), T('lblSemicircle'));
+        return Flow.anim(Beats.labelIn(labels.major));
       })
       .then(function () { return Flow.wait(BEAT); })
-      .then(function () {
-        var text = LINES.semi;
-        return Promise.all([
-          K.speak(text),
-          at(cue(text, 'half'), function () { return Flow.anim(Beats.arcPulse([dom.arcMinor])); })
-        ]);
-      })
-      .then(function () { return Flow.wait(BEAT); })
-      .then(function () {
-        var text = LINES.semi2;
-        return Promise.all([
-          K.speak(text),
-          at(cue(text, 'diameter'), function () { return Flow.anim(Beats.arcUnfocus([dom.arcDia])); }),
-          at(cue(text, 'two'), function () {
-            return Flow.anim(Beats.arcUnfocus([dom.arcMajor])).then(function () {
-              return Flow.anim(Beats.arcPulse(pieces()));
-            });
-          })
-        ]);
-      })
-      .then(function () { return Flow.wait(BEAT); })
-      /* The answers have been read and the arrow has done its pointing:
-         both go before Next, so the last thing on the board is the circle
-         in its two halves. */
-      .then(function () {
-        return Promise.all([
-          Flow.anim(Beats.trayOut(dom.choices, choiceBtns)),
-          hideCallout(callouts.arrow)
-        ]);
-      })
-      .then(function () {
-        dom.choices.setAttribute('hidden', '');
-        return Flow.wait(SHORT);
-      })
       .then(function () { return K.handOver(dom.nextBtn); });
   }
 
@@ -1396,10 +1376,12 @@
     mascot.idle();
     if (local === 2) return;
 
-    /* turned and coloured for the activity, its two boxes filled */
+    /* turned and coloured for the activity, its two boxes filled -- and
+       the bird gone, as the naming leaves it */
     arc.a = norm(TILT - arc.span / 2);
     redraw();
     if (local === 3) {
+      mascot.el.classList.add('is-away');
       dom.arcs.classList.add('is-quiz');
       buildBoxes();
       dom.arcBoxes.removeAttribute('hidden');
@@ -1442,7 +1424,6 @@
      two-point interaction. None of it is this section's state; that stays
      behind state(). */
   global.Arcs = {
-    LINES: LINES,
     state: function () { return arc; },
     MIN_SPAN: MIN_SPAN, MAX_SPAN: MAX_SPAN,
     norm: norm, norm180: norm180, clamp: clamp, coin: coin,

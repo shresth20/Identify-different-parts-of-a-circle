@@ -47,20 +47,14 @@
   var LINES = {
     pick:   'Draw two radii on the circle.',
     divide: 'Radii divide the area of the circle into two regions.',
-    each:   'Each region is called a sector.',
-
-    tapMinor: 'Tap the region between the minor arc and the two radii.',
-    tapMajor: 'Tap the region between the major arc and the two radii.',
-
-    drag:  'Drag each name to the correct box.',
-    major: 'Larger region of the circle is the major sector.',
-    minor: 'Smaller region of the circle is the minor sector.'
+    each:   'Each region is called a sector.'
   };
 
-  var BEAT = K.BEAT, SHORT = K.SHORT, HOLD_ASK = K.HOLD_ASK;
+  var BEAT = K.BEAT, SHORT = K.SHORT;
   var CX = K.CX, CY = K.CY, RR = K.RR;
   var round2 = K.round2, el = K.el;
   var norm = A.norm, clamp = A.clamp, coin = A.coin, cue = A.cue;
+  function T(key) { return global.T ? global.T(key) : key; }
   var P = A.P, arcD = A.arcD, place = A.place;
 
   /* ---- the two points, as angles ----------------------------------------
@@ -73,11 +67,11 @@
   var SUMMARY = { a: 35, span: 110 };
 
   var TILT = 40;          /* the activity: where the minor sector's middle is put */
+  var APART = 18;         /* how far each wedge slides out when the two are
+                             shown as separate pieces, picture units        */
   var MINOR_AT = 0.6;     /* how far out from the centre, as a share of the radius,
                              the smaller wedge is marked: about its visual middle */
   var MAJOR_AT = 0.52;    /* and the larger, which is wide enough anywhere        */
-  var SEC_OUT = 12;       /* how far a wedge is drawn out of the circle when it
-                             is picked: a slice lifted out of a pie              */
 
   function bisMinor() { return sec.a + sec.span / 2; }
   function bisMajor() { return sec.a + sec.span / 2 + 180; }
@@ -224,20 +218,19 @@
     text.textContent = str;
   }
 
-  /* A callout aimed INTO a wedge: the tip on the wedge's spot, the word
-     outside the circle to whichever side the wedge is on, and the shaft
-     running level out from under the word before it curves in over the
-     rim to the tip -- the shape every callout in the lesson has. Kept
-     inside the picture top and bottom, where the circle comes close to
-     the edge. */
-  var CALL_OUT = 62, CALL_LIFT = 22, CALL_BEND = 42;
+  /* A callout aimed at a region: the tip just inside the rim, on the
+     region's middle line, and the word just outside the rim beside it --
+     to whichever side the region is on -- so the arrow is a short hop
+     across the edge and the word sits close to the shape it names. Kept
+     inside the picture top and bottom. */
+  var CALL_IN = 30, CALL_OUT = 24, CALL_SIDE = 26, CALL_BEND = 14;
   function aimCallout(c, s, str) {
     var t = s.deg * Math.PI / 180;
     var side = Math.cos(t) >= -0.001 ? 1 : -1;
-    var up = Math.sin(t) >= 0 ? -1 : 1;
-    var tip = P(s.deg, s.r);
-    var from = { x: round2(CX + side * (RR + CALL_OUT)),
-                 y: round2(clamp(tip.y + up * CALL_LIFT, 30, K.VB_H - 30)) };
+    var tip = P(s.deg, Math.max(s.r, RR - CALL_IN));
+    var rim = P(s.deg, RR + CALL_OUT);
+    var from = { x: round2(rim.x + side * CALL_SIDE),
+                 y: round2(clamp(rim.y, 30, K.VB_H - 30)) };
     var bend = { x: round2(from.x - side * CALL_BEND), y: from.y };
     c.arrow.setAttribute('d', 'M' + from.x + ' ' + from.y +
                               ' Q' + bend.x + ' ' + bend.y + ' ' + tip.x + ' ' + tip.y);
@@ -247,6 +240,7 @@
     c.label.setAttribute('text-anchor', side > 0 ? 'start' : 'end');
     c.label.textContent = str || '';
   }
+
   function showCallout(c) {
     return Flow.anim(Beats.callout(c.g, c.arrow, c.head, c.label));
   }
@@ -341,102 +335,30 @@
 
   function at(ms, fn) { return Flow.wait(ms).then(fn); }
 
-  /* ======================================================================
-   * The interaction: one of the two regions, tapped
-   * ----------------------------------------------------------------------
-   * Both wedges go live -- the cursor becomes a hand over them, and the
-   * one under it comes up to its lit shade -- and the first to be pressed
-   * is the answer. Neither wedge can be the thing the scene waits on, so
-   * whichever is pressed fires a click at the lesson's gate (see #gate in
-   * index.html) and the scene waits on THAT, as askChoice does: an ordinary
-   * Flow.once, cancelled with the rest of the chain when a scene is
-   * retired, with the listeners coming off whichever way it ends.
-   *   Keyboard: each wedge takes focus, and Enter or Space presses it.
-   *   Hands back the index of the wedge that was pressed, in `list`.
-   * ====================================================================== */
-  function askRegion(list, answer) {
-    var picked = -1;
-    var live = true;
-
-    dom.secs.classList.add('is-asking');
-    list.forEach(function (p) { p.setAttribute('tabindex', '0'); });
-
-    function onPick(ev) {
-      if (!live) return;
-      live = false;
-      var hit = ev.currentTarget;
-      picked = list.indexOf(hit);
-      K.ripple(ev, hit);
-      dom.gate.dispatchEvent(new MouseEvent('click'));
-    }
-    function onKey(ev) {
-      if (ev.key !== 'Enter' && ev.key !== ' ' && ev.key !== 'Spacebar') return;
-      ev.preventDefault();
-      onPick(ev);
-    }
-    function off() {
-      live = false;
-      list.forEach(function (p) {
-        p.removeEventListener('click', onPick);
-        p.removeEventListener('keydown', onKey);
-        p.setAttribute('tabindex', '-1');
-      });
-      dom.secs.classList.remove('is-asking');
-    }
-
-    list.forEach(function (p) {
-      p.addEventListener('click', onPick);
-      p.addEventListener('keydown', onKey);
-    });
-
-    /* `auto`: a skip answers it with the right wedge. */
-    return Flow.once(dom.gate, { auto: true }).then(
-      function () {
-        off();
-        return (picked < 0 && answer != null) ? answer : picked;
-      },
-      function (err) { off(); throw err; });
+  /* One wedge named for its size, as the arcs' minor and major are (see
+     arcs.js): nothing to tap. The line is said, the wedge it is about
+     comes up lit on the word "smaller" or "larger" while the other stands
+     back, and its callout goes on as its name is said. When the larger is
+     named, the smaller one's callout stands back with its wedge, so the
+     larger and its name are the only thing at full. */
+  function nameRegion(which) {
+    var minor = which === 'minor';
+    var key = minor ? 'secMinorIs' : 'secMajorIs';
+    var text = T(key);
+    var want = minor ? dom.secMinor : dom.secMajor;
+    var off = minor ? [dom.secMajor] : [dom.secMinor, callouts.minor.g];
+    return Promise.all([
+      K.speak(K.keyed(key)),
+      at(cue(text, minor ? 'smaller' : 'larger'), function () {
+        return Flow.anim(Beats.segFocus([want], off));
+      }),
+      at(cue(text, minor ? 'minor sector' : 'major sector'), function () {
+        aimCallout(callouts[which], spot(which), minor ? 'Minor sector' : 'Major sector');
+        return showCallout(callouts[which]);
+      })
+    ]);
   }
 
-  /* One wedge asked for, by the arc it lies under. The ask is armed before
-     the line is said, as every tap in the lesson is. The tap is answered
-     in a word: the right wedge is drawn out of the circle and set back,
-     lit -- after the wrong one has shaken its head, if the wrong one was
-     pressed -- and then it is named, with the other stood back. */
-  function askFor(which, line) {
-    var want  = which === 'minor' ? dom.secMinor : dom.secMajor;
-    var other = which === 'minor' ? dom.secMajor : dom.secMinor;
-    var away  = apart(SEC_OUT)[which === 'minor' ? 0 : 1];
-    var answer = null;
-
-    return Promise.resolve()
-      .then(function () {
-        answer = K.quiet(askRegion(regions(), regions().indexOf(want)));
-        return K.speak(line);
-      })
-      .then(function () { return answer; })
-      .then(function (i) {
-        var hit = regions()[i] || want;
-        var right = hit === want;
-        var shown = right
-          ? Flow.anim(Beats.secRight(want, away))
-          : Flow.anim(Beats.secWrong(hit)).then(function () {
-              return Flow.anim(Beats.secRight(want, away));
-            });
-        var said = K.speak(right ? K.LINES.ackRight : K.LINES.ackWrong,
-                           right ? 'happy' : 'confused');
-        return Promise.all([shown, said]);
-      })
-      .then(function () { return Flow.wait(SHORT); })
-      .then(function () {
-        aimCallout(callouts[which], spot(which),
-                   which === 'minor' ? 'Minor sector' : 'Major sector');
-        return Promise.all([
-          Flow.anim(Beats.segFocus([want], [other])),
-          showCallout(callouts[which])
-        ]);
-      });
-  }
 
   /* ======================================================================
    * Scene 1 -- sectors. A circle on the blank board, with its centre; two
@@ -485,20 +407,32 @@
 
       /* ---- named as regions ----------------------------------------------
          "Radii": the two lines lit. "divide": the two wedges drawn apart
-         along the cut, and held so until "two regions" puts them back. */
+         along the cut, and everything else on the circle -- the radii, the
+         two points, the centre, the rim and the disc behind -- fades away
+         with it, so the two regions are seen on their own, as two separate
+         pieces. Held so until "two regions" puts them back and the rest
+         with them. */
       .then(function () {
         dom.secMarks.removeAttribute('hidden');
         var text = LINES.divide;
+        var behind = radii().concat([dom.secRim, dom.secDisc, dom.secCentre], dots());
+        var was = null;
         return Promise.all([
           K.speak(text),
           at(cue(text, 'Radii'), function () {
             return Flow.anim(Beats.linePulse(radii()));
           }),
           at(cue(text, 'divide'), function () {
-            return Flow.anim(Beats.arcSplit(regions(), apart(9)));
+            was = behind.map(function (e) { return parseFloat(getComputedStyle(e).opacity); });
+            return Flow.anim(Beats.arcSplit(regions(), apart(APART), behind));
           }),
           at(cue(text, 'two regions'), function () {
-            return Flow.anim(Beats.arcJoin(regions()));
+            return Flow.anim(Beats.arcJoin(regions())).then(function () {
+              return Flow.anim(M.to(behind, {
+                opacity: function (i) { return was ? was[i] : 1; },
+                duration: M.dur(0.35), ease: 'power2.out'
+              }));
+            });
           })
         ]);
       })
@@ -520,24 +454,22 @@
       })
       .then(function () { return Flow.wait(BEAT + SHORT); })
 
-      /* ---- and each found, and named for its size ------------------------
-         The two words come off, and the learner is asked for each wedge
-         in turn by the arc it lies under: the smaller first, then the
-         larger. Each is named as it is found, and both names are left
-         standing until Next. */
+      /* ---- and each named for its size -----------------------------------
+         The two words come off, and each wedge is named on its own, as the
+         arcs were: the smaller first, then the larger, each lit while the
+         other stands back, with a callout putting its name on it. Both
+         names are left standing until Next. */
       .then(function () { return Flow.anim(Beats.labelsOut([labels.minor, labels.major])); })
       .then(function () { return Flow.wait(SHORT); })
-      .then(function () { return askFor('minor', LINES.tapMinor); })
+      .then(function () { return nameRegion('minor'); })
       .then(function () { return Flow.wait(BEAT); })
-      /* both back to full before the next is asked for: the question is
-         put to the whole picture, not to the one left standing */
-      .then(function () { return Flow.anim(Beats.segUnfocus(regions())); })
-      .then(function () { return Flow.wait(SHORT); })
-      .then(function () { return askFor('major', LINES.tapMajor); })
+      .then(function () { return nameRegion('major'); })
       .then(function () { return Flow.wait(BEAT); })
       /* Both back to full, both named: the picture the learner is about
          to be asked about, read as one thing. */
-      .then(function () { return Flow.anim(Beats.segUnfocus(regions())); })
+      .then(function () {
+        return Flow.anim(Beats.segUnfocus(regions().concat([callouts.minor.g, callouts.major.g])));
+      })
       .then(function () { return Flow.wait(SHORT); })
       .then(function () { return K.handOver(dom.nextBtn); });
   }
@@ -552,7 +484,6 @@
    * ====================================================================== */
   function sceneNameSectors() {
     var span = sec.span;            /* the learner's cut, kept across the wipe */
-    var outcome = { right: true };
 
     return K.wipeBoard()
       .then(function () { return Flow.wait(BEAT); })
@@ -579,73 +510,18 @@
       .then(function () { return Flow.anim(Beats.boxIn(boxFor('Minor sector'))); })
       .then(function () { return Flow.wait(SHORT); })
 
-      /* ---- the names, and the one instruction ------------------------------ */
+      /* ---- the names, placed with the bird watching -------------------------
+         See namePair in pages.js: the bird stays until both are in, a wrong
+         drop is answered in one line, and the page turns itself. */
       .then(function () {
-        chips = K.chips(K.buildChips(dom.tray, coin('Minor sector', 'Major sector')));
-        return Flow.anim(Beats.trayIn(dom.tray, chips));
-      })
-      .then(function () { return K.arriveSaying(LINES.drag); })
-      .then(function () {
-        mascot.settle();
-        return Flow.wait(HOLD_ASK);
-      })
-      .then(function () {
-        return Promise.all([K.mascotJumpOut(), Flow.anim(Beats.lineOut(dom.promptLine))]);
-      })
-      .then(function () {
-        K.clearPrompt();
-        return Flow.anim(K.collapseHeader(true));
-      })
-      .then(function () {
-        /* two tries: a first wrong drop goes home to be tried again, a
-           second is answered for the learner */
-        return K.armQuiz({ boxes: boxes }, chips,
-                         { group: dom.secBoxes, wrong: 'reveal', chances: 2 });
-      })
-
-      /* ---- answered, and explained -----------------------------------------
-         Right or wrong, the lesson is the same one -- only the word in
-         front of it changes. Each wedge is lit as it is named, the other
-         stood back, and the box that names it pulses under the word. */
-      .then(function (result) {
-        outcome = result || outcome;
-        return Flow.wait(SHORT);
-      })
-      .then(function () { return Flow.anim(K.collapseHeader(false)); })
-      .then(function () {
-        return K.arriveSaying(outcome.right ? K.LINES.ackRight : K.LINES.ackWrong,
-                              outcome.right ? 'happy' : 'confused');
-      })
-      .then(function () { return Flow.wait(BEAT); })
-      .then(function () {
-        var text = LINES.major;
-        return Promise.all([
-          K.speak(text),
-          at(cue(text, 'Larger'), function () {
-            return Flow.anim(Beats.segFocus([dom.secMajor], [dom.secMinor]));
-          }),
-          at(cue(text, 'major sector'), function () {
-            return Flow.anim(Beats.boxPulse(boxFor('Major sector')));
-          })
-        ]);
-      })
-      .then(function () { return Flow.wait(BEAT); })
-      .then(function () {
-        var text = LINES.minor;
-        return Promise.all([
-          K.speak(text),
-          at(cue(text, 'Smaller'), function () {
-            return Flow.anim(Beats.segFocus([dom.secMinor], [dom.secMajor]));
-          }),
-          at(cue(text, 'minor sector'), function () {
-            return Flow.anim(Beats.boxPulse(boxFor('Minor sector')));
-          })
-        ]);
-      })
-      .then(function () { return Flow.wait(BEAT); })
-      .then(function () { return Flow.anim(Beats.segUnfocus(regions())); })
-      .then(function () { return Flow.wait(SHORT); })
-      .then(function () { return K.handOver(dom.nextBtn); });
+        var done = K.namePair({
+          boxes: boxes, group: dom.secBoxes, names: coin('Minor sector', 'Major sector'),
+          ask: 'dragNames',
+          wrong: { 'Minor sector': 'secWrongMinor', 'Major sector': 'secWrongMajor' }
+        });
+        chips = K.chips();
+        return done;
+      });
   }
 
   /* ======================================================================

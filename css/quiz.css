@@ -9,14 +9,12 @@
    is picked out of the palette in style.css.
    ========================================================================== */
 :root {
-  /* The regions, in the colours the arcs were TAUGHT in: gold for the
-     smaller of anything, the palette's lavender for the larger -- so the
-     coloured piece of the circumference and the coloured region under it
-     read as one thing. Near full strength, not the pale wash the earlier
-     sections use: here a region is coloured to be PICKED OUT of a circle
-     whose other parts stand back, and a wash would not carry. */
-  --qz-minor: color-mix(in srgb, var(--yellow-fill) 90%, #FFFFFF);
-  --qz-major: color-mix(in srgb, var(--lavender-fill) 52%, #FFFFFF);
+  /* The regions, in the colours the segments and sectors were taught in:
+     reddish pink for the smaller, purple for the larger. At full strength:
+     here a region is coloured to be PICKED OUT of a circle whose other
+     parts have all but gone, and a wash would not carry. */
+  --qz-minor: #FF8FA3;     /* the sectors' and segments' reddish pink */
+  --qz-major: #B48CF2;     /* ...and their purple (segments.css)       */
 
   /* The empty slot a name leaves in the tray once it has gone into its
      box: the tray's own edge, dashed, at a whisper. */
@@ -39,6 +37,30 @@
 }
 .qz-region--minor { fill: var(--qz-minor); }
 .qz-region--major { fill: var(--qz-major); }
+
+/* ---- The circle's lines -------------------------------------------------
+   The second activity's own palette, to the reference design: each piece
+   of the rim in the deeper edge of the region it bounds -- red round the
+   pink, purple round the purple -- the chord crimson, the two radii dark
+   purple. Every line on it, rim pieces included, at ONE weight, so the
+   circle's border, the radii and the chord read as one drawing. */
+.qz-circle {
+  --qz-line:       4;
+  /* The two rim pieces in the colour the sectors' border is SEEN in on
+     page 13: each sector's own edge (--sec-minor-ink, --sec-major-ink in
+     sectors.css) with the rim's orange laid over it at that section's
+     .28 -- worked out here, because this circle has no rim over its
+     pieces to do the mixing. */
+  --qz-minor-edge: #EA5C69;   /* a step lighter than page 13's #E03645 */
+  --qz-major-edge: #A85DB3;   /* ...and than its #933B9D */
+  --qz-chord:      #C8104E;
+  --qz-radius:     #3E1A8C;
+  --arc-weight:    var(--qz-line);
+}
+.qz-circle .arc-piece--minor { stroke: var(--qz-minor-edge); }
+.qz-circle .arc-piece--major { stroke: var(--qz-major-edge); }
+.qz-circle .chord-line { stroke: var(--qz-chord); stroke-width: var(--qz-line); }
+.qz-circle .sec-radius { stroke: var(--qz-radius); stroke-width: var(--qz-line); }
 
 /* Nothing laid on the second activity's circle is a target: the names
    are dragged to a box beside it, never dropped on it. */

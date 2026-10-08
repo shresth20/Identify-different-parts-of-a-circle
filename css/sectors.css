@@ -8,28 +8,34 @@
    palette in style.css.
    ========================================================================== */
 :root {
-  /* The two regions. Mint for the smaller and sky blue for the larger --
-     not the gold the segments used, because the edges of a sector are
-     RADII, drawn in the lesson's orange, and an orange line on a gold
-     wedge would sink into it. Both pale, because they are areas, and each
-     with a deeper shade it is lit to while it is being spoken of -- or
-     while a finger is over it, in the beat where one is asked for. The
-     word that names a region is set in the region's own hue at its border
-     strength, where a fill this pale would not read. */
-  --sec-minor:     color-mix(in srgb, var(--mint-fill) 52%, #FFFFFF);
-  --sec-minor-lit: color-mix(in srgb, var(--mint-fill) 82%, #FFFFFF);
-  --sec-minor-ink: var(--mint-border);
-  --sec-major:     color-mix(in srgb, var(--blue-fill) 48%, #FFFFFF);
-  --sec-major-lit: color-mix(in srgb, var(--blue-fill) 80%, #FFFFFF);
-  --sec-major-ink: var(--blue-border);
+  /* The two regions: the segments' pair (segments.css) -- reddish pink
+     for the smaller, purple for the larger -- so the two sections' minor
+     and major regions are one colour scheme, and neither is the board's
+     own lavender. Each wears an edge in its own deeper accent, and is lit
+     by being carried a little way towards that accent while it is being
+     spoken of, or while a finger is over it in the beat where one is
+     asked for. The word that names a region is set in that accent. */
+  --sec-minor:     #FF8FA3;
+  --sec-minor-ink: #D6245B;
+  --sec-minor-lit: color-mix(in srgb, var(--sec-minor) 80%, var(--sec-minor-ink));
+  --sec-major:     #B48CF2;
+  --sec-major-ink: #6A2BD6;
+  --sec-major-lit: color-mix(in srgb, var(--sec-major) 80%, var(--sec-major-ink));
+  /* The disc under them, before they are swept in: a light step of the
+     purple, as the segments' is. */
+  --sec-disc:      color-mix(in srgb, var(--sec-major) 34%, #FFFFFF);
+  /* The two radii that cut them: a dark purple, deeper than either
+     region's edge, so the cut reads clearly on both the pink and the
+     purple -- the lesson's orange sat weakly on the pink. */
+  --sec-radius:    #3E1A8C;
 
-  /* The activity's pair: two more of the palette, so the names have to be
-     given for the regions' sizes and not matched to the colours the lesson
-     taught them in. */
-  --sec-minor-quiz:     color-mix(in srgb, var(--yellow-fill) 62%, #FFFFFF);
-  --sec-minor-quiz-lit: var(--yellow-fill);
-  --sec-major-quiz:     color-mix(in srgb, var(--lavender-fill) 34%, #FFFFFF);
-  --sec-major-quiz-lit: color-mix(in srgb, var(--lavender-fill) 58%, #FFFFFF);
+  /* The activity's pair: the same reddish pink and purple the lesson
+     taught the two sectors in, so the naming page looks like the page
+     before it. */
+  --sec-minor-quiz:     var(--sec-minor);
+  --sec-minor-quiz-lit: var(--sec-minor-lit);
+  --sec-major-quiz:     var(--sec-major);
+  --sec-major-quiz-lit: var(--sec-major-lit);
 
   /* A region tapped when the other was asked for: the answers' red, at the
      strength of an area rather than of a border. */
@@ -72,14 +78,18 @@
    pen, the centre dot, and the words and arrows -- a label at opacity 0
    still has glyphs for a tap to land on -- all let it through to the
    wedge beneath. */
+/* This section's radii take its own dark purple (see --sec-radius); the
+   quiz cards that borrow the class keep the lesson's orange. */
+.figure__secs .sec-radius { stroke: var(--sec-radius); }
 .figure__secs .figure__rim,
 .figure__secs .rim-tip,
 .figure__secs .centre__dot,
 .figure__secs .arc-marks { pointer-events: none; }
 
 /* ---- The regions --------------------------------------------------------
-   Filled shapes with no edge of their own: the rim and the two radii are
-   their edges. Both rest invisible; secSweep uncovers them from one radius
+   Filled shapes with an edge of their own, in their own accent, so each
+   still reads as a whole wedge when the two are pulled apart and the rim
+   and the radii have gone. Both rest invisible; secSweep uncovers them from one radius
    round to the other. Live only while one is being asked for. */
 .sec-region {
   opacity: 0;
@@ -87,14 +97,16 @@
   outline: none;
   transition: fill .45s ease;
 }
-.sec-region--minor { fill: var(--sec-minor); }
-.sec-region--major { fill: var(--sec-major); }
+.sec-region--minor { fill: var(--sec-minor); stroke: var(--sec-minor-ink); }
+.sec-region--major { fill: var(--sec-major); stroke: var(--sec-major-ink); }
+.sec-region { stroke-width: 2.5; stroke-linejoin: round; }
+.figure__secs .figure__disc { fill: var(--sec-disc); }
 .sec-region--minor.is-lit,
 .figure__secs.is-asking .sec-region--minor:hover { fill: var(--sec-minor-lit); }
 .sec-region--major.is-lit,
 .figure__secs.is-asking .sec-region--major:hover { fill: var(--sec-major-lit); }
-.figure__secs.is-quiz .sec-region--minor { fill: var(--sec-minor-quiz); }
-.figure__secs.is-quiz .sec-region--major { fill: var(--sec-major-quiz); }
+.figure__secs.is-quiz .sec-region--minor { fill: var(--sec-minor-quiz); stroke: var(--sec-minor-ink); }
+.figure__secs.is-quiz .sec-region--major { fill: var(--sec-major-quiz); stroke: var(--sec-major-ink); }
 .figure__secs.is-quiz .sec-region--minor.is-lit { fill: var(--sec-minor-quiz-lit); }
 .figure__secs.is-quiz .sec-region--major.is-lit { fill: var(--sec-major-quiz-lit); }
 /* Refused. Three classes deep, so it outranks the lit shade whichever

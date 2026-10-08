@@ -578,11 +578,30 @@ body {
 .mark__head {
   fill: none;
   stroke: var(--text-primary);
-  stroke-width: 3.2;
+  stroke-width: 2.4;
   stroke-linecap: round;
   stroke-linejoin: round;
 }
+/* The shaft is a dashed line, the way the activity's leaders are (see
+   .q-leader), with a small solid head on its end. It is drawn in through
+   a mask (Beats.callout), so the dash pattern here is never touched. */
+.mark__arrow {
+  stroke-dasharray: 4 4;
+  stroke-linecap: butt;
+}
+.mark__arrow-mask {
+  fill: none;
+  stroke: #FFFFFF;
+  stroke-width: 12;
+  stroke-linecap: round;
+}
 .mark__label { fill: var(--text-primary); }
+/* The diameter's name, written under the line itself, in its ink. */
+.dia__name {
+  fill: var(--part-diameter);
+  font-size: 24px;
+  opacity: 0;
+}
 
 /* ---- Points on the circle -----------------------------------------------
    Every end of every line is the same mark, in its own deep indigo rather
@@ -682,18 +701,20 @@ body {
   stroke-linecap: round;
   opacity: 0;
 }
-/* The chord that goes THROUGH the centre, which the scene ends by asking
-   about. Drawn in the cyan the lesson taught the diameter in, not in the
-   chords' violet: the question is whether this line -- the one they already
-   know as a diameter -- is a chord as well, and answering it from the
-   colour would be answering a different question. */
-.long-chord {
+/* The chord carried up until it runs THROUGH the centre (Beats.liftChord):
+   a level line clipped to the disc, in the chord's violet, with a copy in
+   the cyan the lesson taught the diameter in laid over it and faded up on
+   arrival -- the line the learner is asked about is the one they already
+   know as a diameter. Butt caps: the disc's clip is what ends the line,
+   and the chord's points sit over both ends. */
+.lift-line {
   fill: none;
-  stroke: var(--part-diameter);
   stroke-width: var(--part-weight);
-  stroke-linecap: round;
+  stroke-linecap: butt;
   opacity: 0;
 }
+.lift-line--chord { stroke: var(--part-chord); }
+.lift-line--dia   { stroke: var(--part-diameter); }
 
 /* ==========================================================================
    The activity -- name the parts
@@ -739,6 +760,10 @@ body {
 .q-box.is-shown.is-quiet.is-right,
 .q-box.is-shown.is-quiet.is-wrong,
 .q-box.is-shown.is-quiet:focus-visible { opacity: 1; }
+/* The one box the activity is asking for now, with its line (see askPart
+   in pages.js): up at full while the rest stand back. */
+.q-leader.is-shown.is-quiet.is-target,
+.q-box.is-shown.is-quiet.is-target { opacity: 1; }
 
 .q-leader {
   fill: none;
@@ -784,7 +809,9 @@ body {
   stroke-dasharray: 8 6;
   transition: stroke .25s ease, fill .25s ease, stroke-width .25s ease;
 }
-/* A name being carried over it. */
+/* A name being carried over it -- and the box being asked for, which is
+   dressed the same way so it reads as the place to drop. */
+.q-box.is-target .q-box__rect,
 .q-box.is-over .q-box__rect {
   fill: color-mix(in srgb, var(--lavender-fill) 24%, #FFFFFF);
   stroke-width: 3.2;

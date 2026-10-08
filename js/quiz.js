@@ -883,17 +883,40 @@
    * off it. Then Next, and the box and the colour are taken away for the
    * next part.
    * ====================================================================== */
-  function askPart(part) {
-    var on = onFor(part);
-    var off = lines().filter(function (e) { return on.indexOf(e) < 0; });
-    var arcs = on.filter(function (e) { return e === dom.qzArcMinor || e === dom.qzArcMajor; });
+  /* What is asked for is all but alone on the board: everything else --
+     the other lines, the circle's own fill, and for a region the points
+     too -- stands back to PART_DIM. An arc is held thick (ARC_BOLD) for as
+     long as it is asked about. A segment or a sector is shown by its
+     colour alone, with none of its edges up: an arc, a chord or a radius
+     lit along its border would be one more thing it could be mistaken
+     for. */
+  var PART_DIM = 0.1;
+  /* The last part: its name is the only one left, so nothing is asked --
+     no bird, no line -- and the name goes into the box by itself this long
+     after the box has landed. */
+  var AUTO_LAST = 900;
+  var ARC_BOLD = 9;        /* the circle's lines are 4 (--qz-line in quiz.css) */
+
+  function askPart(part, last) {
+    var isArc = part.kind === 'arc';
+    var arcs = isArc ? onFor(part) : [];
+    var on = isArc ? arcs.concat(dots()) : [];
+    var off = lines().concat([dom.qzDisc], dots())
+      .filter(function (e) { return on.indexOf(e) < 0; });
     var region = regionOf(part);
     var told = null;
+    var thin = arcs.map(function (a) { return parseFloat(getComputedStyle(a).strokeWidth) || 7; });
 
-    return header(true)
+    return (last ? Promise.resolve() : header(true))
       .then(function () {
-        told = tell(LINES.drag);
-        return Flow.anim(Beats.quizFocus(on, off, arcs));
+        told = last ? { done: Promise.resolve(), cut: function () {} } : tell(LINES.drag);
+        return Promise.all([
+          Flow.anim(Beats.quizFocus(on, off, [], PART_DIM)),
+          arcs.length ? Flow.anim(M.to(arcs, {
+            strokeWidth: ARC_BOLD, autoRound: false,
+            duration: M.dur(0.35), ease: 'power2.out'
+          })) : null
+        ]);
       })
       .then(function () { return fillIn(part); })
       .then(function () { return Flow.wait(SHORT); })
@@ -903,7 +926,8 @@
         return Flow.anim(Beats.boxIn(box));
       })
       .then(function () {
-        return K.armQuiz({ boxes: [box] }, chips, { group: dom.qzBoxes });
+        return K.armQuiz({ boxes: [box] }, chips,
+                         { group: dom.qzBoxes, auto: last ? AUTO_LAST : null });
       })
       .then(function () {
         told.cut(false);
@@ -926,6 +950,13 @@
            below, and go in a single frame. */
         var gone = [Flow.anim(Beats.clearFigure([dom.qzBoxes]))];
         if (region) gone.push(Flow.anim(Beats.fillOut(region)));
+        /* the arc back to its own weight */
+        if (arcs.length) {
+          gone.push(Flow.anim(M.to(arcs, {
+            strokeWidth: function (i) { return thin[i]; }, autoRound: false,
+            duration: M.dur(0.3), ease: 'power2.inOut'
+          })).then(function () { M.set(arcs, { clearProps: 'strokeWidth' }); }));
+        }
         return Promise.all(gone);
       })
       .then(function () {
@@ -979,8 +1010,8 @@
       .then(function () { return Flow.anim(layoutTo({ aside: true, fit: 1 }, 0.8)); })
       .then(function () { return Flow.wait(SHORT); })
       .then(function () {
-        return order.reduce(function (chain, part) {
-          return chain.then(function () { return askPart(part); });
+        return order.reduce(function (chain, part, i) {
+          return chain.then(function () { return askPart(part, i === order.length - 1); });
         }, Promise.resolve());
       })
 
@@ -991,7 +1022,7 @@
          lesson. */
       .then(function () {
         return Promise.all([
-          Flow.anim(Beats.quizUnfocus(lines())),
+          Flow.anim(Beats.quizUnfocus(lines().concat([dom.qzDisc], dots()))),
           Flow.anim(Beats.trayOut(dom.tray, chips))
         ]);
       })
@@ -1002,6 +1033,13 @@
         chips = K.chips([]);
         return Flow.wait(SHORT);
       })
+      /* ...and the whole circle coloured in once more: the smaller sector
+         in pink, the larger in purple, each swept from one radius round to
+         the other -- the finished picture, every part on it. */
+      .then(function () { return Flow.anim(Beats.secFill(dom.qzSecMinor, wedgeFn('minor'), 0.7)); })
+      .then(function () { return Flow.wait(160); })
+      .then(function () { return Flow.anim(Beats.secFill(dom.qzSecMajor, wedgeFn('major'), 0.9)); })
+      .then(function () { return Flow.wait(SHORT); })
       .then(function () { return header(true, false); })
       .then(function () {
         Beats.sfx('cheer');
@@ -1052,28 +1090,18 @@
 
   /* The board as the scene at `local` expects to find it, written straight
      in. pages.js has already put the board up and the bird behind it. */
+  /* The section's one scene opens on the board as the section before
+     left it -- it wipes it first -- so there is nothing to write in. */
   function stage(local) {
-    if (local <= 0) return;             /* opens on the blank board, as left */
-
-    /* the three circles in their places, named, the right name found, and
-       the bird on the header: the second activity opens by wiping this */
-    deal = dealLabels();
-    writeLabels();
-    dom.qz.removeAttribute('hidden');
-    dom.qzCards.removeAttribute('hidden');
-    dom.qzOpts.removeAttribute('hidden');
-    cards.forEach(function (c) { M.set(cardMarks(c), { opacity: 1 }); });
-    opts.forEach(function (o) { o.g.classList.add('is-shown'); });
-    opts[deal.answer].g.classList.add('is-right');
-    mascot.placeIn(dom.slotHeader);
-    mascot.el.classList.remove('is-away');
-    mascot.idle();
+    return local;
   }
+
 
   Pages.addSection({
     name: 'Quiz',
+    /* "Tap the name" (sceneTap) is out of the lesson (user, 2026-10-08);
+       its code is left in this file, unused, should it come back. */
     scenes: [
-      { name: 'Tap the name',   play: sceneTap  },
       { name: 'Drag the names', play: sceneDrag }
     ],
     build: build,

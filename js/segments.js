@@ -50,14 +50,10 @@
     each:   'Each region is called a segment.',
 
     minorIs: 'The smaller region is called the minor segment.',
-    majorIs: 'The larger region is called the major segment.',
-
-    drag:  'Drag each name to the correct box.',
-    major: 'Larger region of the circle is the major segment.',
-    minor: 'Smaller region of the circle is the minor segment.'
+    majorIs: 'The larger region is called the major segment.'
   };
 
-  var BEAT = K.BEAT, SHORT = K.SHORT, HOLD_ASK = K.HOLD_ASK;
+  var BEAT = K.BEAT, SHORT = K.SHORT;
   var CX = K.CX, CY = K.CY, RR = K.RR;
   var round2 = K.round2, el = K.el;
   var norm = A.norm, clamp = A.clamp, coin = A.coin, cue = A.cue;
@@ -77,8 +73,7 @@
                              the larger region is marked: its own middle is too
                              close to the centre for a word to sit on */
   var CLIP_OPEN = 400;    /* a clip circle wide open; mirrors animations.js  */
-  var RIM_APART = 0.22;   /* the rim, while the two regions are held apart   */
-  var APART = 9;          /* how far each region slides out, picture units   */
+  var APART = 18;         /* how far each region slides out, picture units   */
 
   function bisMinor() { return seg.a + seg.span / 2; }
   function bisMajor() { return seg.a + seg.span / 2 + 180; }
@@ -260,20 +255,19 @@
     text.setAttribute('y', round2(p.y + size * 0.375));
   }
 
-  /* A callout aimed INTO a region: the tip on the region's spot, the word
-     outside the circle to whichever side the region is on, and the shaft
-     running level out from under the word before it curves in over the
-     rim to the tip -- the shape every callout in the lesson has. Kept
-     inside the picture top and bottom, where the circle comes close to
-     the edge. */
-  var CALL_OUT = 62, CALL_LIFT = 22, CALL_BEND = 42;
+  /* A callout aimed at a region: the tip just inside the rim, on the
+     region's middle line, and the word just outside the rim beside it --
+     to whichever side the region is on -- so the arrow is a short hop
+     across the edge and the word sits close to the shape it names. Kept
+     inside the picture top and bottom. */
+  var CALL_IN = 30, CALL_OUT = 24, CALL_SIDE = 26, CALL_BEND = 14;
   function aimCallout(c, s, str) {
     var t = s.deg * Math.PI / 180;
     var side = Math.cos(t) >= -0.001 ? 1 : -1;
-    var up = Math.sin(t) >= 0 ? -1 : 1;
-    var tip = P(s.deg, s.r);
-    var from = { x: round2(CX + side * (RR + CALL_OUT)),
-                 y: round2(clamp(tip.y + up * CALL_LIFT, 30, K.VB_H - 30)) };
+    var tip = P(s.deg, Math.max(s.r, RR - CALL_IN));
+    var rim = P(s.deg, RR + CALL_OUT);
+    var from = { x: round2(rim.x + side * CALL_SIDE),
+                 y: round2(clamp(rim.y, 30, K.VB_H - 30)) };
     var bend = { x: round2(from.x - side * CALL_BEND), y: from.y };
     c.arrow.setAttribute('d', 'M' + from.x + ' ' + from.y +
                               ' Q' + bend.x + ' ' + bend.y + ' ' + tip.x + ' ' + tip.y);
@@ -283,6 +277,7 @@
     c.label.setAttribute('text-anchor', side > 0 ? 'start' : 'end');
     c.label.textContent = str || '';
   }
+
   function showCallout(c) {
     return Flow.anim(Beats.callout(c.g, c.arrow, c.head, c.label));
   }
@@ -428,28 +423,31 @@
 
       /* ---- named as regions ----------------------------------------------
          "Chord": the line lit. "divides": the two regions pulled apart
-         along the cut -- the rim standing back with them, so it is not
-         seen to hold pieces that have come loose -- and held so until
-         "two regions" puts them back and the rim comes back with them. */
+         along the cut, and everything else on the circle -- the chord, its
+         two points, the rim and the wash behind -- fades away with it, so
+         the two regions are seen on their own, as two separate pieces.
+         Held so until "two regions" puts them back and the rest with them. */
       .then(function () {
         dom.segMarks.removeAttribute('hidden');
         var text = LINES.chord;
+        var behind = [dom.segChord, dom.segRim, dom.segDisc, dom.segArea].concat(dots());
+        var was = null;
         return Promise.all([
           K.speak(text),
           at(cue(text, 'Chord'), function () {
             return Flow.anim(Beats.linePulse([dom.segChord]));
           }),
           at(cue(text, 'divides'), function () {
-            return Promise.all([
-              Flow.anim(Beats.arcSplit(regions(), apart(APART))),
-              Flow.anim(Beats.rimTo(dom.segRim, RIM_APART, 0.55))
-            ]);
+            was = behind.map(function (e) { return parseFloat(getComputedStyle(e).opacity); });
+            return Flow.anim(Beats.arcSplit(regions(), apart(APART), behind));
           }),
           at(cue(text, 'two regions'), function () {
-            return Promise.all([
-              Flow.anim(Beats.arcJoin(regions())),
-              Flow.anim(Beats.rimTo(dom.segRim, 1, 0.5))
-            ]);
+            return Flow.anim(Beats.arcJoin(regions())).then(function () {
+              return Flow.anim(M.to(behind, {
+                opacity: function (i) { return was ? was[i] : 1; },
+                duration: M.dur(0.35), ease: 'power2.out'
+              }));
+            });
           })
         ]);
       })
@@ -496,8 +494,10 @@
         var text = LINES.majorIs;
         return Promise.all([
           K.speak(text),
+          /* the smaller region stands back with its name and arrow, so the
+             larger one and its name are the only thing at full */
           at(cue(text, 'larger'), function () {
-            return Flow.anim(Beats.segFocus([dom.segMajor], [dom.segMinor]));
+            return Flow.anim(Beats.segFocus([dom.segMajor], [dom.segMinor, callouts.minor.g]));
           }),
           at(cue(text, 'major segment'), function () {
             aimCallout(callouts.major, spot('major'), 'Major segment');
@@ -508,7 +508,9 @@
       .then(function () { return Flow.wait(BEAT); })
       /* Both back to full, both named: the picture the learner is about
          to be asked about, read as one thing. */
-      .then(function () { return Flow.anim(Beats.segUnfocus(regions())); })
+      .then(function () {
+        return Flow.anim(Beats.segUnfocus(regions().concat([callouts.minor.g, callouts.major.g])));
+      })
       .then(function () { return Flow.wait(SHORT); })
       .then(function () { return K.handOver(dom.nextBtn); });
   }
@@ -523,7 +525,6 @@
    * ====================================================================== */
   function sceneNameSegments() {
     var span = seg.span;            /* the learner's cut, kept across the wipe */
-    var outcome = { right: true };
 
     return K.wipeBoard()
       .then(function () { return Flow.wait(BEAT); })
@@ -550,73 +551,18 @@
       .then(function () { return Flow.anim(Beats.boxIn(boxFor('Minor segment'))); })
       .then(function () { return Flow.wait(SHORT); })
 
-      /* ---- the names, and the one instruction ------------------------------ */
+      /* ---- the names, placed with the bird watching -------------------------
+         See namePair in pages.js: the bird stays until both are in, a wrong
+         drop is answered in one line, and the page turns itself. */
       .then(function () {
-        chips = K.chips(K.buildChips(dom.tray, coin('Minor segment', 'Major segment')));
-        return Flow.anim(Beats.trayIn(dom.tray, chips));
-      })
-      .then(function () { return K.arriveSaying(LINES.drag); })
-      .then(function () {
-        mascot.settle();
-        return Flow.wait(HOLD_ASK);
-      })
-      .then(function () {
-        return Promise.all([K.mascotJumpOut(), Flow.anim(Beats.lineOut(dom.promptLine))]);
-      })
-      .then(function () {
-        K.clearPrompt();
-        return Flow.anim(K.collapseHeader(true));
-      })
-      .then(function () {
-        /* two tries: a first wrong drop goes home to be tried again, a
-           second is answered for the learner */
-        return K.armQuiz({ boxes: boxes }, chips,
-                         { group: dom.segBoxes, wrong: 'reveal', chances: 2 });
-      })
-
-      /* ---- answered, and explained -----------------------------------------
-         Right or wrong, the lesson is the same one -- only the word in
-         front of it changes. Each region is lit as it is named, the other
-         stood back, and the box that names it pulses under the word. */
-      .then(function (result) {
-        outcome = result || outcome;
-        return Flow.wait(SHORT);
-      })
-      .then(function () { return Flow.anim(K.collapseHeader(false)); })
-      .then(function () {
-        return K.arriveSaying(outcome.right ? K.LINES.ackRight : K.LINES.ackWrong,
-                              outcome.right ? 'happy' : 'confused');
-      })
-      .then(function () { return Flow.wait(BEAT); })
-      .then(function () {
-        var text = LINES.major;
-        return Promise.all([
-          K.speak(text),
-          at(cue(text, 'Larger'), function () {
-            return Flow.anim(Beats.segFocus([dom.segMajor], [dom.segMinor]));
-          }),
-          at(cue(text, 'major segment'), function () {
-            return Flow.anim(Beats.boxPulse(boxFor('Major segment')));
-          })
-        ]);
-      })
-      .then(function () { return Flow.wait(BEAT); })
-      .then(function () {
-        var text = LINES.minor;
-        return Promise.all([
-          K.speak(text),
-          at(cue(text, 'Smaller'), function () {
-            return Flow.anim(Beats.segFocus([dom.segMinor], [dom.segMajor]));
-          }),
-          at(cue(text, 'minor segment'), function () {
-            return Flow.anim(Beats.boxPulse(boxFor('Minor segment')));
-          })
-        ]);
-      })
-      .then(function () { return Flow.wait(BEAT); })
-      .then(function () { return Flow.anim(Beats.segUnfocus(regions())); })
-      .then(function () { return Flow.wait(SHORT); })
-      .then(function () { return K.handOver(dom.nextBtn); });
+        var done = K.namePair({
+          boxes: boxes, group: dom.segBoxes, names: coin('Minor segment', 'Major segment'),
+          ask: 'dragNames',
+          wrong: { 'Minor segment': 'segWrongMinor', 'Major segment': 'segWrongMajor' }
+        });
+        chips = K.chips();
+        return done;
+      });
   }
 
   /* ======================================================================

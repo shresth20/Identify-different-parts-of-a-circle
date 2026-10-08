@@ -8,35 +8,38 @@
    the palette in style.css.
    ========================================================================== */
 :root {
-  /* The inside, lit: the circle's own indigo, deeper than the wash the disc
-     rests at, so the same shape is seen to come forward rather than a new
-     colour to arrive. */
-  --seg-area:     color-mix(in srgb, var(--part-circle-tint) 42%, #FFFFFF);
-  --seg-area-lit: color-mix(in srgb, var(--part-circle-tint) 58%, #FFFFFF);
+  /* The inside, lit: a clear violet, strong enough to stand off the pale
+     lavender board rather than melt into it -- and the same family as the
+     larger region it is about to become most of. */
+  --seg-area:     color-mix(in srgb, var(--seg-major) 62%, #FFFFFF);
+  --seg-area-lit: color-mix(in srgb, var(--seg-major) 82%, #FFFFFF);
+  /* The disc under it, before the area is lit: a lighter step of the same. */
+  --seg-disc:     color-mix(in srgb, var(--seg-major) 34%, #FFFFFF);
 
-  /* The two regions -- "Sunshine Blue": golden yellow for the smaller, as
-     the smaller arc was; soft blue for the larger. Both are stated at the
-     strength they are meant to be SEEN at, because a region is an area and
-     an area carries the points and the chord laid on it; each is lit by
-     being carried a little way towards its own accent, so the lift is a
-     deepening of the same hue and not a new colour. The word that names a
-     region is set in that accent, where a fill this pale would not read. */
-  --seg-minor:     #FDD279;
-  --seg-minor-ink: #EE6B1F;
+  /* The two regions -- reddish pink for the smaller, purple for the
+     larger: two strong, clearly different fills, neither of them the
+     board's own lavender. Each wears an edge in its own deeper accent, so
+     a region reads as a solid shape, and is lit by being carried a little
+     way towards that accent. The word that names a region is set in it. */
+  --seg-minor:     #FF8FA3;
+  --seg-minor-ink: #D6245B;
   --seg-minor-lit: color-mix(in srgb, var(--seg-minor) 80%, var(--seg-minor-ink));
-  --seg-major:     #ABDCFD;
-  --seg-major-ink: #2160DD;
+  --seg-major:     #B48CF2;
+  --seg-major-ink: #6A2BD6;
   --seg-major-lit: color-mix(in srgb, var(--seg-major) 80%, var(--seg-major-ink));
+  /* The chord that cuts them: a dark purple, deeper than either region's
+     edge, so the cut reads clearly on both -- as the sectors' radii do. */
+  --seg-chord:     #3E1A8C;
 
-  /* The activity's pair -- "Berry Periwinkle": two more of the same make,
-     so the names have to be given for the regions' sizes and not matched
-     to the colours the lesson taught them in. */
-  --seg-minor-quiz:     #FCA1CF;
-  --seg-minor-quiz-ink: #B72D72;
-  --seg-minor-quiz-lit: color-mix(in srgb, var(--seg-minor-quiz) 82%, var(--seg-minor-quiz-ink));
-  --seg-major-quiz:     #B7BFFD;
-  --seg-major-quiz-ink: #443FC4;
-  --seg-major-quiz-lit: color-mix(in srgb, var(--seg-major-quiz) 82%, var(--seg-major-quiz-ink));
+  /* The activity's pair: the same reddish pink and purple the sectors
+     (page 13) and these segments are taught in, so the naming page looks
+     like the pages around it. */
+  --seg-minor-quiz:     var(--seg-minor);
+  --seg-minor-quiz-ink: var(--seg-minor-ink);
+  --seg-minor-quiz-lit: var(--seg-minor-lit);
+  --seg-major-quiz:     var(--seg-major);
+  --seg-major-quiz-ink: var(--seg-major-ink);
+  --seg-major-quiz-lit: var(--seg-major-lit);
 }
 
 /* ---- The band and the glow ----------------------------------------------
@@ -72,19 +75,24 @@
 .seg-area.is-lit { fill: var(--seg-area-lit); }
 
 /* ---- The regions --------------------------------------------------------
-   Filled shapes with no edge of their own: the rim and the chord are their
-   edges. Both rest invisible; segFill uncovers them from the chord out. */
+   Filled shapes with an edge of their own, in their own accent, so each
+   still reads as a whole shape when the two are pulled apart and the rim
+   and the chord have gone. Both rest invisible; segFill uncovers them
+   from the chord out. */
 .seg-region {
   opacity: 0;
   pointer-events: none;
   transition: fill .45s ease;
 }
-.seg-region--minor { fill: var(--seg-minor); }
-.seg-region--major { fill: var(--seg-major); }
+.seg-region--minor { fill: var(--seg-minor); stroke: var(--seg-minor-ink); }
+.seg-region--major { fill: var(--seg-major); stroke: var(--seg-major-ink); }
+.seg-region { stroke-width: 2.5; stroke-linejoin: round; }
+.figure__segs .figure__disc { fill: var(--seg-disc); }
+.figure__segs .chord-line { stroke: var(--seg-chord); }
 .seg-region--minor.is-lit { fill: var(--seg-minor-lit); }
 .seg-region--major.is-lit { fill: var(--seg-major-lit); }
-.figure__segs.is-quiz .seg-region--minor { fill: var(--seg-minor-quiz); }
-.figure__segs.is-quiz .seg-region--major { fill: var(--seg-major-quiz); }
+.figure__segs.is-quiz .seg-region--minor { fill: var(--seg-minor-quiz); stroke: var(--seg-minor-quiz-ink); }
+.figure__segs.is-quiz .seg-region--major { fill: var(--seg-major-quiz); stroke: var(--seg-major-quiz-ink); }
 .figure__segs.is-quiz .seg-region--minor.is-lit { fill: var(--seg-minor-quiz-lit); }
 .figure__segs.is-quiz .seg-region--major.is-lit { fill: var(--seg-major-quiz-lit); }
 
