@@ -43,9 +43,10 @@
      typer.js), and they must not collapse. */
   white-space: nowrap;
 }
-/* A centred heading centres both of its rows. */
-.heading .type,
-.bubble  .type { text-align: center; }
+/* A centred heading centres both of its rows; a bubble's rows are set
+   left, in every bubble of the game (user, 2026-10-09). */
+.heading .type { text-align: center; }
+.bubble  .type { text-align: left; }
 
 /* The reveal itself. `both` holds the end state after the animation has
    finished, so a word never snaps back to opacity 0. */

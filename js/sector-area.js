@@ -79,7 +79,31 @@
   function tr(key, repl) { return global.I18n ? global.I18n.t(key, repl) : key; }
   function keyed(key, repl) { return repl ? { text: tr(key, repl), vo: key } : K.keyed(key); }
   function lineOf(text) { return text && typeof text === 'object' ? text : { text: String(text), vo: null }; }
-  function voiceOf(line) { if (line.vo && global.I18n) quiet(global.I18n.say(line.vo)); }
+  /* A line's clip (assets/VO-skill 3/En), started as its words start and
+     listened to the end -- pages.js's hear, so Skip stops it and Replay
+     takes it with the scene. Resolves true once heard, false when there
+     was no clip or a later line cut it.
+       Never waited for past the line's own length and a margin: a clip
+     whose `ended` never comes (a stalled load, a busy device -- seen in a
+     test run, 2026-10-09) must not hold the lesson; the next line's clip
+     takes the voice over as ever. */
+  var VO_SLACK = 2500;      /* ms past the last word's cue */
+  function voiceOf(line) {
+    if (!line.vo || !global.I18n) return Promise.resolve(false);
+    if (!K.hear) return quiet(global.I18n.say(line.vo));
+    var cues = global.I18n.cues ? global.I18n.cues(line.vo, line.text) : null;
+    var most = Math.max(VO_MIN, (cues ? cues[cues.length - 1] : tr(line.vo).length * VO_PACE) + VO_SLACK);
+    return Promise.race([K.hear(line.vo), wait(most).then(function () { return true; })]);
+  }
+  /* The words of a recorded line typed on its clip's clock, each word as
+     it is heard (the cues in locales.json) -- for a typer pages.js did not
+     make, the perch bubble's; the header's and the bubble's find theirs. */
+  function timed(line) {
+    /* the shown text goes along: a line with a placeholder ("{f}") has
+       its words only once filled, and cues(key, text) counts those */
+    var cues = line.vo && global.I18n && global.I18n.cues ? global.I18n.cues(line.vo, line.text) : null;
+    return cues ? { at: cues } : undefined;
+  }
   /* Answers are shown in a random order, so the right one is not always
      first; the order of the list in the code still names them. */
   function shuffled(n) {
@@ -455,8 +479,8 @@
       if (mine !== speaking) return;
       M.set(line, { clearProps: 'opacity,transform,filter' });
       mascot.state(mood || 'talking');
-      voiceOf(said);
-      return perch ? perch.typer(said.text) : sayInHeader(said.text);
+      var heard = quiet(voiceOf(said));
+      return Promise.all([perch ? perch.typer(said.text, timed(said)) : sayInHeader(said.text), heard]);
     }).then(function () {
       if (mine === speaking) mascot.settle();
     });
@@ -581,15 +605,15 @@
     perch = P;
     var mine = ++speaking;
     told++;
-    var reveal = P.typer.reserve(line.text);
+    var reveal = P.typer.reserve(line.text, timed(line));
     var come = onHeader ? K.mascotHopTo(P.slot, true) : mascotJumpIn(P.slot);
     return come.then(function () {
       mascot.state(mood || 'talking');
-      voiceOf(line);
+      var heard = quiet(voiceOf(line));
       P.open = true;
       quiet(anim(M.fromTo(P.bubble, { opacity: 0, scale: 0.2, transformOrigin: '0% 70%' },
         { opacity: 1, scale: 1, duration: M.dur(0.44), ease: 'back.out(1.6)' })));
-      return reveal();
+      return Promise.all([reveal(), heard]);
     }).then(function () { if (mine === speaking) mascot.settle(); });
   }
   /* And off it: the bubble shuts, the bird springs away behind the board. */
@@ -614,22 +638,44 @@
     var reveal = sayPrompt.reserve(line.text);
     return mascotJumpIn().then(function () {
       mascot.state(mood || 'talking');
-      voiceOf(line);
-      return reveal();
+      var heard = quiet(voiceOf(line));
+      return Promise.all([reveal(), heard]);
     }).then(function () { if (mine === speaking) mascot.settle(); });
   }
 
   /* A line in the field bubble, or across the top of the board. */
   function bubbleSay(text) {
     var line = lineOf(text);
-    voiceOf(line);
-    return sayBubble(line.text);
+    var heard = quiet(voiceOf(line));
+    return Promise.all([sayBubble(line.text), heard]);
   }
   function sayTop(text) {
     var line = lineOf(text);
     var reveal = sayPrompt.reserve(line.text);
-    voiceOf(line);
-    return reveal();
+    var heard = quiet(voiceOf(line));
+    return Promise.all([reveal(), heard]);
+  }
+
+  /* A line said by the voice alone, with nothing written -- as skill 1's
+     "This is the radius." is: the last line is taken off the header (the
+     bird stays), the bird talks for as long as the clip runs, and `along`
+     -- what the voice is reading out, written on the board -- is acted out
+     at the same time. A line not yet recorded holds for the time it would
+     take to say; under Skip nothing is heard and only `along` is played. */
+  var VO_MIN = 1600, VO_PACE = 65;
+  function voiceAlone(key, along) {
+    if (Flow.isFast() || !global.I18n) return Promise.resolve(along ? along() : null);
+    var floor = Math.max(VO_MIN, tr(key).length * VO_PACE);
+    return hush().then(function () {
+      var from = Date.now();
+      var mine = speaking;
+      mascot.state('talking');
+      var heard = voiceOf({ text: '', vo: key }).then(function (played) {
+        if (mine === speaking) mascot.settle();
+        if (!played) return wait(floor - (Date.now() - from));
+      });
+      return Promise.all([heard, along ? along() : null]);
+    });
   }
 
   /* Feedback said as a run of short lines, each replacing the last: "Not
@@ -1728,8 +1774,8 @@
     var reveal = sayBubble.reserve(line.text);
     if (key) keyWord(dom.bubble, key);
     Beats.bubbleIn(dom.bubble);
-    voiceOf(line);
-    await reveal();
+    var heard = quiet(voiceOf(line));
+    await Promise.all([reveal(), heard]);
     mascot.settle();
     var rest = [].concat(second);
     for (var i = 0; i < rest.length; i++) {
@@ -2571,12 +2617,11 @@
     });
     stepDone(s2);
 
-    /* 3-4. The simplification, shown rather than only said. */
-    await say(keyed('s3WkSimplify'));
-    await writeRow(s3);
+    /* 3-4. The simplification, written on the board as the voice reads it
+       out -- voice only, the working is the text (s3WkSimplify, s3WkProduct). */
+    await voiceAlone('s3WkSimplify', function () { return writeRow(s3); });
     await wait(SHORT);
-    await say(keyed('s3WkProduct'));
-    await writeRow(s4);
+    await voiceAlone('s3WkProduct', function () { return writeRow(s4); });
     await wait(SHORT);
 
     /* 5. The answer. */
@@ -2975,7 +3020,17 @@
     var voice = bubbleVoice(P, Q);
     await askChoice(['100°', '260°', '360°'], 1, {
       host: slot, tiles: true, voice: voice, stagger: 0.35,
-      onShown: function () { quiet(anim(cardIn(rule.el))); },
+      /* the card comes in as the voice reads it out -- voice only, the card
+         is its text (s3P3Rule); an answer said over it cuts it short */
+      onShown: function () {
+        quiet(anim(cardIn(rule.el)));
+        if (Flow.isFast()) return;
+        var mine = speaking;
+        mascot.state('talking');
+        quiet(voiceOf({ text: '', vo: 's3P3Rule' })).then(function () {
+          if (mine === speaking) mascot.settle();
+        }, function () {});
+      },
       yes: keyed('fbThatsCorrect'),
       why: {
         0: [keyed('fbNotQuite'), keyed('s3MaWrong100')],
@@ -3097,12 +3152,11 @@
     });
     stepDone(s2);
 
-    /* 3-4. The simplification, shown. */
-    await say(keyed('s3WmSimplify'));
-    await writeRow(s3);
+    /* 3-4. The simplification, written as the voice reads it out (voice
+       only, as on the worked minor sector). */
+    await voiceAlone('s3WmSimplify', function () { return writeRow(s3); });
     await wait(SHORT);
-    await say(keyed('s3WmProduct'));
-    await writeRow(s4);
+    await voiceAlone('s3WmProduct', function () { return writeRow(s4); });
     await wait(SHORT);
 
     /* 5. The answer, found by the learner. */
@@ -3841,7 +3895,7 @@
     pointer: pointer, pointTo: pointTo, pointerIn: pointerIn,
     clearPrompt: clearPrompt, speak: speak, mascotJumpIn: mascotJumpIn, mascotJumpOut: mascotJumpOut,
     perchIn: perchIn, perchSay: perchSay, perchOut: perchOut, say: say, bubbleSay: bubbleSay,
-    sayTop: sayTop, sayAll: sayAll, hush: hush, leaveHeader: leaveHeader, handOver: handOver,
+    sayTop: sayTop, sayAll: sayAll, voiceAlone: voiceAlone, hush: hush, leaveHeader: leaveHeader, handOver: handOver,
     ripple: ripple, burstAt: burstAt,
     waitPick: waitPick, until: until, clearChoices: clearChoices, askChoice: askChoice,
     dropdown: dropdown, stepRow: stepRow, stepIn: stepIn, stepDone: stepDone, ddIn: ddIn,

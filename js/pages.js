@@ -805,25 +805,45 @@
      without its callers having to pass the key along. A line with no
      recording keeps the Typer's own pace. */
   var keyOfText = null;
+  /* The recorded lines with a placeholder ("Circumference = {f}.",
+     "Here, θ = {deg}°."): each as a pattern its filled-in text matches,
+     since a filled line is never the locale's text word for word. */
+  var patterns = null;
+  /* A line's text as the locale has it: a caller may have tied its last
+     two words with a no-break space (segarea.js's L), which is the same
+     line to the voice. */
+  function plain(text) { return String(text).replace(/\u00a0/g, ' '); }
   function cuesFor(text) {
     var I = global.I18n;
     if (!I || !I.cues) return null;
     if (!keyOfText) {
       keyOfText = {};
-      I.voiced().forEach(function (k) { keyOfText[I.t(k)] = k; });
+      patterns = [];
+      I.voiced().forEach(function (k) {
+        var s = I.t(k);
+        keyOfText[s] = k;
+        if (/\{\w+\}/.test(s)) {
+          patterns.push({ key: k, re: new RegExp('^' +
+            s.replace(/[.*+?^${}()|[\]\\]/g, '\\$&').replace(/\\\{\w+\\\}/g, '.+?') + '$') });
+        }
+      });
     }
-    var key = keyOfText[text];
-    return key ? I.cues(key) : null;
+    var line = plain(text);
+    var key = keyOfText[line];
+    if (!key) {
+      patterns.some(function (p) { if (p.re.test(line)) { key = p.key; return true; } });
+    }
+    return key ? I.cues(key, line) : null;
   }
 
   /* When a phrase of a line is heard, in ms from the line's start: for a
      mark on the figure to land on the word that names it. */
   function wordAt(text, phrase) {
-    var i = text.indexOf(phrase);
+    var i = plain(text).indexOf(plain(phrase));
     if (i < 0) return 0;
     var cues = cuesFor(text);
     if (!cues) return i * global.Typer.TYPE_MS;
-    var cuts = global.Typer.wordCuts(text);
+    var cuts = global.Typer.wordCuts(plain(text));
     for (var w = 0; w < cuts.length && w < cues.length; w++) {
       if (i < cuts[w]) return cues[w];
     }
@@ -2947,6 +2967,8 @@
        that reserves a line before the bird has got to it (skill 3); one
        typer per box, so it is handed over, never made twice */
     typer: function (which) { return which === 'prompt' ? sayPrompt : sayBubble; },
+    /* a section's own typer put on the recordings' clock (see onVoice) */
+    onVoice: onVoice,
     restoreAside: restoreAside,
     /* the speech card every stood-aside explanation wears: a section
        passes its own circle as the anchor, and hands the pane back

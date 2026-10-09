@@ -198,12 +198,15 @@ var I18n = (function () {
      start of its clip -- one entry per word as the Typer cuts the line
      (a word with the spaces after it). null when the clip has no cues, or
      the line no longer has that many words: its text was changed after it
-     was recorded, and a word-for-word match can no longer be trusted. */
-  function cues(key) {
+     was recorded, and a word-for-word match can no longer be trusted.
+     cues(key, text) counts the words of `text` instead of the key's. */
+  function cues(key, text) {
     var p = _pack();
     var list = p && p.cues && p.cues[key];
     if (!Array.isArray(list)) return null;
-    var words = String(t(key)).match(/\S+\s*/g) || [];
+    /* `text`: the line as it is shown, for a line with a placeholder
+       ("Circumference = {f}.") whose words are only known once filled */
+    var words = String(text != null ? text : t(key)).match(/\S+\s*/g) || [];
     return words.length === list.length ? list.slice() : null;
   }
   function stop() {

@@ -80,9 +80,6 @@
   var LOOK = SA.LOOK;                       /* ms: a picture looked at        */
   var READ = 900;                           /* ms a verdict's sentence stands */
   var TALK_GAP = 1400;                      /* ms between two bubble lines    */
-  var TYPE_MS = global.Typer ? global.Typer.TYPE_MS : 72;
-  var LINE_OUT = 280;                       /* ms: the old line, blurring out */
-  var JUMP = 900;                           /* ms: the bird, up onto the header */
   var PEN_QUICK = 1.0;                      /* s: a circle drawn quickly      */
   var DOT_TIME = 0.5;                       /* s: the centre dot              */
   var RADIUS_TIME = 0.8;                    /* s: a radius out to the rim     */
@@ -352,30 +349,21 @@
    * Speaking to the picture
    * ----------------------------------------------------------------------
    * A line said from the header with beats on its words: `cues` is a list
-   * of {word, run}, and each run is started the moment its word starts to
-   * type, so the mark and the word that names it land together. With
-   * `arrive` the bird comes up to say it, and the beats allow for the
-   * jump. The promise is the line's AND every beat's.
+   * of {word, run}, and each run is started the moment its word is heard
+   * -- pages.js's onWord: counted from the moment the line's first word
+   * goes on (after the old line is cleared, or the bird has landed), on
+   * the recording's word cues (locales.json) when the line has a clip
+   * and at the Typer's pace when it has none -- so the mark and the word
+   * that names it land together. With `arrive` the bird comes up to say
+   * it. The promise is the line's AND every beat's.
    * ====================================================================== */
-  function wordAt(text, word) {
-    var i = text.indexOf(word);
-    return (i < 0 ? 0 : i) * TYPE_MS;
-  }
   function sayWith(line, cues, opts) {
     var o = opts || {};
     var text = line.text || String(line);
-    var lead;
-    var said;
-    if (o.arrive) {
-      lead = JUMP;
-      said = K.arriveSaying(line, o.mood);
-    } else {
-      lead = dom.promptLine.textContent.trim().length ? LINE_OUT : 0;
-      said = K.speak(line, o.mood);
-    }
     var beats = (cues || []).map(function (cue) {
-      return Flow.wait(lead + wordAt(text, cue.word)).then(cue.run);
+      return K.onWord(text, cue.word, cue.run);
     });
+    var said = o.arrive ? K.arriveSaying(line, o.mood) : K.speak(line, o.mood);
     return Promise.all([said].concat(beats));
   }
   /* The bird's verdicts, said from the header where it already stands:
@@ -1155,7 +1143,7 @@
         dom.se.removeAttribute('hidden');
       })
 
-      /* ---- "Let's start with a circle and its centre." -- the bird comes
+      /* ---- "Let's begin with a circle and its centre." -- the bird comes
          up; the pen goes round on "circle" and the colour follows, the dot
          lands on "centre" once the ring is closed ------------------------ */
       .then(function () {
@@ -1184,7 +1172,7 @@
       })
       .then(function () { mascot.settle(); return Flow.wait(BEAT); })
 
-      /* ---- "Join each point to the centre with a radius." -- the radii
+      /* ---- "Join each point to the centre." -- the radii
          grow out one after the other from "Join", and the angle between
          them is marked θ after them ---------------------------------------- */
       .then(function () {
@@ -1200,14 +1188,14 @@
       })
       .then(function () { mascot.settle(); return Flow.wait(BEAT); })
 
-      /* ---- "The two radii and the arc enclose a minor sector." -- the
+      /* ---- "The two radii and the minor arc form a minor sector." -- the
          radii swell on their word, the arc lights on its, and the sector
-         is swept in on "enclose" ------------------------------------------- */
+         is swept in on "form" ------------------------------------------- */
       .then(function () {
         return sayWith(L('s4p5Sector'), [
           { word: 'radii',   run: function () { return pulseEdge([dom.seRadA, dom.seRadB], []); } },
           { word: 'arc',     run: function () { return Flow.anim(Beats.growLine(dom.seArc, 0.7, 'power2.inOut')); } },
-          { word: 'enclose', run: function () {
+          { word: 'form', run: function () {
             return Flow.anim(Beats.secFill(dom.seSector, function (t) { return MAIN.wedge(SE.a, SE.span, t); }, FILL_TIME));
           } }
         ]);
@@ -1222,14 +1210,14 @@
       })
       .then(function () { mascot.settle(); return Flow.wait(BEAT); })
 
-      /* ---- "The two radii and the chord make a triangle." -- each side
+      /* ---- "The two radii and the chord form a triangle." -- each side
          swells on its word, and the triangle is coloured in over the
-         sector on "make" ------------------------------------------------------ */
+         sector on "form" ------------------------------------------------------ */
       .then(function () {
         return sayWith(L('s4p5Triangle'), [
           { word: 'radii', run: function () { return pulseEdge([dom.seRadA, dom.seRadB], []); } },
           { word: 'chord', run: function () { return pulseEdge([dom.seChord], []); } },
-          { word: 'make',  run: function () {
+          { word: 'form',  run: function () {
             return Flow.anim(Beats.secFill(dom.seTri, function (t) { return MAIN.tri(SE.a, SE.span, t); }, 0.7));
           } }
         ]);
@@ -1244,17 +1232,17 @@
       })
       .then(function () { mascot.settle(); return Flow.wait(BEAT); })
 
-      /* ---- "Take the triangle away from the sector." -- on "away" the
+      /* ---- "Remove the triangle from the sector." -- on "Remove" the
          piece is lifted out of the circle and set down beside it, and the
          sector's colour draws back to the chord --------------------------- */
       .then(function () {
         return sayWith(L('s4p5Remove'), [
-          { word: 'away', run: function () { return Flow.anim(removeTriangle()); } }
+          { word: 'Remove', run: function () { return Flow.anim(removeTriangle()); } }
         ]);
       })
       .then(function () { mascot.settle(); return Flow.wait(BEAT); })
 
-      /* ---- "What is left is the minor segment." -- its edge swells once,
+      /* ---- "The region left is the minor segment." -- its edge swells once,
          and the two pieces are named ----------------------------------------- */
       .then(function () {
         return sayWith(L('s4p5Left'), [
@@ -1406,7 +1394,8 @@
       .then(function () { return Flow.wait(SHORT); });
   }
 
-  /* Page 5: "The segment is what the triangle leaves behind.", and the
+  /* Page 5: "So, the minor segment is the part left after removing the
+     triangle.", and the
      same as areas -- "Area of the minor segment = Area of the sector −
      Area of the triangle." -- each figure's edges swelling as its name is
      read. */
@@ -1584,12 +1573,12 @@
       .then(function () { return grow(dom.sjChord, CHORD_TIME); })
       .then(function () { return Flow.wait(SHORT); })
 
-      /* ---- "Now the bigger piece: the major segment." -- the bird comes
-         up; the bigger piece is coloured in from the chord on "bigger",
+      /* ---- "Now, let's look at the larger piece: the major segment." -- the
+         bird comes up; the bigger piece is coloured in from the chord on "larger",
          its arc lights on "major", and it is named -------------------------- */
       .then(function () {
         return sayWith(L('s4p11Big'), [
-          { word: 'bigger', run: function () {
+          { word: 'larger', run: function () {
             return Flow.anim(Beats.segFill(dom.sjMajor, dom.sjClip, MAIN.reachMajor(SE.span), FILL_TIME));
           } },
           { word: 'major', run: function () {
@@ -1628,20 +1617,20 @@
       })
       .then(function () { mascot.settle(); return Flow.wait(BEAT); })
 
-      /* ---- "Put the triangle back on the major sector." -- on "back" the
+      /* ---- "Add the triangle to the major sector." -- on "Add" the
          piece is carried into its room and set down ---------------------- */
       .then(function () {
         return sayWith(L('s4p11Back'), [
-          { word: 'back', run: function () { return Flow.anim(putBack()); } }
+          { word: 'Add', run: function () { return Flow.anim(putBack()); } }
         ]);
       })
       .then(function () { mascot.settle(); return Flow.wait(BEAT); })
 
-      /* ---- "Together, they make the major segment." -- the two become one
-         region on "make", and its edge swells as it is named ------------- */
+      /* ---- "Together, they form the major segment." -- the two become one
+         region on "form", and its edge swells as it is named ------------- */
       .then(function () {
         return sayWith(L('s4p11Together'), [
-          { word: 'make',    run: function () { return Flow.anim(merge()); } },
+          { word: 'form',    run: function () { return Flow.anim(merge()); } },
           { word: 'segment', run: function () {
             return pulseEdge([dom.sjChord], [dom.sjArcMajor])
               .then(function () { return Flow.anim(Beats.labelIn(dom.sjLbl)); });

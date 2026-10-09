@@ -110,9 +110,12 @@
   max-width: calc(var(--cf-reach) - var(--cf-bird-left)
                   - var(--cf-tip-x) * var(--cf-bird-size) + var(--cf-set-back));
 
-  padding: .85em 1.05em .95em;
+  /* Snug round the words (user, 2026-10-09): the earlier .85/1.05em read
+     as a lot of empty card. The corner steps down with it, so a one-row
+     card keeps a straight stretch of foot for the tail. */
+  padding: .5em .8em .58em;
   border: var(--cf-border) solid transparent;
-  border-radius: 1.45em;
+  border-radius: 1.1em;
   /* A rim deepening toward the foot, drawn round a white card. The fill is
      flat at the tail's colour for its last stretch, because the tail's top
      reaches up into it and has to vanish there. */
@@ -167,7 +170,7 @@
 .bubble.bubble--cf .type,
 .bubble.bubble--cf .type-ghost {
   white-space: pre-wrap;
-  text-align: center;
+  text-align: left;
 }
 /* Rows filled to the box's full width, the box then closing round the
    widest (`fit`, js/circum.js) -- but never a last row of one stray word:

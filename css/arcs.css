@@ -313,9 +313,11 @@
   width: max-content;
   min-width: calc(1cqw + 18cqh + 2.2em);
   max-width: 88cqw;
-  padding: .85em 1.05em .95em;
+  /* Snug round the words (user, 2026-10-09), the corner stepping down with
+     the padding so a one-row card keeps a straight foot for the tail. */
+  padding: .5em .8em .58em;
   border: var(--message-border) solid transparent;
-  border-radius: 1.45em;
+  border-radius: 1.1em;
   /* An indigo rim, deepening toward the foot, drawn round a white card --
      so the card holds its edge against the pale board instead of fading
      into it. The fill is flat at the tail's colour for its last stretch,

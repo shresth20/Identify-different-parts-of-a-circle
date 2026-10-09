@@ -220,8 +220,10 @@
     dom.cqBurst  = $('cqBurst');
 
     /* fit: the box closes round each line's own rows, so the question and
-       every verdict get a box their own size, eased from one to the next. */
-    sayCf = global.Typer.create($('cfType'), { box: dom.cfBubble, fit: true });
+       every verdict get a box their own size, eased from one to the next.
+       On the recordings' clock (K.onVoice): a recorded line is typed word
+       for word as it is heard, as the header's and the bubble's are. */
+    sayCf = K.onVoice(global.Typer.create($('cfType'), { box: dom.cfBubble, fit: true }));
 
     reset();
   }

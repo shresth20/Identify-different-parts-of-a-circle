@@ -367,8 +367,10 @@
     P.row.classList.add('sa-speak--above');
     P.bubble.classList.add('sa-bubble--sun');
     await anim(S.fadeIn(P.row, { y: 0 }));
+    /* The label over the circle is read out as it comes in -- the voice
+       alone, nothing typed: the words are on the figure, not in a bubble. */
     var over = S.text(C.top, C.x, C.y - C.r - 22, tr('s2ArcOver'), 'lbl s-over-lbl');
-    await anim(S.fadeIn(over, { y: 6 }));
+    await S.voiceAlone('s2ArcOver', function () { return anim(S.fadeIn(over, { y: 6 })); });
     await wait(SHORT);
     var QUESTION = keyed('s2ArcAsk');
     await S.perchSay(P, QUESTION);

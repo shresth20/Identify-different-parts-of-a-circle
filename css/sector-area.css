@@ -769,9 +769,10 @@ body.sa-lesson .board { --row-bottom: 13% !important; }
   --note-edge: var(--sb-rim-low);
   position: relative;
   max-width: 100%;
-  padding: .85em 1.05em .95em;
+  /* Snug round the words (user, 2026-10-09), as skill 1's card now is. */
+  padding: .5em .8em .58em;
   border: var(--sb-border) solid transparent;
-  border-radius: 1.45em;
+  border-radius: 1.1em;
   /* The rim deepening toward the foot, drawn round a white card. The fill
      is flat at the tail's colour for its last stretch, because the tail's
      top reaches up into it and has to vanish there. */
@@ -791,9 +792,10 @@ body.sa-lesson .board { --row-bottom: 13% !important; }
           drop-shadow(0 .25em .22em #2f2aa54d)
           drop-shadow(0 .75em .9em #231f8a52);
   /* bubble-01's type and leading (--bubble-beside-fs, style.css: 5.3cqw of
-     the half-stage, as .aside--message sets it), not the panel's: the bird
-     speaks at one size wherever it stands on the right. */
-  font-size: var(--bubble-beside-fs);
+     the half-stage, as .aside--message sets it), a step smaller: beside
+     the figure and the answer pills, the full size read as oversized
+     (user, 2026-10-09). Padding and tail are in em, so they follow. */
+  font-size: calc(var(--bubble-beside-fs) * .88);
   font-weight: 700;
   line-height: 1.38;
   letter-spacing: 0;
@@ -1451,8 +1453,6 @@ body.sa-lesson .board { --row-bottom: 13% !important; }
 :where(body.sa-lesson) .sa-result__lines { display: flex; flex-direction: column; gap: .2em; }
 :where(body.sa-lesson) .sa-result__txt, :where(body.sa-lesson) .sa-result__sub { white-space: nowrap; display: flex; align-items: center; gap: 0 .1em; }
 :where(body.sa-lesson) .sa-result__sub { font-size: .72em; font-weight: 700; color: var(--text-secondary); }
-/* Three short symbols: the same pill, its type a step larger. */
-:where(body.sa-lesson) .sa-qslot--big .choice { font-size: clamp(18px, min(4vh, 2.8vw), 38px); }
 :where(body.sa-lesson) .s-over-lbl { font-size: 22px; fill: var(--text-primary); }
 
 /* The angle's value while it is a number that changes: its own violet, in
