@@ -93,14 +93,14 @@
       /* The smaller piece is lit: it is an arc. The two names it is not
          are the regions the learner met in skill 1. The word set in the
          slot once it is answered is the sentence's own, in lower case. */
-      { on: [dom.alMinor], off: [dom.alMajor], at: 80,
+      { on: [dom.alMinor], off: [dom.alMajor],
         options: ['s4p6Sector', 's2OptSegment', 's2OptArc'],
         answer: 's2OptArc', word: 's2WordArc',
         right: [LINES.correct, LINES.arcIs],
         wrong: { 's4p6Sector': [LINES.notQuite, LINES.sectorNo],
                  's2OptSegment': [LINES.notQuite, LINES.segmentNo] } },
       /* The larger piece: the major arc, against the minor. */
-      { on: [dom.alMajor], off: [dom.alMinor], at: 335,
+      { on: [dom.alMajor], off: [dom.alMinor],
         options: ['s2OptMajorArc', 's2OptMinorArc'],
         answer: 's2OptMajorArc', word: 's2WordMajorArc',
         right: [LINES.thatsIt, LINES.majorIs],
@@ -114,8 +114,6 @@
   var chips = [];
   var up = false;          /* the bird is standing on the header       */
   var saying = 0;          /* which feedback owns the header line now  */
-  var ink = null;          /* the layer the pointing arrow is drawn on */
-  var arrow = null;        /* the arrow itself, while a round is up    */
 
   function $(id) { return document.getElementById(id); }
 
@@ -136,18 +134,8 @@
     dom.alSlotText = $('alSlotText');
     dom.alOpts     = $('alOpts');
 
-    /* The arrow from the lit piece to the sentence is drawn in the
-       stage's own pixels, on a layer of its own over the figure and
-       under the pane, so it can run from a point on the slid circle to
-       the words beside it. Made here, so index.html need not know. */
-    ink = document.createElementNS(SVG_NS, 'svg');
-    ink.setAttribute('class', 'al-ink');
-    ink.setAttribute('aria-hidden', 'true');
-    dom.alAsk.parentNode.insertBefore(ink, dom.alAsk);
-
     reset();
   }
-  var SVG_NS = 'http://www.w3.org/2000/svg';
 
   function dots() { return [dom.alDotA, dom.alDotB]; }
   function pieces() { return [dom.alMinor, dom.alMajor]; }
@@ -162,100 +150,6 @@
       s.dot.setAttribute('cx', p.x);
       s.dot.setAttribute('cy', p.y);
     });
-  }
-
-  /* ======================================================================
-   * The pointing arrow -- from the lit piece to the sentence about it
-   * ----------------------------------------------------------------------
-   * A dotted curve, drawn in the stage's pixels: it leaves the piece a
-   * little outside the rim at `deg` and bows over to the sentence's left
-   * edge, where a small open head lands. Dotted, so it cannot be mistaken
-   * for a mark on the circle; drawn out from the piece, so the eye is led
-   * from the thing to its name. Measured at the moment it is drawn, after
-   * the circle has slid and the sentence has stood up.
-   * ====================================================================== */
-  var ARROW_GAP = 22;      /* picture units outside the rim the arrow starts */
-  var ARROW_END = 14;      /* px short of the sentence the head stops      */
-
-  function sceneXY(el, x, y) {
-    var q = dom.figure.createSVGPoint();
-    q.x = x; q.y = y;
-    var sp = q.matrixTransform(el.getScreenCTM());
-    var r = ink.getBoundingClientRect();
-    return { x: sp.x - r.left, y: sp.y - r.top };
-  }
-
-  function drawArrow(deg) {
-    clearArrow();
-    var r = ink.getBoundingClientRect();
-    ink.setAttribute('viewBox', '0 0 ' + round2(r.width) + ' ' + round2(r.height));
-    var p = P(deg, RR + ARROW_GAP);
-    var from = sceneXY(dom.al, p.x, p.y);
-    var line = dom.alLine.getBoundingClientRect();
-    var to = { x: line.left - r.left - ARROW_END, y: line.top + line.height / 2 - r.top };
-    /* one bend, away from the circle's middle, so the curve bows over the
-       top of the piece rather than cutting across it */
-    var mx = (from.x + to.x) / 2, my = (from.y + to.y) / 2;
-    var dx = to.x - from.x, dy = to.y - from.y, len = Math.sqrt(dx * dx + dy * dy) || 1;
-    var bow = (from.y < to.y ? -1 : 1) * Math.min(60, len * 0.22);
-    var cx = mx + dy / len * bow, cy = my - dx / len * bow;
-    var g = document.createElementNS(SVG_NS, 'g');
-    g.setAttribute('class', 'al-arrow');
-    var path = document.createElementNS(SVG_NS, 'path');
-    path.setAttribute('class', 'al-arrow__line');
-    path.setAttribute('d', 'M' + round2(from.x) + ' ' + round2(from.y) +
-                           ' Q' + round2(cx) + ' ' + round2(cy) + ' ' + round2(to.x) + ' ' + round2(to.y));
-    /* the head, square on the curve's own direction at its tip */
-    var ax = to.x - cx, ay = to.y - cy, al = Math.sqrt(ax * ax + ay * ay) || 1;
-    ax /= al; ay /= al;
-    var b = 11, w = 7;
-    var head = document.createElementNS(SVG_NS, 'path');
-    head.setAttribute('class', 'al-arrow__head');
-    head.setAttribute('d', 'M' + round2(to.x - ax * b - ay * w) + ' ' + round2(to.y - ay * b + ax * w) +
-                           ' L' + round2(to.x) + ' ' + round2(to.y) +
-                           ' L' + round2(to.x - ax * b + ay * w) + ' ' + round2(to.y - ay * b - ax * w));
-    g.appendChild(path);
-    g.appendChild(head);
-    ink.appendChild(g);
-    arrow = g;
-    /* The dots are the line's own dash pattern, so the dash trick cannot
-       draw it: it is uncovered through a mask instead, as every dashed
-       line in the game is (see dashedIn in animations.js). */
-    var defs = document.createElementNS(SVG_NS, 'defs');
-    var mask = document.createElementNS(SVG_NS, 'mask');
-    var id = 'alArrowMask';
-    mask.setAttribute('id', id);
-    mask.setAttribute('maskUnits', 'userSpaceOnUse');
-    mask.setAttribute('x', 0); mask.setAttribute('y', 0);
-    mask.setAttribute('width', round2(r.width)); mask.setAttribute('height', round2(r.height));
-    var pen = document.createElementNS(SVG_NS, 'path');
-    pen.setAttribute('d', path.getAttribute('d'));
-    pen.setAttribute('fill', 'none');
-    pen.setAttribute('stroke', '#fff');
-    pen.setAttribute('stroke-width', '14');
-    pen.setAttribute('stroke-linecap', 'round');
-    mask.appendChild(pen);
-    defs.appendChild(mask);
-    g.insertBefore(defs, path);
-    path.setAttribute('mask', 'url(#' + id + ')');
-    M.set(head, { opacity: 0 });
-    return Flow.anim(Beats.growLine(pen, 0.7, 'power2.inOut'))
-      .then(function () {
-        return Flow.anim(M.fromTo(head, { opacity: 0, scale: 0.5, transformOrigin: '50% 50%' },
-          { opacity: 1, scale: 1, duration: M.dur(0.22), ease: 'back.out(1.6)' }));
-      });
-  }
-  function arrowOut() {
-    if (!arrow) return null;
-    var g = arrow;
-    arrow = null;
-    var tl = M.timeline({ revert: function () { if (g.parentNode) g.parentNode.removeChild(g); } });
-    tl.to(g, { opacity: 0, duration: M.dur(0.26), ease: 'power2.in' });
-    return tl;
-  }
-  function clearArrow() {
-    arrow = null;
-    if (ink) ink.textContent = '';
   }
 
   /* ======================================================================
@@ -281,11 +175,10 @@
   function askOut() {
     var tl = M.timeline({
       willChange: [dom.alLine, dom.alOpts], willChangeValue: 'transform, opacity',
-      revert: function () { dom.alAsk.setAttribute('hidden', ''); clearArrow(); }
+      revert: function () { dom.alAsk.setAttribute('hidden', ''); }
     });
     tl.to([dom.alLine, dom.alOpts],
           { opacity: 0, y: 10, duration: M.dur(0.3), ease: 'power2.in' });
-    if (arrow) tl.to(arrow, { opacity: 0, duration: M.dur(0.3), ease: 'power2.in' }, 0);
     return tl;
   }
 
@@ -299,7 +192,6 @@
     dom.alAsk.classList.remove('is-live');
     dom.alOpts.textContent = '';
     chips = [];
-    clearArrow();
     M.set([dom.alLine, dom.alOpts, dom.alSlot, dom.alSlotText],
           { clearProps: 'opacity,transform' });
   }
@@ -606,11 +498,8 @@
     return Flow.anim(Beats.arcFocus(spec.on, spec.off))
       .then(function () { return Flow.wait(SHORT); })
 
-      /* ---- the sentence, the arrow from the piece to it, then the names,
-         one by one ---------------------------------------------------- */
+      /* ---- the sentence, then the names, one by one ---------------------- */
       .then(function () { return Flow.anim(askIn()); })
-      .then(function () { return Flow.wait(SHORT); })
-      .then(function () { return drawArrow(spec.at); })
       .then(function () { return Flow.wait(SHORT); })
       .then(function () {
         var ids = K.shuffle(spec.options);

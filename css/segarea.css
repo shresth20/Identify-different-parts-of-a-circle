@@ -394,7 +394,10 @@
   min-width: 5.3em !important;
   text-align: right;
 }
-.sa-lesson .sa-wk--s4major .step__body > :first-child { min-width: 7.8em !important; }
+.sa-lesson .sa-wk--s4major .step__body > :first-child { min-width: 7.6em !important; }
+/* the major page's longest step -- the sector's, with its two fractions --
+   is set a step smaller so it stays on one line beside the figure */
+.sa-lesson .sa-wk--s4major .step { font-size: .9em; }
 
 /* ---- Reduced motion ------------------------------------------------------- */
 @media (prefers-reduced-motion: reduce) {
