@@ -817,7 +817,7 @@
     dom.smLen    = $('smLen');
     dom.smDeg    = $('smDeg');
     layoutBed();
-    figs = ['sector', 'triangle', 'segment'].map(buildFig);
+    figs = ['sector', 'triangle', 'segment'].map(function (k) { return buildFig(k); });
 
     reset();
   }

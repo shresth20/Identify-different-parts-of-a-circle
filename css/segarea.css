@@ -1,52 +1,66 @@
 /* ==========================================================================
-   Skill 4 -- area of a segment of a circle
-   Section 1's own marks: the three cards of the tap-the-segment page --
-   a plate, the ring on it, the region shaded, the name under it, the tick
-   on the right one -- and the sector page's figure. The reference art
-   draws this skill's regions in one family: the arc in orange, the radii
-   in green, the chord in the skill's ink, the shaded region in a warm tan,
-   the centre in its pink; the ring itself steps back to a pale blue so
-   the coloured edges are what the eye reads. Everything else is picked
-   out of the palette in style.css, so splitting the skill into its own
-   folder later means moving this file, js/segarea.js and the two groups
-   in index.html, nothing else.
+   Skill 4 -- area of a segment of a circle (js/segarea.js)
+   --------------------------------------------------------------------------
+   Two kinds of page, two places they are drawn.
+
+   The teaching pages -- the three cards, the segment made, the sector cut
+   and the triangle taken out, the two recaps, the major segment -- are
+   drawn on the lesson's own figure (index.html, the groups #sa #sc #se
+   #sf #sj #sk), and the rules for them are the first part of this file.
+   The reference art draws this skill's regions in one family: the arc in
+   orange, the radii in green, the chord in the skill's ink, the shaded
+   region in a warm tan, the larger piece in lavender, the centre in its
+   pink; the ring itself steps back to a pale blue so the coloured edges
+   are what the eye reads.
+
+   The problems -- every page that asks a question -- are built in skill
+   3's stage with skill 3's kit (js/sector-area.js, css/sector-area.css:
+   the perch, the bubble, the pills, the dropdown blanks, the working), so
+   the two skills' problems are one design. What this skill draws on those
+   figures of its own -- the segment, its arc, the chord, the pipe and the
+   bed -- is the second part of this file, scoped to body.sa-lesson as
+   skill 3's own rules are, and loaded before skill 3's sheet so a tie
+   goes that sheet's way.
+
+   Everything else is picked out of the palette in style.css, so splitting
+   the skill into its own folder later means moving this file,
+   js/segarea.js and the six groups in index.html, nothing else.
    ========================================================================== */
 :root {
   --sa-arc:     #F2A33A;                                  /* the arc, orange   */
   --sa-radius:  #4CCB7A;                                  /* the radii, green  */
   --sa-chord:   var(--text-primary);                      /* the chord, ink    */
   --sa-fill:    #F7DBAA;                                  /* the shaded region */
+  --sa-fill-lit: #F3C77F;                                 /* and it, lit       */
   --sa-ring:    color-mix(in srgb, var(--blue-fill) 60%, #FFFFFF);   /* a card's ring */
   --sa-wash:    color-mix(in srgb, var(--blue-fill) 12%, #FFFFFF);   /* and its inside */
-  --sa-rim:     color-mix(in srgb, var(--blue-border) 55%, var(--blue-fill)); /* page 2's rim */
+  --sa-rim:     color-mix(in srgb, var(--blue-border) 55%, var(--blue-fill)); /* a page's rim */
   --sa-disc:    color-mix(in srgb, var(--blue-fill) 22%, #FFFFFF);   /* and its wash   */
   --sa-arc-weight: 7;
   --sa-line-weight: 4;
 
-  /* Pages 3 and 4: the two points a chord is made from, red as the
-     storyboard draws them (the answers' red, so nothing new comes into
-     the palette); the larger segment's piece of the rim and its wash in
-     the lavender family; and the ink each name is set in, deep enough to
-     read on the pale board. */
+  /* The two points a chord is made from, red as the storyboard draws them
+     (the answers' red, so nothing new comes into the palette); the larger
+     segment's piece of the rim and its wash in the lavender family; and
+     the ink each name is set in, deep enough to read on the pale board. */
   --sa-point:      #E8323A;
   --sa-arc-major:  #A35CF0;
   --sa-fill-major: color-mix(in srgb, var(--lavender-fill) 28%, #FFFFFF);
   --sa-ink-minor:  #F07C1D;      /* a bright orange: the arc's own, a step deeper to read as text */
   --sa-ink-major:  #9B51F5;      /* a bright violet, the larger segment's rim a step deeper */
 
-  /* Pages 5 and 6: the triangle's wash, a pale green of the radii's own
-     family, and the ink its name is set in. */
+  /* The triangle's wash, a pale green of the radii's own family, and the
+     ink its name is set in. */
   --sa-fill-tri:   color-mix(in srgb, var(--mint-fill) 42%, #FFFFFF);
   --sa-ink-tri:    #1FB45A;      /* a fresh green, the radii's own a step deeper */
 
-  /* Pages 11 to 14: the small piece beside the major segment, in the
-     palette's sky blue, as the storyboard draws it. */
+  /* The small piece beside the major segment, in the palette's sky blue,
+     as the storyboard draws it. */
   --sa-arc-blue:   #38B6F5;
   --sa-fill-blue:  color-mix(in srgb, var(--blue-fill) 24%, #FFFFFF);
 
-  /* Pages 15 and 16: the pipe in a dark slate with its water in blue, the
-     flower bed in green with its path in earth brown, as the storyboard
-     draws them. */
+  /* The pipe in a dark slate with its water in blue, the flower bed in
+     green with its path in earth brown, as the storyboard draws them. */
   --sa-pipe-rim:   #3A4A63;
   --sa-fill-water: color-mix(in srgb, var(--blue-fill) 42%, #FFFFFF);
   --sa-water-ink:  #1F5F8B;
@@ -61,6 +75,10 @@
   --sa-card-right: color-mix(in srgb, var(--right-fill) 24%, #FFFFFF);
   --sa-card-wrong: color-mix(in srgb, var(--wrong-fill) 26%, #FFFFFF);
 }
+
+/* ==========================================================================
+   On the lesson's own figure
+   ========================================================================== */
 
 /* ---- The cards (page 1) -------------------------------------------------
    Each card rests at nothing; cardIn (segarea.js) brings it up and leaves
@@ -161,13 +179,29 @@
   stroke-width: 2;
   opacity: 0;
 }
-/* The two ends of the chord: white with the ink's edge, as the reference
-   draws them, so they sit on the orange arc and the dark chord alike. */
+/* The two ends of the chord: small, white with the ink's edge, so they
+   sit on the orange arc and the dark chord alike without taking the eye
+   from the region. */
 .sa-dot {
   fill: var(--board-highlight);
   stroke: var(--text-primary);
-  stroke-width: 2.6;
+  stroke-width: 2;
   opacity: 0;
+}
+
+/* The shaded region, lit: a soft breathing halo in the colour of the
+   edge that makes it -- the arc's orange for the sector and the segment,
+   the radii's green for the triangle -- and the fill a shade deeper at
+   the top of each breath. On while the question is open; a card that has
+   been refused goes quiet, and the right one keeps glowing. */
+.sa-card .sa-region { --glow: var(--sa-arc); }
+.sa-card--triangle .sa-region { --glow: var(--sa-ink-tri); }
+.sa-card .sa-region.is-glow { animation: sa4-region-glow 1.9s ease-in-out infinite; }
+.sa-card.is-done:not(.is-right) .sa-region.is-glow { animation: none; filter: none; }
+@keyframes sa4-region-glow {
+  0%, 100% { fill: var(--sa-fill); filter: drop-shadow(0 0 0 transparent); }
+  50%      { fill: var(--sa-fill-lit);
+             filter: drop-shadow(0 0 7px var(--glow)) drop-shadow(0 0 2px var(--glow)); }
 }
 
 /* ---- The name under a circle --------------------------------------------
@@ -199,44 +233,39 @@
   stroke-linejoin: round;
 }
 
-/* ---- The sector page (page 2) -------------------------------------------
+/* ---- The big circles (pages 3, 4, 11) and the small ones (5, 12) --------
    The lesson's circle in this skill's family: a blue rim, a pale blue
-   wash, and the sector's edges in the cards' own colours -- the angle
-   and its "θ" in the centre's pink, as the reference draws them. Nothing
-   here is a target; the answer is a press on a pill in #cfPane. */
-.figure__sb,
-.figure__sb * { pointer-events: none; }
-.figure__sb .sa-rim {
-  stroke: var(--sa-rim);
-  stroke-width: 4;
-}
-.figure__sb .sa-disc { fill: var(--sa-disc); }
-.sb-angle {
+   wash, two red points on its rim, the angle at the centre and its "θ"
+   in the centre's pink. Nothing here is a target but the band of page 3,
+   and only while a point is being picked. */
+.figure__sc .sa-rim,
+.figure__se .sa-rim,
+.figure__sj .sa-rim { stroke: var(--sa-rim); stroke-width: 4; }
+.figure__sf .sa-rim,
+.figure__sk .sa-rim { stroke: var(--sa-rim); stroke-width: 3.4; }
+.figure__sc .sa-disc,
+.figure__se .sa-disc,
+.figure__sf .sa-disc,
+.figure__sj .sa-disc,
+.figure__sk .sa-disc { fill: var(--sa-disc); }
+.figure__sc .arc-dot,
+.figure__se .arc-dot,
+.figure__sj .arc-dot { fill: var(--sa-point); }
+.s4-angle {
   fill: none;
   stroke: var(--part-centre);
   stroke-width: 3.4;
   stroke-linecap: round;
   opacity: 0;
 }
-.sb-theta {
+.s4-theta {
   fill: var(--part-centre);
   opacity: 0;
 }
+.s4-theta--small { font-size: 17px; }
 
-/* ---- The chord pages (pages 3 and 4) --------------------------------------
-   The lesson's circle in this skill's family, as page 2 draws it, with
-   two red points on its rim. The band, the ghost, the points and the hand
-   are skill 2's marks put on this circle, so they keep its classes
-   (arcs.css); only what is new is here. */
-.figure__sc .sa-rim,
-.figure__sd .sa-rim { stroke: var(--sa-rim); stroke-width: 4; }
-.figure__sc .sa-disc,
-.figure__sd .sa-disc { fill: var(--sa-disc); }
-.figure__sc .arc-dot,
-.figure__sd .arc-dot { fill: var(--sa-point); }
-
-/* The band and the glow while a point is being picked: skill 2's own, live
-   under the same state. The glow's loop is arcs.css's keyframes. */
+/* The band and the glow while a point is being picked: skill 2's own,
+   live under the same state. The glow's loop is arcs.css's keyframes. */
 .figure__sc.is-picking .arc-band {
   pointer-events: stroke;
   cursor: pointer;
@@ -252,10 +281,6 @@
 .figure__sc.is-picking .sc-glow {
   animation: arc-glow 1.7s ease-in-out infinite;
 }
-
-/* Only the handle is ever a target on page 3, and only while the board is
-   the learner's: the cursor becomes a hand over it, a grabbing one while
-   it is held. Everything else lets a press through. */
 .figure__sc .sa-rim,
 .figure__sc .rim-tip,
 .figure__sc .sa-disc,
@@ -263,64 +288,60 @@
 .figure__sc .sa-radius,
 .figure__sc .sa-chord,
 .figure__sc .sa-arc,
-.figure__sc .sb-angle,
+.figure__sc .s4-angle,
 .figure__sc .sa-centre,
-.figure__sc .figure-label { pointer-events: none; }
+.figure__sc .figure-label,
 .figure__sc .arc-dot__hit { pointer-events: none; }
-.figure__sc.is-live .sc-handle .arc-dot__hit {
-  pointer-events: all;
-  cursor: grab;
-}
-.figure__sc.is-live .sc-handle.is-held .arc-dot__hit { cursor: grabbing; }
-
-/* The reading, set to the right of the circle where it holds still while
-   the point moves: the figure's lettering a step larger, in the angle's
-   own pink. */
-.sc-readout {
-  font-size: 32px;
-  fill: var(--part-centre);
-  opacity: 0;
-}
-
-/* Page 4: the larger segment's wash and piece of the rim, and the two
-   names, each in its region's ink. Nothing here is a target. */
-.figure__sd,
-.figure__sd * { pointer-events: none; }
-.sa-region--major { fill: var(--sa-fill-major); }
-.sa-arc--major { stroke: var(--sa-arc-major); }
-.sd-label {
-  font-size: 24px;
-  opacity: 0;
-}
-.sd-label--minor { fill: var(--sa-ink-minor); }
-.sd-label--major { fill: var(--sa-ink-major); }
-
-/* ---- Sector minus triangle (pages 5 and 6) ------------------------------
-   The lesson's circle in this skill's family once more, and three small
-   ones in a row. The triangle is a filled shape with no edge of its own:
-   the radii and the chord are its edges. It rests invisible; secFill
-   colours it in and removeTriangle carries it away. Nothing here is a
-   target. */
 .figure__se,
 .figure__se *,
 .figure__sf,
 .figure__sf *,
-.figure__sg,
-.figure__sg * { pointer-events: none; }
-.figure__se .sa-rim,
-.figure__sf .sa-rim,
-.figure__sg .sa-rim { stroke: var(--sa-rim); stroke-width: 4; }
-.figure__se .sa-disc,
-.figure__sf .sa-disc,
-.figure__sg .sa-disc { fill: var(--sa-disc); }
-.figure__se .arc-dot { fill: var(--sa-point); }
-.figure__sf .sa-rim { stroke-width: 3.4; }
+.figure__sj,
+.figure__sj *,
+.figure__sk,
+.figure__sk * { pointer-events: none; }
+
+/* The larger piece's wash and piece of the rim, the small blue piece
+   beside a major segment, and the names, each in its region's ink. */
+.sa-region--major { fill: var(--sa-fill-major); }
+.sa-arc--major { stroke: var(--sa-arc-major); }
+.sa-region--blue { fill: var(--sa-fill-blue); }
+.sa-arc--blue { stroke: var(--sa-arc-blue); }
+.sc-label {
+  font-size: 24px;
+  opacity: 0;
+}
+.sc-label--minor { fill: var(--sa-ink-minor); }
+.sc-label--major { fill: var(--sa-ink-major); }
+.sc-label--tri   { fill: var(--sa-ink-tri); }
+
+/* ---- The triangle, cut out and put back (pages 4 and 11) ----------------
+   The triangle is a filled shape with no edge of its own: the radii and
+   the chord are its edges. It rests invisible; secFill colours it in.
+   The piece it is cut out as -- the triangle, its sides, its angle -- is
+   a group that is lifted (a shadow under it while it travels) and set
+   down beside the circle; put back on the major sector, the triangle
+   takes the larger piece's colour so the two read as one region. The cut
+   along the chord is a white dashed line, revealed through its mask. */
 .se-tri {
   fill: var(--sa-fill-tri);
   opacity: 0;
+  transition: fill .55s ease;
 }
-/* The signs between the three, and the three names, each in its region's
-   ink. All rest unseen; labelIn brings each up as its figure is done. */
+.se-tri.is-merged { fill: var(--sa-fill-major); }
+.se-piece.is-lifted { filter: drop-shadow(0 6px 9px rgba(40, 24, 140, .28)); }
+.se-cut {
+  fill: none;
+  stroke: var(--board-highlight);
+  stroke-width: 3;
+  stroke-dasharray: 9 7;
+  stroke-linecap: round;
+  opacity: 0;
+}
+
+/* The signs between the three small circles, and the three names, each
+   in its region's ink. All rest unseen; labelIn brings each up as its
+   figure is done. */
 .sf-sign {
   font-size: 54px;
   fill: var(--text-primary);
@@ -333,104 +354,55 @@
 .sf-label--sector,
 .sf-label--segment { fill: var(--sa-ink-minor); }
 .sf-label--triangle { fill: var(--sa-ink-tri); }
-
-/* ---- The triangle at 90° (page 7) ------------------------------------------
-   The right-angle mark in the angle's own pink, as the reference draws it;
-   the two "r"s and "90°" in the triangle's green ink. All rest unseen; the
-   beats reveal them. */
-.sg-mark {
-  fill: none;
-  stroke: var(--part-centre);
-  stroke-width: 3;
-  stroke-linejoin: miter;
-  opacity: 0;
-}
-.sg-label {
-  fill: var(--sa-ink-tri);
-  opacity: 0;
-}
-
-/* ---- The segment, worked and asked (pages 8 and 9) ------------------------
-   The same figure as the page before, with its arc lit and the segment
-   coloured in; the right angle and its "90°" in the angle's pink, the
-   length in the radii's green. Nothing here is a target. The working
-   stands in the right pane in skill 2's worked lines (.ps-*, css/
-   practice.css); only the inks the names and the fractions wear are
-   this skill's: the sector's and the segment's in the orange, the
-   triangle's in the green, the angle's fraction in the angle's pink and
-   π's in the palette's sky blue, as the storyboard colours them. */
-.figure__sh,
-.figure__sh * { pointer-events: none; }
-.figure__sh .sa-rim { stroke: var(--sa-rim); stroke-width: 4; }
-.figure__sh .sa-disc { fill: var(--sa-disc); }
-.figure__sh .arc-dot { fill: var(--sa-point); }
-.sh-deg {
-  fill: var(--part-centre);
-  opacity: 0;
-}
-.sh-len {
-  fill: var(--sa-ink-tri);
-  opacity: 0;
-}
-.sw-name--sector,
-.sw-name--segment { color: var(--sa-ink-minor); }
-.sw-name--triangle { color: var(--sa-ink-tri); }
-.sw-c--th { color: var(--part-centre); }
-.sw-c--pi { color: var(--blue-border); }
-
-/* ---- The major segment (pages 11 to 14) --------------------------------------
-   The same figures with the other piece coloured: the major arc and the
-   major segment in the lavender family, the small piece in blue beside
-   them, the names of the major pieces in the lavender ink. Nothing here
-   is a target. */
-.figure__si,
-.figure__si *,
-.figure__sj,
-.figure__sj *,
-.figure__sk,
-.figure__sk * { pointer-events: none; }
-.figure__si .sa-rim,
-.figure__sj .sa-rim { stroke: var(--sa-rim); stroke-width: 4; }
-.figure__sk .sa-rim { stroke: var(--sa-rim); stroke-width: 3.4; }
-.figure__si .sa-disc,
-.figure__sj .sa-disc,
-.figure__sk .sa-disc { fill: var(--sa-disc); }
-.figure__si .arc-dot,
-.figure__sj .arc-dot { fill: var(--sa-point); }
-.sa-region--blue { fill: var(--sa-fill-blue); }
-.sa-arc--blue { stroke: var(--sa-arc-blue); }
-.sw-name--msector,
-.sw-name--msegment { color: var(--sa-ink-major); }
 .sf-label--msector,
 .sf-label--msegment { fill: var(--sa-ink-major); }
 
-/* ---- The stories (pages 15 and 16) -------------------------------------------
-   The pipe: a dark ring with no wash -- it is a pipe, not a disc -- its
-   water pale blue under a blue surface and a blue arc, named in the water.
-   The bed: a green ring over a pale green wash, cut by a brown path, its
-   smaller piece in the tan of every minor segment here. Nothing here is a
-   target. */
-.figure__sl,
-.figure__sl *,
-.figure__sm,
-.figure__sm * { pointer-events: none; }
-.figure__sl .sa-rim { stroke: var(--sa-pipe-rim); stroke-width: 4.4; }
-.figure__sl .sa-chord { stroke: var(--sa-arc-blue); }
+/* ==========================================================================
+   In skill 3's stage -- the problems
+   --------------------------------------------------------------------------
+   The figure is skill 3's circle (its wash, rim and centre, its amber
+   radii and its magenta angle, so a number follows its colour from the
+   figure into the working), with this skill's own marks on it: the
+   segment in its tan under its orange arc, the chord in ink, the major
+   piece in lavender, the pipe's water and the bed's path. Scoped as
+   skill 3's rules are; a halo for a region when it is the answer.
+   ========================================================================== */
+.sa-lesson .sa-fig .sa-region { --focus: var(--sa-arc); }
+.sa-lesson .sa-fig .sa-region--major { --focus: var(--sa-arc-major); }
+.sa-lesson .sa-fig .sa-region--water { --focus: var(--sa-arc-blue); }
+.sa-lesson .sa-fig .se-tri { --focus: var(--sa-ink-tri); }
+.sa-lesson .sa-fig .se-tri.is-lit { fill: color-mix(in srgb, var(--mint-fill) 70%, #FFFFFF); }
 .sa-region--water { fill: var(--sa-fill-water); }
-.sl-word {
-  font-size: 24px;
-  fill: var(--sa-water-ink);
-  opacity: 0;
+
+/* The pipe: a dark ring with no wash -- it is a pipe, not a disc -- its
+   water pale blue under a blue surface and a blue arc, named in the
+   water. The bed: a green ring over a pale green wash, cut by a brown
+   path, its smaller piece in the tan of every minor segment here. */
+.sa-lesson .sa-fig .sq-pipe { stroke: var(--sa-pipe-rim); stroke-width: 4.4; }
+.sa-lesson .sa-fig .sq-none { fill: none; }
+.sa-lesson .sa-fig .sq-surface { stroke: var(--sa-arc-blue); }
+.sa-lesson .sa-fig .sq-bed { stroke: var(--sa-bed-rim); stroke-width: 3.6; }
+.sa-lesson .sa-fig .sq-bed-wash { fill: var(--sa-fill-bed); }
+.sa-lesson .sa-fig .sq-path { stroke: var(--sa-path); }
+.sa-lesson .sa-fig .sq-water-word { font-size: 22px; fill: var(--sa-water-ink); }
+
+/* The worked pages: the left side of every step the same width, set to
+   the right, so each step's first "=" falls in one column -- the width
+   of the longest name on the page. */
+.sa-lesson .sa-wk--s4 .step__body > :first-child {
+  display: inline-block;
+  min-width: 5.3em !important;
+  text-align: right;
 }
-.figure__sm .sa-rim { stroke: var(--sa-bed-rim); stroke-width: 4; }
-.figure__sm .sa-disc { fill: var(--sa-fill-bed); }
-.figure__sm .sa-chord { stroke: var(--sa-path); }
+.sa-lesson .sa-wk--s4major .step__body > :first-child { min-width: 7.8em !important; }
 
 /* ---- Reduced motion ------------------------------------------------------- */
 @media (prefers-reduced-motion: reduce) {
   .sa-card,
   .sa-card__face,
-  .sa-label { transition: none !important; }
+  .sa-label,
+  .se-tri { transition: none !important; }
+  .sa-card .sa-region.is-glow { animation: none; filter: drop-shadow(0 0 5px var(--glow)); }
   .figure__sc.is-picking .sc-glow {
     animation: none !important;
     opacity: .4;

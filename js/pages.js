@@ -736,10 +736,10 @@
      then eases to nothing. The bird steps aside to make room instead of
      teleporting, and because it is a transform on the SLOT, the sprite
      player's own inline styles on the bird inside it are never touched. */
-  function sayInHeader(text) {
+  function sayInHeader(text, over) {
     var slot = dom.slotHeader;
     var before = slot.getBoundingClientRect().left;
-    var reveal = sayPrompt.reserve(text);      /* the row takes its width now */
+    var reveal = sayPrompt.reserve(text, over); /* the row takes its width now */
     var shift = before - slot.getBoundingClientRect().left;
 
     if (Math.abs(shift) > 0.5) {
@@ -1084,17 +1084,84 @@
     return { text: global.I18n ? global.I18n.t(key) : key, vo: key };
   }
 
-  /* Feedback in two sentences, said one at a time: the verdict on its own
-     ("Not quite!"), then the reason, typed over it. Each is its own key and
-     its own clip, and speak() is not done until its clip is, so the reason
-     is never begun over the end of the verdict's voice -- the words on
-     screen and the voice stay together. `still()`, if given, is asked
-     between the two: false once a newer line has taken the header, and the
-     reason is then left unsaid. A key that IS the verdict is said once. */
-  function sayFeedback(verdict, key, mood, still) {
-    return speak(keyed(verdict), mood).then(function () {
-      if (key === verdict || (still && !still())) return;
-      return speak(keyed(key), mood);
+  /* A line of more than one sentence, said one sentence at a time -- "Not
+     quite!", then the reason; "Here is another radius.", then "Both are
+     equal in length." -- from ONE key and ONE clip. The recording is played once; each
+     sentence is typed on that clip's own clock (its word cues), and the
+     first is taken off and the next put up as the voice reaches the next
+     sentence's first word. Nothing is heard twice, and the words never run
+     ahead of the voice or behind it. A line with no recording at all is
+     said a sentence at a time at the Typer's pace; a line of one sentence,
+     or one recorded without cues to time it by, is said whole. */
+  var OUT_LEAD = 280;      /* ms: lineOut's length, begun this early */
+
+  function sentencesOf(text) {
+    var parts = text.match(/[^.!?]+[.!?]+\s*/g);
+    return parts && parts.length > 1 && parts.join('') === text ? parts : null;
+  }
+
+  function speakBySentence(key, mood) {
+    var line = keyed(key);
+    var I = global.I18n;
+    var parts = sentencesOf(line.text);
+    if (!parts || Flow.isFast()) return speak(line, mood);
+
+    var cues = I && I.cues ? I.cues(key) : null;
+    if (!cues) {
+      if (I && I.voiced && I.voiced().indexOf(key) >= 0) return speak(line, mood);
+      /* no clip: each sentence its own plain line, unless a newer one has
+         taken the header in between */
+      return parts.reduce(function (chain, s, i) {
+        return chain.then(function (n) {
+          if (i > 0 && n !== speaking) return n;
+          var said = speak(s.trim(), mood);
+          var mine = speaking;
+          return said.then(function () { return mine; });
+        });
+      }, Promise.resolve(speaking));
+    }
+
+    /* each sentence with the cues of its own words, from the clip's start */
+    var w = 0;
+    var split = parts.map(function (s) {
+      var n = (s.match(/\S+\s*/g) || []).length;
+      var at = cues.slice(w, w + n);
+      w += n;
+      return { text: s.trim(), at: at };
+    });
+
+    var mine = ++speaking;
+    var has = dom.promptLine.textContent.trim().length > 0;
+    var gone = has ? Flow.anim(Beats.lineOut(dom.promptLine)) : Promise.resolve();
+    return gone.then(function () {
+      if (mine !== speaking) return;
+      M.set(dom.promptLine, { clearProps: 'opacity,transform,filter' });
+      mascot.state(mood || 'talking');
+      var t0 = performance.now();
+      var heard = quiet(voiceOf(line));
+      var typed = split.reduce(function (chain, s, i) {
+        return chain.then(function () {
+          if (mine !== speaking) return;
+          var out = i === 0 ? Promise.resolve() :
+            Flow.wait(t0 + s.at[0] - OUT_LEAD - performance.now()).then(function () {
+              if (mine !== speaking) return;
+              return Flow.anim(Beats.lineOut(dom.promptLine));
+            });
+          return out.then(function () {
+            if (mine !== speaking) return;
+            M.set(dom.promptLine, { clearProps: 'opacity,transform,filter' });
+            /* the cues are from the clip's start; this sentence starts late
+               by however long the clip has run already */
+            var late = performance.now() - t0;
+            return sayInHeader(s.text, {
+              at: s.at.map(function (c) { return Math.max(0, c - late); })
+            });
+          });
+        });
+      }, Promise.resolve());
+      return Promise.all([typed, heard]);
+    }).then(function () {
+      if (mine === speaking) mascot.settle();
     });
   }
   /* How long a line takes to type, in seconds: for something acted out on
@@ -2056,7 +2123,7 @@
           half: dom.halfLeft, end: dom.endLeft
         }));
       })
-      .then(function () { return speak(keyed('s1TwoRadius')); })
+      .then(function () { return speakBySentence('s1TwoRadius'); })
       .then(function () { return Flow.wait(BEAT); })
       .then(function () { return speak(keyed('s1TwoJoined')); })
       .then(function () { return Flow.wait(BEAT); })
@@ -2297,7 +2364,7 @@
                    's1LblCircumference'];
 
   /* A name dropped on the wrong part is answered in two short lines: "Not
-     quite!" and then what THAT name is (see sayFeedback) -- enough to see why it does not fit,
+     quite!" and then what THAT name is (see speakBySentence) -- enough to see why it does not fit,
      without handing over the one that does. A chord dropped on the
      diameter is the one case where the name is not wrong about the line,
      only not the name asked for, and it is told so. */
@@ -2326,8 +2393,7 @@
     function sayWrong(target, name) {
       var mine = ++fb.n;
       fb.up = true;
-      return sayFeedback('fbNotQuite', wrongKey(target, name), 'confused',
-                         function () { return mine === fb.n; })
+      return speakBySentence(wrongKey(target, name), 'confused')
         .then(function () { return Flow.wait(WRONG_HOLD); })
         .then(function () {
           if (mine !== fb.n) return;
@@ -2445,7 +2511,7 @@
      into them. The bird comes up with the instruction and STAYS on the
      header while the names are being placed -- it is not sent away and
      brought back. A wrong drop is answered on the spot -- "Not quite!", then
-     the reason, one at a time (sayFeedback) --
+     the reason, one at a time (speakBySentence) --
      the name goes home, and the instruction comes back up after it; there
      is no last-chance reveal -- the learner places both. A right drop says
      nothing: the green box and its tick are the answer. Once both are in,
@@ -2466,8 +2532,7 @@
     var fb = { n: 0 };
     function sayWrong(name) {
       var mine = ++fb.n;
-      return sayFeedback('fbNotQuite', o.wrong[name] || 'fbNotQuite', 'confused',
-                         function () { return mine === fb.n; })
+      return speakBySentence(o.wrong[name] || 'fbNotQuite', 'confused')
         .then(function () { return Flow.wait(WRONG_HOLD_PAIR); })
         .then(function () { if (mine === fb.n) return speak(keyed(o.ask)); });
     }

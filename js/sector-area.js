@@ -3783,4 +3783,41 @@
     reset: reset,
     stage: stageAt
   });
+
+  /* ---- the kit, handed over ----------------------------------------------
+     Skill 2's formula and practice pages (js/arc-formula.js) are built
+     with this skill's pieces -- the figure kit, the perch and its bubble,
+     the dropdown blanks, the worked steps, the practice page -- in this
+     skill's stage and under its stylesheet, so the two skills' later pages
+     are one design. That file is loaded BEFORE this one (its scenes come
+     earlier in the lesson) and reads everything here lazily, when a scene
+     plays, by which time this object exists. State a scene needs to set
+     is behind a function. Nothing of this skill's own scenes is handed
+     over. */
+  global.SectorArea = {
+    BEAT: BEAT, SHORT: SHORT, LOOK: LOOK, PEN: PEN, SWEEP: SWEEP, SLOW_PEN: SLOW_PEN,
+    X: X, EQ: EQ, MINUS: MINUS, DD: DD, PIR2: PIR2,
+    dom: function () { return dom; },
+    mascot: function () { return mascot; },
+    held: function (v) { if (arguments.length) held = v; return held; },
+    perch: function () { return perch; },
+    lessonOn: lessonOn, lessonOff: lessonOff,
+    wait: wait, anim: anim, quiet: quiet, tr: tr, keyed: keyed, lineOf: lineOf, voiceOf: voiceOf,
+    shuffled: shuffled, praise: praise, oops: oops, svgEl: svgEl, h: h, fr: fr, c: c,
+    r2: r2, pt: pt, ringD: ringD, arcD: arcD, wedgeD: wedgeD, bandD: bandD, segD: segD, fmt: fmt,
+    fadeIn: fadeIn, popIn: popIn, fadeOut: fadeOut, cardIn: cardIn, settleFig: settleFig,
+    figure: figure, text: text, circle: circle, drawCircle: drawCircle, sector: sector,
+    radii: radii, sweep: sweep, arcIn: arcIn, show: show, angleMark: angleMark, angleIn: angleIn,
+    pointer: pointer, pointTo: pointTo, pointerIn: pointerIn,
+    clearPrompt: clearPrompt, speak: speak, mascotJumpIn: mascotJumpIn, mascotJumpOut: mascotJumpOut,
+    perchIn: perchIn, perchSay: perchSay, perchOut: perchOut, say: say, bubbleSay: bubbleSay,
+    sayTop: sayTop, sayAll: sayAll, hush: hush, leaveHeader: leaveHeader, handOver: handOver,
+    ripple: ripple, burstAt: burstAt,
+    waitPick: waitPick, until: until, clearChoices: clearChoices, askChoice: askChoice,
+    dropdown: dropdown, stepRow: stepRow, stepIn: stepIn, stepDone: stepDone, ddIn: ddIn,
+    noteCard: noteCard, ruleCard: ruleCard, lineIn: lineIn, clearStage: clearStage, stage: stage,
+    bubbleVoice: bubbleVoice, writeSteps: writeSteps, fieldTalk: fieldTalk, keyWord: keyWord,
+    flyNumber: flyNumber, dissolveTo: dissolveTo, magnifier: magnifier,
+    dottedArrow: dottedArrow, figToScene: figToScene
+  };
 })(window);

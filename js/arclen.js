@@ -70,6 +70,7 @@
 
   var BEAT = K.BEAT, SHORT = K.SHORT;
   var RR = K.RR;
+  var round2 = K.round2;
   var P = A.P, arcD = A.arcD;
 
   /* ---- the cut, as two constants ----------------------------------------

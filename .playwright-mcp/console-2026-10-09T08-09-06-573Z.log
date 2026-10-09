@@ -1,1 +1,12 @@
 [    4538ms] [ERROR] Failed to load resource: the server responded with a status of 404 (File not found) @ http://localhost:8765/favicon.ico:0
+[ 1287023ms] [ERROR] Failed to load resource: the server responded with a status of 404 (File not found) @ http://localhost:8765/css/arc-formula.css:0
+[ 1287043ms] [ERROR] Failed to load resource: the server responded with a status of 404 (File not found) @ http://localhost:8765/js/arc-formula.js:0
+[ 1287194ms] TypeError: Cannot read properties of null (reading 'setAttribute')
+    at Object.reset (http://localhost:8765/js/central.js:1616:12)
+    at http://localhost:8765/js/pages.js:623:52
+    at Array.forEach (<anonymous>)
+    at resetFigure (http://localhost:8765/js/pages.js:623:14)
+    at rewind (http://localhost:8765/js/pages.js:2634:5)
+    at runFrom (http://localhost:8765/js/pages.js:2741:5)
+    at Object.run (http://localhost:8765/js/pages.js:2751:27)
+    at http://localhost:8765/js/script.js:70:69

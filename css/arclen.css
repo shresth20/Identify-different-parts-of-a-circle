@@ -60,7 +60,7 @@
    pill standing in the middle of the line. */
 .ask-line {
   margin: 0;
-  padding: 0 4cqw;
+  padding: 0 2cqw;
   text-align: center;
   font-family: var(--font-display);
   font-weight: 700;
@@ -81,14 +81,14 @@
   justify-content: center;
   align-items: center;
   vertical-align: middle;
-  min-width: 4.9em;
+  min-width: 4.6em;
   min-height: 1.45em;
   padding: .02em .5em .08em;
   /* The gap either side is the slot's own, not the sentence's spaces:
      the slot is re-parented while it is measured (see index.html), and a
      space that depends on where it lands is a space that goes missing
      (user, 2026-10-09: "keep the gap between the slot and 'of'"). */
-  margin: 0 .32em;
+  margin: 0 .24em;
   border: .085em dashed var(--al-slot-edge);
   border-radius: 999px;
   background: var(--board-highlight);

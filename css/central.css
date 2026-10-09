@@ -1,31 +1,31 @@
 /* ==========================================================================
    Skill 2, section 3 -- the central angle
-   The third section's own marks, on four pages: the two radii the
-   learner's points call for and the angle between them; the fixed angle
-   read off a protractor -- the piece of rim between the points, the
-   dashed radii with their "r", the angle with its "θ" and the measure
-   that takes θ's place -- asked about twice and then named part by part,
-   with a legend beside it; and the angle explored, a radius carried round
-   the circle by its end with the reading beside it. The band, the ghost, the points and the hand are section 2's marks
-   put on another circle, so they keep its classes (arcs.css); only what
-   is new to this section is here. Everything is picked out of the palette in style.css. To split
-   the section into its own folder later, this file, js/central.js and the
-   three groups in index.html (#ca, #cm and #ce) and #clPane are the whole
-   of it.
+   The third section's own marks, on one circle for four pages: the two
+   radii the learner's points call for and the angle between them; the
+   protractor laid on that same figure, the piece of rim between the
+   points, the "r" beside a radius and the measure that takes θ's place;
+   the same angle asked about as a fraction; and then its parts named
+   one by one, each taking its own colour, with a legend beside it. The
+   band, the ghost, the points and the hand are section 2's marks put on
+   another circle, so they keep its classes (arcs.css); only what is new
+   to this section is here. Everything is picked out of the palette in
+   style.css. To split the section into its own folder later, this file,
+   js/central.js and the one group in index.html (#ca) with #clPane are
+   the whole of it.
    ========================================================================== */
 :root {
-  /* The two points an angle is made from, on both pages: red, as the
-     storyboard draws them -- each is the end of a radius, not one of
-     section 2's indigo points on a piece of the rim, so it wears a colour
-     of its own. The answers' red, so nothing new comes into the palette;
-     named for itself, because a point is not a verdict. */
+  /* The two points an angle is made from: red, as the storyboard draws
+     them -- each is the end of a radius, not one of section 2's indigo
+     points on a piece of the rim, so it wears a colour of its own. The
+     answers' red, so nothing new comes into the palette; named for
+     itself, because a point is not a verdict. */
   --ca-point: #E8323A;
 
-  /* The three things the arc-length page names, each in a colour of its
-     own that the figure and the legend share, so the words point back at
-     the picture. Three of the palette's own bright accents, far apart in
-     hue from one another and from the pale lavender they stand on, each
-     deep enough to read as text: the arc in the palette's sky blue (the
+  /* The three things the naming page names, each in a colour of its own
+     that the figure and the legend share, so the words point back at the
+     picture. Three of the palette's own bright accents, far apart in hue
+     from one another and from the pale lavender they stand on, each deep
+     enough to read as text: the arc in the palette's sky blue (the
      opposite of the orange rim it lies on), the radii in a clear green,
      the angle in the centre's own pink -- the angle belongs to the
      centre. Muted and dark sets tried first either sank into the board
@@ -33,26 +33,13 @@
   --cl-s:  var(--blue-border);
   --cl-r:  #1E9E57;
   --cl-th: var(--part-centre);
-
-  /* The arc-length formula's three (page 7): each mark on the figure and
-     its letter in the formula share one colour, so the letter points
-     back at its mark. Three inks the theme already owns, far apart in
-     hue from one another, from the orange rim, from the pink centre and
-     from the navy the formula is set in, and each deep enough to read as
-     a letter on the pale board: the arc and "s" in the bird's own teal,
-     the angle and "θ" in the chord's violet -- the board's own family,
-     a step deeper -- and the radii and "r" in the palette's coral.
-     Brighter sets (sky blue, hot pink, the rim's orange) read as loud
-     and did not belong to the board (user, 2026-10-06). */
-  --cv-s:  var(--swiftee-ink);
-  --cv-th: var(--part-chord);
-  --cv-r:  var(--coral-border);
 }
 
 /* ---- The band and the glow (page 1) -------------------------------------
    The same two section 2 has, live under the same state: a point is being
    picked. The glow's loop is arcs.css's keyframes; only the selector that
-   turns it on is this section's. */
+   turns it on is this section's -- and here it breathes ONCE and rests,
+   rather than for as long as the point is wanted (user, 2026-10-09). */
 .figure__ca.is-picking .arc-band {
   pointer-events: stroke;
   cursor: pointer;
@@ -66,22 +53,19 @@
   pointer-events: none;
 }
 .figure__ca.is-picking .ca-glow {
-  animation: arc-glow 1.7s ease-in-out infinite;
+  animation: arc-glow 1.7s ease-in-out 1;
 }
 
 /* ---- The points ----------------------------------------------------------- */
-.figure__ca .arc-dot,
-.figure__cm .arc-dot { fill: var(--ca-point); }
+.figure__ca .arc-dot { fill: var(--ca-point); }
 
 /* ---- One ink ---------------------------------------------------------------
-   Radii, dashed radii, angle, "θ", "r" and the measure all in the skill's
-   own ink -- the text's dark blue, as the semicircle and quadrant pages
-   drew theirs -- named once here so they can never drift apart. The small
-   dot keeps the centre's pink, the colour skill 1 gave the centre. All
-   rest invisible; the beats reveal them. */
-.figure__ca,
-.figure__cm,
-.figure__ce { --ca-ink: var(--text-primary); }
+   Radii, arc, angle, "θ", "r", "s" and the measure all in the skill's own
+   ink -- the text's dark blue, as the semicircle and quadrant pages drew
+   theirs -- named once here so they can never drift apart. The small dot
+   keeps the centre's pink, the colour skill 1 gave the centre. All rest
+   invisible; the beats reveal them. */
+.figure__ca { --ca-ink: var(--text-primary); }
 
 .ca-radius,
 .ca-angle {
@@ -99,20 +83,6 @@
   opacity: 0;
   pointer-events: none;
 }
-.ca-theta {
-  fill: var(--ca-ink);
-  opacity: 0;
-  pointer-events: none;
-}
-
-/* ---- Page 2: the protractor and what is read off it ---------------------
-   Nothing on this circle is a target: the answer is a press on a pill,
-   never a touch on the picture. */
-.figure__cm,
-.figure__cm * { pointer-events: none; }
-
-/* The protractor, at rest unseen; central.js lays it on. */
-.cm-protractor { opacity: 0; }
 
 /* The piece of the rim between the two points: the skill's ink over the
    rim's orange, at the radii's weight -- picked out, not made heavy, so
@@ -124,29 +94,13 @@
   stroke-width: 3.4;
   stroke-linecap: round;
   opacity: 0;
+  pointer-events: none;
 }
 
-/* The dashed line from a point to the centre: thin, butt-capped so the
-   dashes are plain bars, drawn through its own mask, which central.js
-   strokes -- a dashed line cannot be drawn with the dash trick itself. */
-.cm-dash {
-  fill: none;
-  stroke: var(--ca-ink);
-  stroke-width: 2.2;
-  stroke-dasharray: 6 6;
-  stroke-linecap: butt;
-  opacity: 0;
-}
-.cm-pen {
-  fill: none;
-  stroke: #FFFFFF;
-  stroke-width: 10;
-}
-
-/* The words on this page -- "r", "θ", "θ = 80°" -- are set over the
-   protractor's fan of thin lines, so each is given a thin white edge
-   under its ink (the stroke painted first) that lifts it clear of them.
-   The figure's own lettering otherwise (.figure-label). */
+/* The words on this circle -- "θ", "r", "s", "θ = 80°" -- are set over the
+   protractor's fan of thin lines while it is on, so each is given a thin
+   white edge under its ink (the stroke painted first) that lifts it clear
+   of them. The figure's own lettering otherwise (.figure-label). */
 .cm-label {
   fill: var(--ca-ink);
   opacity: 0;
@@ -154,23 +108,50 @@
   stroke: var(--board-highlight);
   stroke-width: 5;
   stroke-linejoin: round;
+  pointer-events: none;
 }
+
+/* ---- The angle, lit while it is named (page 1) ------------------------------
+   The mark and its "θ" take the angle's own colour for the sentence that
+   names them, with a soft halo, and central.js swells them in step; the
+   colour goes back to the ink with the sentence. */
+.ca-angle,
+.ca-theta { transition: stroke .4s ease, fill .4s ease, filter .4s ease; }
+.ca-angle.is-hot {
+  stroke: var(--cl-th);
+  filter: drop-shadow(0 0 5px color-mix(in srgb, var(--cl-th) 55%, transparent));
+}
+.ca-theta.is-hot {
+  fill: var(--cl-th);
+  filter: drop-shadow(0 0 4px color-mix(in srgb, var(--cl-th) 45%, transparent));
+}
+
+/* ---- Page 2: the protractor and what is read off it ---------------------
+   The protractor rests unseen; central.js lays it on and turns it to the
+   first radius. While it is on, the marks under it are made a step
+   heavier, so the lines inside the circle stand up through its scale
+   rather than sinking under it (user, 2026-10-09). */
+.cm-protractor { opacity: 0; pointer-events: none; }
+.figure__ca.is-prot .ca-radius,
+.figure__ca.is-prot .ca-angle,
+.figure__ca.is-prot .cm-arc { stroke-width: 4.6; }
+.figure__ca.is-prot .ca-centre { stroke-width: 3; }
+.figure__ca.is-prot .cm-label { stroke-width: 7; }
 
 /* ---- Page 4: the three named ----------------------------------------------
    The arc, the radii and the angle each take their own colour as the bird
    names them -- a class on the group, the colour transitioned rather than
    tweened, as every recolour in the figure is -- and the "s" lands beside
    the arc. All three come off again with the page. */
-.figure__cm .cm-arc,
-.figure__cm .cm-dash,
-.figure__cm .ca-angle,
-.figure__cm .cm-label { transition: stroke .6s ease, fill .6s ease; }
-.figure__cm.is-s .cm-arc { stroke: var(--cl-s); }
-.figure__cm .cm-s { fill: var(--cl-s); }
-.figure__cm.is-r .cm-dash { stroke: var(--cl-r); }
-.figure__cm.is-r .cm-r { fill: var(--cl-r); }
-.figure__cm.is-th .ca-angle { stroke: var(--cl-th); }
-.figure__cm.is-th .cm-theta { fill: var(--cl-th); }
+.figure__ca .cm-arc,
+.figure__ca .ca-radius,
+.figure__ca .cm-label { transition: stroke .6s ease, fill .6s ease, stroke-width .3s ease; }
+.figure__ca.is-s .cm-arc { stroke: var(--cl-s); }
+.figure__ca .cm-s { fill: var(--cl-s); }
+.figure__ca.is-r .ca-radius { stroke: var(--cl-r); }
+.figure__ca.is-r .cm-r { fill: var(--cl-r); }
+.figure__ca.is-th .ca-angle { stroke: var(--cl-th); }
+.figure__ca.is-th .ca-theta { fill: var(--cl-th); }
 
 /* The legend: the right half of the stage, as .cf-pane is -- a container,
    so the lines are measured against this half -- with the three names
@@ -226,155 +207,6 @@
 .cl-item--r  { color: var(--cl-r); }
 .cl-item--th { color: var(--cl-th); }
 
-/* ---- Page 5: the angle explored ------------------------------------------
-   The same ink and the same red points as the pages before. Only the
-   handle is ever a target, and only while the activity is live: the
-   cursor becomes a hand over it, a grabbing one while it is held. */
-.figure__ce .arc-dot { fill: var(--ca-point); }
-.figure__ce .figure__rim,
-.figure__ce .rim-tip,
-.figure__ce .ca-radius,
-.figure__ce .ca-angle,
-.figure__ce .ca-centre { pointer-events: none; }
-.figure__ce .arc-dot__hit { pointer-events: none; }
-.figure__ce.is-live .ce-handle .arc-dot__hit {
-  pointer-events: all;
-  cursor: grab;
-}
-.figure__ce.is-live .ce-handle.is-held .arc-dot__hit { cursor: grabbing; }
-
-/* The sector swept out between the fixed radius and the moving one: the
-   lit arc's own yellow, faint, as the quadrant page tinted its quarter --
-   it grows with the angle until, at the whole turn, it is the whole
-   disc. */
-.ce-sector {
-  fill: color-mix(in srgb, var(--part-arc-minor) 30%, #FFFFFF);
-  opacity: 0;
-  pointer-events: none;
-}
-
-/* The reading, set to the right of the circle where it holds still while
-   the angle moves: the figure's lettering a step larger, because it is the
-   one number the page is about. */
-.ce-readout {
-  font-size: 32px;
-  fill: var(--ca-ink);
-  opacity: 0;
-  pointer-events: none;
-}
-
-/* ---- Page 6: the whole turn ----------------------------------------------
-   The same ink as the pages before. Nothing here is a target -- the answer
-   is a press on a pill -- and every mark rests unseen until its beat. The
-   arrowhead on the end of the 360° angle is filled in the angle's ink, and
-   "360°" is the figure's own lettering. */
-.figure__cz,
-.figure__cz * { pointer-events: none; }
-.figure__cz { --ca-ink: var(--text-primary); }
-.cz-head {
-  fill: var(--ca-ink);
-  opacity: 0;
-}
-.cz-label {
-  fill: var(--ca-ink);
-  opacity: 0;
-}
-
-/* ---- Page 7: the arc-length formula --------------------------------------
-   The marks wear their colours from the moment they are drawn (the
-   tokens above). Nothing is a target. */
-.figure__cv,
-.figure__cv * { pointer-events: none; }
-.figure__cv .cv-radius { stroke: var(--cv-r); }
-.figure__cv .cv-angle  { stroke: var(--cv-th); }
-.cv-arc {
-  fill: none;
-  stroke: var(--cv-s);
-  stroke-width: 5;
-  stroke-linecap: round;
-  opacity: 0;
-}
-.cv-label { opacity: 0; }
-.cv-s     { fill: var(--cv-s); }
-.cv-theta { fill: var(--cv-th); }
-.cv-r     { fill: var(--cv-r); }
-
-/* The formula: the right half of the stage, as .cl-pane is -- a
-   container, so the type is measured against this half -- with the two
-   lines one under the other, left-aligned on one edge so the second reads
-   as the first rewritten. */
-.ff-pane {
-  position: absolute;
-  top: 0;
-  bottom: 0;
-  left: 50%;
-  width: 50%;
-  z-index: 2;
-  pointer-events: none;
-  container-type: size;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-}
-.ff-pane[hidden] { display: none; }
-.ff-lines {
-  display: flex;
-  flex-direction: column;
-  align-items: flex-start;
-  gap: .9em;
-  font-family: var(--font-display);
-  font-weight: 800;
-  font-size: clamp(15px, 4.5cqw, 34px);
-  line-height: 1.2;
-  letter-spacing: .3px;
-  color: var(--text-primary);
-}
-.ff-line {
-  margin: 0;
-  display: flex;
-  align-items: center;
-  gap: .32em;
-  white-space: nowrap;
-}
-/* Every term of the first line rests unseen, and the second line as a
-   whole: the beats bring them up. */
-.ff-line > .ff-t { opacity: 0; display: inline-block; }
-.ff-line--2 { opacity: 0; }
-.ff-line--2 > .ff-t { opacity: 1; }
-
-/* The fraction, stood up as on paper: the numerator over a bar over the
-   denominator, the bar its own element so its width can be eased when
-   the numerator changes. */
-.ff-frac {
-  display: inline-flex;
-  flex-direction: column;
-  align-items: center;
-  font-size: .82em;
-  line-height: 1.1;
-}
-.ff-n,
-.ff-d { display: block; padding: 0 .16em; }
-.ff-bar {
-  display: block;
-  align-self: stretch;
-  height: .11em;
-  margin: .1em 0;
-  border-radius: .06em;
-  background: currentColor;
-}
-
-/* A word and the letter it becomes share a cell; the letter is out of
-   the layout until central.js turns the cell over, and wears its mark's
-   colour from the moment it is in. */
-.ff-word,
-.ff-sym { display: inline-block; }
-.ff-sym { display: none; }
-.is-sym > .ff-word { display: none; }
-.is-sym > .ff-sym { display: inline-block; }
-.ff-k--s  .ff-sym { color: var(--cv-s); }
-.ff-k--th .ff-sym { color: var(--cv-th); }
-.ff-k--c  .ff-sym .ff-r { color: var(--cv-r); }
-
 /* ---- Reduced motion -------------------------------------------------------
    As arcs.css says of its own glow: the rim is lit, it just does not
    breathe. */
@@ -383,4 +215,9 @@
     animation: none !important;
     opacity: .4;
   }
+  .ca-angle,
+  .ca-theta,
+  .figure__ca .cm-arc,
+  .figure__ca .ca-radius,
+  .figure__ca .cm-label { transition: none !important; }
 }

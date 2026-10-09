@@ -1,0 +1,108 @@
+/* ==========================================================================
+   Skill 2, section 4 -- the arc-length formula (js/arc-formula.js)
+   --------------------------------------------------------------------------
+   These pages are built with skill 3's kit, in its stage and under its
+   stylesheet (css/sector-area.css), so nearly everything they wear is
+   there already. What is here is only what an arc-length page needs of
+   its own: the ARC is the thing, so it is drawn heavy and lit, and no
+   sector is ever coloured in -- the lesson is about the length along the
+   rim, not the region inside it (user, 2026-10-09). Plus the two story
+   figures, the windshield and the clock. Scoped as sector-area.css is,
+   to :where(body.sa-lesson), and loaded after it so these few rules win.
+   ========================================================================== */
+:where(body.sa-lesson) {
+  /* The arc's ink: the minor piece's edge, as skill 3 draws it -- the
+     same colour the found length is written in. */
+  --af-arc: var(--sa-minor-edge);
+}
+
+/* ---- The arc, lit -----------------------------------------------------------
+   A piece of the circumference, picked out: heavier than the rim it lies
+   on, in the arc's ink, and never a region behind it. */
+:where(body.sa-lesson) .af-fig .s-region { display: none; }
+:where(body.sa-lesson) .af-fig .s-arc--minor {
+  stroke: var(--af-arc);
+  stroke-width: 6.5;
+  --focus: var(--af-arc);
+}
+:where(body.sa-lesson) .af-fig .s-arc--major {
+  stroke: var(--sa-major-edge);
+  stroke-width: 6.5;
+  --focus: var(--sa-major-edge);
+}
+:where(body.sa-lesson) .af-fig .s-arc.is-lit,
+:where(body.sa-lesson) .af-fig .af-trace.is-lit {
+  filter: drop-shadow(0 0 6px var(--focus));
+}
+/* A piece of rim shown briefly for a wrong answer -- half the rim, or all
+   of it -- in the arc's ink, faint. */
+:where(body.sa-lesson) .af-fig .af-ghost-arc { stroke-width: 10; opacity: 0; }
+
+/* A length written over the arc -- what is given, or what was found --
+   with a thin white edge under its ink, so it reads over the rim. */
+:where(body.sa-lesson) .af-arc-lbl {
+  paint-order: stroke;
+  stroke: rgba(255, 255, 255, .92);
+  stroke-width: 7px;
+  stroke-linejoin: round;
+}
+
+/* The glass over 1°: the little arc between the two radii, in the arc's
+   ink, drawn at the lens's scale. */
+:where(body.sa-lesson) .s-lens__arc {
+  fill: none;
+  stroke: var(--af-arc);
+  stroke-width: 7;
+  stroke-linecap: round;
+}
+
+/* ---- The windshield ---------------------------------------------------------- */
+:where(body.sa-lesson) .af-glass {
+  fill: color-mix(in srgb, var(--blue-fill) 26%, #F6FBFF);
+  stroke: var(--blue-border);
+  stroke-width: 3;
+  stroke-linejoin: round;
+}
+:where(body.sa-lesson) .af-blade,
+:where(body.sa-lesson) .af-hand {
+  fill: none;
+  stroke: var(--sa-radius);
+  stroke-width: 6;
+  stroke-linecap: round;
+}
+:where(body.sa-lesson) .af-tip { fill: var(--sa-radius); stroke: #FFFFFF; stroke-width: 2; }
+:where(body.sa-lesson) .af-pivot { fill: var(--text-primary); stroke: #FFFFFF; stroke-width: 2.5; }
+/* The arc the tip traces: the lit arc itself, drawn on the story's own
+   figure. */
+:where(body.sa-lesson) .af-trace {
+  fill: none;
+  stroke: var(--af-arc);
+  stroke-width: 6.5;
+  stroke-linecap: round;
+  --focus: var(--af-arc);
+}
+
+/* ---- The clock --------------------------------------------------------------- */
+:where(body.sa-lesson) .af-tick {
+  fill: none;
+  stroke: var(--text-primary);
+  stroke-width: 2.4;
+  stroke-linecap: round;
+  opacity: .55;
+}
+:where(body.sa-lesson) .af-tick--big { stroke-width: 3.6; opacity: .8; }
+/* Where the hand started: left as a dashed line. */
+:where(body.sa-lesson) .af-hand-start {
+  fill: none;
+  stroke: var(--text-primary);
+  stroke-width: 2.4;
+  stroke-dasharray: 6 6;
+  stroke-linecap: butt;
+  opacity: .45;
+}
+
+/* ---- Reduced motion ---------------------------------------------------------- */
+@media (prefers-reduced-motion: reduce) {
+  :where(body.sa-lesson) .af-fig .s-arc.is-lit,
+  :where(body.sa-lesson) .af-fig .af-trace.is-lit { filter: none; }
+}

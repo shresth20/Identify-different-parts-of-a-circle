@@ -13,6 +13,7 @@
   <link rel="stylesheet" href="css/arclen.css" />
   <link rel="stylesheet" href="css/circum.css" />
   <link rel="stylesheet" href="css/central.css" />
+  <!-- The worked lines skill 4's worked pages are set in (see its head). -->
   <link rel="stylesheet" href="css/practice.css" />
   <link rel="stylesheet" href="css/segarea.css" />
   <link rel="stylesheet" href="css/animations.css" />
@@ -20,6 +21,10 @@
   <!-- Skill 3 last, as it was loaded on its own page: every rule in it is
        scoped to body.sa-lesson, on only while skill 3 plays. -->
   <link rel="stylesheet" href="css/sector-area.css" />
+  <!-- Skill 2's formula and practice pages are built with skill 3's kit, in
+       its stage, and this sheet adds only what an arc-length page needs
+       of its own. After sector-area.css, so its few rules win. -->
+  <link rel="stylesheet" href="css/arc-formula.css" />
 </head>
 <body>
   <!-- One screen at a time lives inside #app. The background art is painted on
@@ -580,8 +585,8 @@
               <!-- The turn is on a group of its own, so the label's pop --
                    a transform the motion library writes -- can never undo
                    it. -->
-              <g transform="rotate(-40 551 149)">
-                <text class="figure-label cs-deg cf-radlbl" id="cfRadLbl" x="551" y="149"
+              <g transform="rotate(-40 545 141)">
+                <text class="figure-label cs-deg cf-radlbl" id="cfRadLbl" x="545" y="141"
                       text-anchor="middle" data-i18n="s2LblRadius">radius</text>
               </g>
             </g>
@@ -662,24 +667,34 @@
               <g class="qz-burst" id="cqBurst" aria-hidden="true"></g>
             </g>
 
-            <!-- ---- Skill 2, section 3, page 1: the central angle
-                 (js/central.js). Its own circle, for the reason every
-                 section has one: the rim and its pen, the small dot at the
-                 centre, and the two points the learner puts on the rim --
-                 section 2's own marks (the band, the ghost, the points,
-                 the hand), wearing its classes, but the points in red: the
-                 ends of two radii, not a piece of the rim. What depends on
-                 the two points -- a radius to each, the angle between them
-                 at the centre, and where "θ" sits -- is written by
-                 central.js; what is fixed is here. Radii, angle and "θ"
+            <!-- ---- Skill 2, section 3: the central angle (js/central.js)
+                 ONE circle for the whole section -- the learner makes the
+                 angle on it, the protractor is laid on it, its fraction is
+                 asked about and its parts are named, so nothing is drawn
+                 twice. The rim and its pen, the small dot at the centre, and
+                 the two points the learner puts on the rim -- section 2's
+                 own marks (the band, the ghost, the points, the hand),
+                 wearing its classes, but the points in red: the ends of two
+                 radii, not a piece of the rim. What depends on the two
+                 points -- a radius to each, the piece of the rim between
+                 them, the angle at the centre, and where "θ", "r", "s" and
+                 the measure sit -- is written by central.js; what is fixed
+                 is here. The protractor comes first, under everything, so
+                 every mark paints over it. Radii, arc, angle and the words
                  share the skill's ink, the text's dark blue (--ca-ink,
-                 central.css); the dot keeps the centre's pink. -->
+                 central.css); the dot keeps the centre's pink. Nothing but
+                 the rim is ever a target, and only while a point is being
+                 picked. -->
             <g class="figure__ca" id="ca" hidden>
               <defs id="caDefs">
                 <filter id="caGlowBlur" x="-12%" y="-12%" width="124%" height="124%">
                   <feGaussianBlur stdDeviation="5" />
                 </filter>
               </defs>
+              <image class="cm-protractor" id="caProt" href="assets/image/protractor.png"
+                     x="0" y="0" width="0" height="0" preserveAspectRatio="xMidYMid meet"
+                     role="img" data-i18n-attr="aria-label:a11yProtractor"
+                     aria-label="A protractor laid on the circle, its centre on the centre of the circle." />
               <circle class="ca-glow" id="caGlow" cx="500" cy="210" r="158" />
               <path class="figure__rim" id="caRim"
                     d="M500 52 A158 158 0 0 1 500 368 A158 158 0 0 1 500 52" />
@@ -688,14 +703,27 @@
                       tabindex="-1" role="button"
                       data-i18n-attr="aria-label:a11yBand"
                       aria-label="The edge of the circle. Tap it to place a point." />
+              <!-- The piece of the rim between the two points, picked out
+                   on the protractor page. -->
+              <path class="cm-arc" id="caArc" d="" />
               <!-- Both radii grow out of the centre; the angle is drawn
                    from one to the other. -->
               <path class="ca-radius" id="caRadA" d="" />
               <path class="ca-radius" id="caRadB" d="" />
               <path class="ca-angle" id="caAngle" d="" />
               <circle class="ca-centre" id="caCentre" cx="500" cy="210" r="5" />
-              <text class="figure-label ca-theta" id="caTheta" x="0" y="0"
+              <text class="figure-label cm-label ca-theta" id="caTheta" x="0" y="0"
                     text-anchor="middle" data-i18n="lblTheta">θ</text>
+              <text class="figure-label cm-label cm-r" id="caR" x="0" y="0"
+                    text-anchor="middle" data-i18n="lblR">r</text>
+              <!-- "s", beside the middle of the arc, for the page that
+                   names the three: it rests unseen until then. -->
+              <text class="figure-label cm-label cm-s" id="caS" x="0" y="0"
+                    text-anchor="middle" data-i18n="lblS">s</text>
+              <!-- The measure that takes θ's place once the angle has been
+                   read: "θ = 80°", written by central.js. -->
+              <text class="figure-label cm-label" id="caMeasure" x="0" y="0"
+                    text-anchor="middle"></text>
               <circle class="arc-ghost" id="caGhost" cx="500" cy="52" r="7" />
               <g class="arc-point" id="caPointA">
                 <circle class="arc-dot" cx="500" cy="52" r="6.5" />
@@ -711,290 +739,20 @@
               </g>
               <g class="arc-nudges" id="caNudges" hidden aria-hidden="true"></g>
             </g>
-
-            <!-- ---- Skill 2, section 3, page 2: the angle on the protractor
-                 (js/central.js), and the two pages after it, which keep
-                 this figure on the board. Its own circle once more, and
-                 everything on it is fixed, so every coordinate here is
-                 written by central.js from its own numbers. The protractor rises past
-                 the top of the picture's box, into the room the box has
-                 above it while the header is closed. First the protractor, under
-                 everything, so every mark paints over it: the rim and its
-                 pen, the piece of the rim between the two points picked
-                 out in the skill's ink, the dashed line from each point to
-                 the centre (each drawn through its own mask, as the
-                 semicircle page's diameter is), the angle at the centre,
-                 the dot, the two red points, one "r" beside a dashed line
-                 (both are radii; one label says so for both), "θ" in the
-                 angle, and the measure that takes θ's place once the angle
-                 has been read. Nothing
-                 here is a target; the answer is a press on a pill in
-                 #cfPane. -->
-            <g class="figure__cm" id="cm" hidden>
-              <defs id="cmDefs">
-                <mask id="cmRadAMask" maskUnits="userSpaceOnUse"
-                      x="0" y="0" width="1000" height="420">
-                  <path class="cm-pen" id="cmRadAPen" d="" />
-                </mask>
-                <mask id="cmRadBMask" maskUnits="userSpaceOnUse"
-                      x="0" y="0" width="1000" height="420">
-                  <path class="cm-pen" id="cmRadBPen" d="" />
-                </mask>
-              </defs>
-              <image class="cm-protractor" id="cmProt" href="assets/image/protractor.png"
-                     x="0" y="0" width="0" height="0" preserveAspectRatio="xMidYMid meet"
-                     role="img" data-i18n-attr="aria-label:a11yProtractor"
-                     aria-label="A protractor laid on the circle, its center on the center of the circle." />
-              <path class="figure__rim" id="cmRim" d="" />
-              <circle class="rim-tip" id="cmTip" cx="500" cy="52" r="7" />
-              <path class="cm-arc" id="cmArc" d="" />
-              <path class="cm-dash" id="cmRadA" d="" mask="url(#cmRadAMask)" />
-              <path class="cm-dash" id="cmRadB" d="" mask="url(#cmRadBMask)" />
-              <path class="ca-angle" id="cmAngle" d="" />
-              <circle class="ca-centre" id="cmCentre" cx="500" cy="210" r="5" />
-              <circle class="arc-dot" id="cmDotA" cx="0" cy="0" r="6.5" />
-              <circle class="arc-dot" id="cmDotB" cx="0" cy="0" r="6.5" />
-              <text class="figure-label cm-label cm-r" id="cmR" x="0" y="0"
-                    text-anchor="middle" data-i18n="lblR">r</text>
-              <!-- "s", beside the middle of the arc, for the page that
-                   names the three: it rests unseen until then. -->
-              <text class="figure-label cm-label cm-s" id="cmS" x="0" y="0"
-                    text-anchor="middle" data-i18n="lblS">s</text>
-              <text class="figure-label cm-label cm-theta" id="cmTheta" x="0" y="0"
-                    text-anchor="middle" data-i18n="lblTheta">θ</text>
-              <text class="figure-label cm-label" id="cmMeasure" x="0" y="0"
-                    text-anchor="start"></text>
-            </g>
-
-            <!-- ---- Skill 2, section 3, page 4: the angle explored
-                 (js/central.js). Its own circle once more: the rim and its
-                 pen, the small dot at the centre, one radius fixed at three
-                 o'clock, and a second radius whose end is a handle the
-                 learner carries round the circle -- the
-                 sector between the two tinted in, the angle drawn at the
-                 centre and its reading set to the right of the circle,
-                 all rewritten from the handle's angle every frame by
-                 central.js. The handle stops at nothing and at the whole
-                 turn, so the circle is seen to hold 360°. The handle is the
-                 one target; the hand that shows the gesture lives last, so
-                 it is over the point it is about. -->
-            <g class="figure__ce" id="ce" hidden>
-              <path class="ce-sector" id="ceSector" d="" />
-              <path class="figure__rim" id="ceRim"
-                    d="M500 52 A158 158 0 0 1 500 368 A158 158 0 0 1 500 52" />
-              <circle class="rim-tip" id="ceTip" cx="500" cy="52" r="7" />
-              <path class="ca-radius" id="ceFixed" d="M500 210 L658 210" />
-              <path class="ca-radius" id="ceRadius" d="" />
-              <path class="ca-angle" id="ceAngle" d="" />
-              <circle class="ca-centre" id="ceCentre" cx="500" cy="210" r="5" />
-              <g class="arc-point ce-handle" id="ceHandle">
-                <circle class="arc-dot" cx="500" cy="52" r="8" />
-                <circle class="arc-dot__hit" cx="500" cy="52" r="30" tabindex="-1"
-                        role="slider" aria-valuemin="0" aria-valuemax="360" aria-valuenow="60"
-                        data-i18n-attr="aria-label:a11yHandle"
-                        aria-label="The movable end of a radius. Drag it around the circle to change the angle." />
+              <g class="arc-point" id="caPointB">
+                <circle class="arc-dot" cx="500" cy="52" r="6.5" />
+                <circle class="arc-dot__hit" cx="500" cy="52" r="30" tabindex="-1" role="button"
+                        data-i18n-attr="aria-label:a11yPoint"
+                        aria-label="A point on the circle." />
               </g>
-              <text class="figure-label ce-readout" id="ceReadout" x="712" y="222"
-                    text-anchor="start" aria-live="polite"></text>
-              <g class="arc-nudges" id="ceNudges" hidden aria-hidden="true"></g>
+              <g class="arc-nudges" id="caNudges" hidden aria-hidden="true"></g>
             </g>
 
-            <!-- ---- Skill 2, section 3, page 6: the whole turn
-                 (js/central.js). Its own circle once more: the rim and its
-                 pen, one radius out to three o'clock, a copy of it (the
-                 arm) that is turned once right round the centre, the
-                 360° angle it leaves behind with an arrowhead on its end,
-                 the small dot, "r" on the radius, and "360°". Nothing here
-                 is a target; the answer is a press on a pill in #cfPane. -->
-            <g class="figure__cz" id="cz" hidden>
-              <path class="figure__rim" id="czRim"
-                    d="M500 52 A158 158 0 0 1 500 368 A158 158 0 0 1 500 52" />
-              <circle class="rim-tip" id="czTip" cx="500" cy="52" r="7" />
-              <path class="ca-radius" id="czRadius" d="M500 210 L658 210" />
-              <path class="ca-radius" id="czArm" d="M500 210 L658 210" />
-              <path class="ca-angle" id="czAngle" d="" />
-              <path class="cz-head" id="czHead" d="" />
-              <circle class="ca-centre" id="czCentre" cx="500" cy="210" r="5" />
-              <text class="figure-label cz-label" id="czR" x="0" y="0"
-                    text-anchor="middle" data-i18n="lblR">r</text>
-              <text class="figure-label cz-label" id="czDeg" x="0" y="0"
-                    text-anchor="middle" data-i18n="lbl360">360°</text>
-            </g>
-
-            <!-- ---- Skill 2, section 3, page 7: the arc-length formula
-                 (js/central.js). Its own circle once more, finished before
-                 a word is said: two radii, the piece of rim between their
-                 ends and the angle between them at the centre, each in
-                 the colour its letter in #ffPane will wear; central.js
-                 swells each mark as it is named and its label pops in.
-                 Every coordinate is written
-                 by central.js. Nothing here is a target. -->
-            <g class="figure__cv" id="cv" hidden>
-              <path class="figure__rim" id="cvRim"
-                    d="M500 52 A158 158 0 0 1 500 368 A158 158 0 0 1 500 52" />
-              <circle class="rim-tip" id="cvTip" cx="500" cy="52" r="7" />
-              <path class="cv-arc" id="cvArc" d="" />
-              <path class="ca-radius cv-radius" id="cvRadA" d="" />
-              <path class="ca-radius cv-radius" id="cvRadB" d="" />
-              <path class="ca-angle cv-angle" id="cvAngle" d="" />
-              <circle class="ca-centre" id="cvCentre" cx="500" cy="210" r="5" />
-              <text class="figure-label cv-label cv-s" id="cvS" x="0" y="0"
-                    text-anchor="middle" data-i18n="lblS">s</text>
-              <text class="figure-label cv-label cv-theta" id="cvTheta" x="0" y="0"
-                    text-anchor="middle" data-i18n="lblTheta">θ</text>
-              <text class="figure-label cv-label cv-r" id="cvR" x="0" y="0"
-                    text-anchor="middle" data-i18n="lblR">r</text>
-            </g>
-
-            <!-- ---- Skill 2, section 4, page 1: the arc length, worked
-                 (js/practice.js). Its own circle: the rim and its pen, the
-                 small dot at the centre, two radii a quarter turn apart,
-                 the quarter between them tinted with its piece of the rim
-                 lit, the right angle at the centre with its "90°", and
-                 "7 cm" beside the vertical radius. Each mark wears the
-                 colour its letter wore on the formula page (--cl-s, --cl-r,
-                 --cl-th, central.css). Every coordinate is written by
-                 practice.js from its own numbers. Nothing here is a target;
-                 the values are pressed in #psPane. -->
-            <g class="figure__pa" id="pa" hidden>
-              <path class="pr-sector" id="paSector" d="" />
-              <path class="figure__rim" id="paRim"
-                    d="M500 52 A158 158 0 0 1 500 368 A158 158 0 0 1 500 52" />
-              <circle class="rim-tip" id="paTip" cx="500" cy="52" r="7" />
-              <path class="pr-arc" id="paArc" d="" />
-              <path class="pr-radius" id="paRadA" d="" />
-              <path class="pr-radius" id="paRadB" d="" />
-              <path class="pr-angle" id="paAngle" d="" />
-              <circle class="pr-centre" id="paCentre" cx="500" cy="210" r="5" />
-              <text class="figure-label pr-label pr-deg" id="paDeg" x="0" y="0"
-                    text-anchor="middle" data-i18n="val90">90°</text>
-              <text class="figure-label pr-label pr-len" id="paLen" x="0" y="0"
-                    text-anchor="middle" data-i18n="val7cm">7 cm</text>
-            </g>
-
-            <!-- ---- Skill 2, section 4, page 2: the arc length, asked
-                 (js/practice.js). The same figure made again with other
-                 numbers: two radii 120° apart astride twelve o'clock, the
-                 sector between them tinted with its arc lit, the angle
-                 with its "120°", and "21 cm" beside the right-hand radius.
-                 Nothing here is a target; the answer is a press on a pill
-                 in #cfPane. -->
-            <g class="figure__pb" id="pb" hidden>
-              <path class="pr-sector" id="pbSector" d="" />
-              <path class="figure__rim" id="pbRim"
-                    d="M500 52 A158 158 0 0 1 500 368 A158 158 0 0 1 500 52" />
-              <circle class="rim-tip" id="pbTip" cx="500" cy="52" r="7" />
-              <path class="pr-arc" id="pbArc" d="" />
-              <path class="pr-radius" id="pbRadA" d="" />
-              <path class="pr-radius" id="pbRadB" d="" />
-              <path class="pr-angle" id="pbAngle" d="" />
-              <circle class="pr-centre" id="pbCentre" cx="500" cy="210" r="5" />
-              <text class="figure-label pr-label pr-deg" id="pbDeg" x="0" y="0"
-                    text-anchor="middle" data-i18n="val120">120°</text>
-              <text class="figure-label pr-label pr-len" id="pbLen" x="0" y="0"
-                    text-anchor="middle" data-i18n="val21cm">21 cm</text>
-            </g>
-
-            <!-- ---- Skill 2, section 4, page 3: the central angle, worked
-                 (js/practice.js). The same figure made again with other
-                 numbers, and the angle unknown: two radii 60° apart
-                 astride twelve o'clock -- the angle drawn at its true
-                 size -- the sector between them tinted with its arc lit,
-                 "22 cm" over the arc, "21 cm" beside the right-hand radius
-                 and "θ = ?" in the sector. Nothing here is a target; the
-                 values are chosen in #pnPane. -->
-            <g class="figure__pc" id="pc" hidden>
-              <path class="pr-sector" id="pcSector" d="" />
-              <path class="figure__rim" id="pcRim"
-                    d="M500 52 A158 158 0 0 1 500 368 A158 158 0 0 1 500 52" />
-              <circle class="rim-tip" id="pcTip" cx="500" cy="52" r="7" />
-              <path class="pr-arc" id="pcArc" d="" />
-              <path class="pr-radius" id="pcRadA" d="" />
-              <path class="pr-radius" id="pcRadB" d="" />
-              <path class="pr-angle" id="pcAngle" d="" />
-              <circle class="pr-centre" id="pcCentre" cx="500" cy="210" r="5" />
-              <text class="figure-label pr-label pr-arclen" id="pcArcLen" x="0" y="0"
-                    text-anchor="middle" data-i18n="val22cm">22 cm</text>
-              <text class="figure-label pr-label pr-len" id="pcLen" x="0" y="0"
-                    text-anchor="middle" data-i18n="val21cm">21 cm</text>
-              <text class="figure-label pr-label pr-deg" id="pcDeg" x="0" y="0"
-                    text-anchor="middle" data-i18n="p31ThetaQ">θ = ?</text>
-            </g>
-
-            <!-- ---- Skill 2, section 4, pages 4 and 5: the wiper
-                 (js/practice.js). Not the lesson's circle: a windshield,
-                 its edge drawn and its glass tinted in, with the wiper's
-                 pivot on its bottom edge; the blade grown out to its start
-                 and turned 60° across (practice.js writes the turn to the
-                 group's transform), the glass it wipes tinted behind it
-                 and the arc its tip traces; the angle at the pivot with
-                 "60°"; the blade's length beside it and the tip's note over
-                 the arc. Every coordinate but the glass's is written by
-                 practice.js. Nothing here is a target; the answers are
-                 pressed in #cfPane. -->
-            <g class="figure__pw" id="pw" hidden>
-              <path class="pw-glass" id="pwGlass"
-                    d="M280 357 L312 110 Q318 82 345 82 L655 82 Q682 82 688 110 L720 357 Z"
-                    role="img" data-i18n-attr="aria-label:a11yWindshield"
-                    aria-label="A car windshield, with a wiper blade sweeping across it." />
-              <path class="pr-sector" id="pwSector" d="" />
-              <path class="pr-arc" id="pwArc" d="" />
-              <path class="pr-radius" id="pwRadA" d="" />
-              <path class="pr-angle" id="pwAngle" d="" />
-              <g class="pw-blade" id="pwBlade">
-                <path class="pr-radius pw-blade__line" id="pwBladeLine" d="" />
-                <circle class="pw-tip" id="pwTip" cx="0" cy="0" r="6" />
-              </g>
-              <path class="pw-glass-edge" id="pwGlassEdge"
-                    d="M280 357 L312 110 Q318 82 345 82 L655 82 Q682 82 688 110 L720 357 Z" />
-              <circle class="pr-centre" id="pwCentre" cx="500" cy="357" r="5.5" />
-              <text class="figure-label pr-label pr-deg" id="pwDeg" x="0" y="0"
-                    text-anchor="middle" data-i18n="val60">60°</text>
-              <text class="figure-label pr-label pr-len pw-label" id="pwLen" x="0" y="0"
-                    text-anchor="end" data-i18n="p32Blade">Blade length = 42 cm</text>
-              <text class="figure-label pr-label pr-arclen pw-label" id="pwArcLen" x="0" y="0"
-                    text-anchor="middle" data-i18n="p32Tip">The tip travels along this arc.</text>
-            </g>
-
-            <!-- ---- Skill 2, section 4, pages 6 and 7: the clock
-                 (js/practice.js). A clock face: the rim and its pen, the
-                 twelve ticks (made by practice.js), the dot at the centre,
-                 the minute hand grown out to twelve and turned 45 minutes
-                 round (practice.js writes the turn to the group's
-                 transform), its start left as a dashed line, the rim its
-                 tip passes made bold, the angle it turns through drawn at
-                 the centre; "hand = 14 cm" beside the hand, "?" by the arc
-                 and the answer that takes its place, and "270°" in the
-                 angle. Every coordinate is written by practice.js. Nothing
-                 here is a target; the answers are pressed in #cfPane. -->
-            <g class="figure__ck" id="ck" hidden role="img"
-               data-i18n-attr="aria-label:a11yClock"
-               aria-label="A clock face with its minute hand.">
-              <path class="ck-rim" id="ckRim" d="" />
-              <circle class="rim-tip" id="ckTip" cx="500" cy="52" r="7" />
-              <g class="ck-ticks" id="ckTicks"></g>
-              <path class="ck-arc" id="ckArc" d="" />
-              <path class="ck-start" id="ckStart" d="" />
-              <path class="pr-angle" id="ckAngle" d="" />
-              <g class="ck-hand" id="ckHand">
-                <path class="pr-radius ck-hand__line" id="ckHandLine" d="" />
-                <circle class="pw-tip" id="ckHandTip" cx="0" cy="0" r="6" />
-              </g>
-              <circle class="pr-centre" id="ckCentre" cx="500" cy="210" r="5.5" />
-              <text class="figure-label pr-label pr-len pw-label" id="ckLen" x="0" y="0"
-                    text-anchor="middle" data-i18n="p34Hand">hand = 14 cm</text>
-              <text class="figure-label pr-label pr-arclen" id="ckQ" x="0" y="0"
-                    text-anchor="middle" data-i18n="p34Unknown">?</text>
-              <text class="figure-label pr-label pr-arclen ck-answer" id="ckAns" x="0" y="0"
-                    text-anchor="middle" data-i18n="val66cm">66 cm</text>
-              <text class="figure-label pr-label pr-deg" id="ckDeg" x="0" y="0"
-                    text-anchor="middle" data-i18n="val270">270°</text>
-            </g>
-
-            <!-- ---- Skill 4, section 1, page 1: tap the segment (js/segarea.js)
+            <!-- ---- Skill 4, page 1: tap the segment (js/segarea.js)
                  Three cards in a row, each with a circle on it and one
                  region of that circle shaded -- the minor sector, the
-                 triangle, the minor segment. Built by segarea.js afresh
+                 triangle, the minor segment -- each region glowing softly
+                 while the question is open. Built by segarea.js afresh
                  each run, in a fresh order, each where it stands: the clip
                  circle the segment's colour spreads from goes in the defs,
                  the cards in the group. The card is the target; nothing on
@@ -1004,40 +762,16 @@
               <g class="sa-cards" id="saCards"></g>
             </g>
 
-            <!-- ---- Skill 4, section 1, page 2: the area of a sector
-                 (js/segarea.js). Its own circle, for the reason every
-                 section has one: the wash and the rim with its pen, the
-                 sector swept in under them, its piece of the rim lit, the
-                 two radii out of the centre, the angle between them with
-                 its "θ", and the centre dot. What depends on the two radii
-                 is written by segarea.js from its own numbers. Slid aside
-                 as ONE thing. Nothing here is a target; the answer is a
-                 press on a pill in #cfPane. -->
-            <g class="figure__sb" id="sb" hidden>
-              <circle class="sa-disc" id="sbDisc" cx="500" cy="210" r="158" />
-              <path class="sa-region" id="sbSector" d="" />
-              <path class="sa-rim" id="sbRim"
-                    d="M500 52 A158 158 0 0 1 500 368 A158 158 0 0 1 500 52" />
-              <circle class="rim-tip" id="sbTip" cx="500" cy="52" r="7" />
-              <path class="sa-arc" id="sbArc" d="" />
-              <path class="sa-radius" id="sbRadA" d="" />
-              <path class="sa-radius" id="sbRadB" d="" />
-              <path class="sb-angle" id="sbAngle" d="" />
-              <circle class="sa-centre" id="sbCentre" cx="500" cy="210" r="6" />
-              <text class="figure-label sb-theta" id="sbTheta" x="0" y="0"
-                    text-anchor="middle" data-i18n="lblTheta">θ</text>
-            </g>
-
-            <!-- ---- Skill 4, section 1, page 3: make a segment (js/segarea.js)
+            <!-- ---- Skill 4, page 3: make a segment (js/segarea.js)
                  Its own circle: the wash, the rim and its pen, the band and
                  the glow of skill 2's two-point pick, the two red points
-                 the learner puts on the rim, the chord between them, a
-                 radius to each, the angle at the centre with its "θ", the
-                 region between chord and arc coloured in from the chord
-                 (through the clip circle in the defs), its arc lit, and
-                 the reading beside the circle. What depends on the two
-                 points is written by segarea.js. The second point carries
-                 the handle the figure is explored with. -->
+                 the learner puts on the rim, the chord between them, the
+                 two regions the chord makes -- each coloured in from the
+                 chord through its own clip circle, each with its piece of
+                 the rim lit in its own colour and its name -- then a
+                 radius to each point and the angle at the centre with its
+                 "θ". What depends on the two points is written by
+                 segarea.js. Only the band is ever a target. -->
             <g class="figure__sc" id="sc" hidden>
               <defs>
                 <filter id="scGlowBlur" x="-12%" y="-12%" width="124%" height="124%">
@@ -1046,9 +780,14 @@
                 <clipPath id="scClip">
                   <circle id="scClipC" cx="500" cy="210" r="400" />
                 </clipPath>
+                <clipPath id="scClipMajor">
+                  <circle id="scClipMajorC" cx="500" cy="210" r="400" />
+                </clipPath>
               </defs>
               <circle class="sc-glow" id="scGlow" cx="500" cy="210" r="158" />
               <circle class="sa-disc" id="scDisc" cx="500" cy="210" r="158" />
+              <path class="sa-region sa-region--major" id="scMajor" d=""
+                    clip-path="url(#scClipMajor)" />
               <path class="sa-region" id="scSeg" d="" clip-path="url(#scClip)" />
               <path class="sa-rim" id="scRim"
                     d="M500 52 A158 158 0 0 1 500 368 A158 158 0 0 1 500 52" />
@@ -1057,16 +796,19 @@
                       tabindex="-1" role="button"
                       data-i18n-attr="aria-label:a11yBand"
                       aria-label="The edge of the circle. Tap it to place a point." />
+              <path class="sa-arc sa-arc--major" id="scArcMajor" d="" />
+              <path class="sa-arc" id="scArc" d="" />
               <path class="sa-radius" id="scRadA" d="" />
               <path class="sa-radius" id="scRadB" d="" />
               <path class="sa-chord" id="scChord" d="" />
-              <path class="sa-arc" id="scArc" d="" />
-              <path class="sb-angle" id="scAngle" d="" />
+              <path class="s4-angle" id="scAngle" d="" />
               <circle class="sa-centre" id="scCentre" cx="500" cy="210" r="6" />
-              <text class="figure-label sb-theta" id="scTheta" x="0" y="0"
+              <text class="figure-label s4-theta" id="scTheta" x="0" y="0"
                     text-anchor="middle" data-i18n="lblTheta">θ</text>
-              <text class="figure-label sc-readout" id="scReadout" x="712" y="222"
-                    text-anchor="start" aria-live="polite"></text>
+              <text class="figure-label sc-label sc-label--minor" id="scLblMinor" x="0" y="0"
+                    text-anchor="middle" data-i18n="s4p1Segment">Minor segment</text>
+              <text class="figure-label sc-label sc-label--major" id="scLblMajor" x="0" y="0"
+                    text-anchor="middle" data-i18n="s4p4Major">Major segment</text>
               <circle class="arc-ghost" id="scGhost" cx="500" cy="52" r="7" />
               <g class="arc-point" id="scPointA">
                 <circle class="arc-dot" cx="500" cy="52" r="7" />
@@ -1074,80 +816,63 @@
                         data-i18n-attr="aria-label:a11yPoint"
                         aria-label="A point on the circle." />
               </g>
-              <g class="arc-point sc-handle" id="scPointB">
-                <circle class="arc-dot" cx="500" cy="52" r="8" />
-                <circle class="arc-dot__hit" cx="500" cy="52" r="30" tabindex="-1"
-                        role="slider" aria-valuemin="10" aria-valuemax="350" aria-valuenow="110"
-                        data-i18n-attr="aria-label:a11yHandle"
-                        aria-label="The movable end of a radius. Drag it around the circle to change the angle." />
+              <g class="arc-point" id="scPointB">
+                <circle class="arc-dot" cx="500" cy="52" r="7" />
+                <circle class="arc-dot__hit" cx="500" cy="52" r="30" tabindex="-1" role="button"
+                        data-i18n-attr="aria-label:a11yPoint"
+                        aria-label="A point on the circle." />
               </g>
               <g class="arc-nudges" id="scNudges" hidden aria-hidden="true"></g>
             </g>
 
-            <!-- ---- Skill 4, section 1, page 4: two segments (js/segarea.js)
+            <!-- ---- Skill 4, page 4: sector minus triangle (js/segarea.js)
                  Its own circle, everything on it fixed and written once by
-                 segarea.js: the wash, the two regions a chord makes (each
-                 coloured in from the chord through its own clip circle),
-                 the rim and its pen, each region's piece of the rim in its
-                 own colour, the chord, the two red points, and the two
-                 names. Nothing here is a target. -->
-            <g class="figure__sd" id="sd" hidden>
-              <defs>
-                <clipPath id="sdClipMinor">
-                  <circle id="sdClipMinorC" cx="500" cy="210" r="400" />
-                </clipPath>
-                <clipPath id="sdClipMajor">
-                  <circle id="sdClipMajorC" cx="500" cy="210" r="400" />
-                </clipPath>
-              </defs>
-              <circle class="sa-disc" id="sdDisc" cx="500" cy="210" r="158" />
-              <path class="sa-region sa-region--major" id="sdMajor" d=""
-                    clip-path="url(#sdClipMajor)" />
-              <path class="sa-region" id="sdMinor" d=""
-                    clip-path="url(#sdClipMinor)" />
-              <path class="sa-rim" id="sdRim"
-                    d="M500 52 A158 158 0 0 1 500 368 A158 158 0 0 1 500 52" />
-              <circle class="rim-tip" id="sdTip" cx="500" cy="52" r="7" />
-              <path class="sa-arc sa-arc--major" id="sdArcMajor" d="" />
-              <path class="sa-arc" id="sdArcMinor" d="" />
-              <path class="sa-chord" id="sdChord" d="" />
-              <circle class="sa-centre" id="sdCentre" cx="500" cy="210" r="6" />
-              <circle class="arc-dot" id="sdDotA" cx="500" cy="52" r="7" />
-              <circle class="arc-dot" id="sdDotB" cx="500" cy="52" r="7" />
-              <text class="figure-label sd-label sd-label--minor" id="sdLblMinor" x="0" y="0"
-                    text-anchor="middle" data-i18n="s4p1Segment">Minor segment</text>
-              <text class="figure-label sd-label sd-label--major" id="sdLblMajor" x="0" y="0"
-                    text-anchor="middle" data-i18n="s4p4Major">Major segment</text>
-            </g>
-
-            <!-- ---- Skill 4, section 1, page 5: sector minus triangle
-                 (js/segarea.js). Its own circle, everything on it fixed and
-                 written once by segarea.js: the wash, the sector (whose
-                 colour is drawn back to the chord when the triangle goes),
-                 the triangle over it, the rim and its pen, the arc, the
-                 two radii, the chord, the centre and the two red points.
-                 Nothing here is a target. -->
+                 segarea.js: the wash, the sector (whose colour is drawn
+                 back to the chord when the triangle goes), then the piece
+                 that is cut out -- the triangle, its two radii, the angle
+                 with its "θ" and its own copy of the chord, in a group of
+                 their own so the piece is lifted out of the circle as ONE
+                 thing -- the rim and its pen, the arc, the chord, the
+                 dashed cut along the chord (revealed through its mask),
+                 the centre, the two red points, and the two names. Nothing
+                 here is a target. -->
             <g class="figure__se" id="se" hidden>
+              <defs>
+                <mask id="seCutMask" maskUnits="userSpaceOnUse" x="0" y="0" width="1000" height="420">
+                  <path id="seCutPen" d="" fill="none" stroke="#fff" stroke-width="14" stroke-linecap="round" />
+                </mask>
+              </defs>
               <circle class="sa-disc" id="seDisc" cx="500" cy="210" r="158" />
               <path class="sa-region" id="seSector" d="" />
-              <path class="se-tri" id="seTri" d="" />
+              <g class="se-piece" id="sePiece">
+                <path class="se-tri" id="seTri" d="" />
+                <path class="sa-radius" id="seRadA" d="" />
+                <path class="sa-radius" id="seRadB" d="" />
+                <path class="sa-chord" id="sePieceChord" d="" />
+                <path class="s4-angle" id="seAngle" d="" />
+                <text class="figure-label s4-theta" id="seTheta" x="0" y="0"
+                      text-anchor="middle" data-i18n="lblTheta">θ</text>
+              </g>
               <path class="sa-rim" id="seRim"
                     d="M500 52 A158 158 0 0 1 500 368 A158 158 0 0 1 500 52" />
               <circle class="rim-tip" id="seTip" cx="500" cy="52" r="7" />
               <path class="sa-arc" id="seArc" d="" />
-              <path class="sa-radius" id="seRadA" d="" />
-              <path class="sa-radius" id="seRadB" d="" />
               <path class="sa-chord" id="seChord" d="" />
+              <path class="se-cut" id="seCut" d="" mask="url(#seCutMask)" />
               <circle class="sa-centre" id="seCentre" cx="500" cy="210" r="6" />
               <circle class="arc-dot" id="seDotA" cx="500" cy="52" r="7" />
               <circle class="arc-dot" id="seDotB" cx="500" cy="52" r="7" />
+              <text class="figure-label sc-label sc-label--minor" id="seLblSeg" x="0" y="0"
+                    text-anchor="middle" data-i18n="s4p1Segment">Minor segment</text>
+              <text class="figure-label sc-label sc-label--tri" id="seLblTri" x="0" y="0"
+                    text-anchor="middle" data-i18n="s4p1Triangle">Triangle</text>
             </g>
 
-            <!-- ---- Skill 4, section 1, page 6: the summary (js/segarea.js).
-                 Three small circles in a row -- the sector, the triangle,
-                 the segment -- built by segarea.js into the group, with
-                 "−" and "=" between them and a name under each. Nothing
-                 here is a target. -->
+            <!-- ---- Skill 4, page 5: the recap (js/segarea.js). Three
+                 small circles in a row -- the sector, the triangle, the
+                 segment, the first two with their angle "θ" -- built by
+                 segarea.js into the group, with "−" and "=" between them
+                 and a name under each. Nothing here is a target. -->
             <g class="figure__sf" id="sf" hidden>
               <g class="sf-figs" id="sfFigs"></g>
               <text class="figure-label sf-sign" id="sfMinus" x="335" y="202"
@@ -1162,104 +887,15 @@
                     text-anchor="middle" data-i18n="s4p1Segment">Minor segment</text>
             </g>
 
-            <!-- ---- Skill 4, section 1, page 7: the triangle at 90°
-                 (js/segarea.js). Its own circle, everything on it fixed
-                 and written once by segarea.js: the wash, the triangle
-                 between the two radii and the chord, the rim and its pen,
-                 the two radii, the chord, the right-angle mark at the
-                 centre, the centre dot, an "r" by each radius and "90°"
-                 inside the triangle. Slid aside as ONE thing. Nothing here
-                 is a target; the answer is a press on a pill in #cfPane. -->
-            <g class="figure__sg" id="sg" hidden>
-              <circle class="sa-disc" id="sgDisc" cx="500" cy="210" r="158" />
-              <path class="se-tri" id="sgTri" d="" />
-              <path class="sa-rim" id="sgRim"
-                    d="M500 52 A158 158 0 0 1 500 368 A158 158 0 0 1 500 52" />
-              <circle class="rim-tip" id="sgTip" cx="500" cy="52" r="7" />
-              <path class="sa-radius" id="sgRadA" d="" />
-              <path class="sa-radius" id="sgRadB" d="" />
-              <path class="sa-chord" id="sgChord" d="" />
-              <path class="sg-mark" id="sgMark" d="" />
-              <circle class="sa-centre" id="sgCentre" cx="500" cy="210" r="6" />
-              <text class="figure-label sg-label" id="sgRA" x="0" y="0"
-                    text-anchor="middle" data-i18n="lblR">r</text>
-              <text class="figure-label sg-label" id="sgRB" x="0" y="0"
-                    text-anchor="middle" data-i18n="lblR">r</text>
-              <text class="figure-label sg-label" id="sgDeg" x="0" y="0"
-                    text-anchor="middle" data-i18n="p21Deg">90°</text>
-            </g>
-
-            <!-- ---- Skill 4, section 1, pages 8 and 9: the segment, worked
-                 and asked (js/segarea.js). Its own circle, shared by the two
-                 pages and written once by segarea.js: the wash, the segment
-                 between chord and arc, the rim and its pen, the arc, the two
-                 radii, the chord, the right-angle mark, the centre, the two
-                 red points, the radius's length under the level radius and
-                 "90°" beside the right angle. Slid aside as ONE thing.
-                 Nothing here is a target. -->
-            <g class="figure__sh" id="sh" hidden>
-              <circle class="sa-disc" id="shDisc" cx="500" cy="210" r="158" />
-              <path class="sa-region" id="shSeg" d="" />
-              <path class="sa-rim" id="shRim"
-                    d="M500 52 A158 158 0 0 1 500 368 A158 158 0 0 1 500 52" />
-              <circle class="rim-tip" id="shTip" cx="500" cy="52" r="7" />
-              <path class="sa-arc" id="shArc" d="" />
-              <path class="sa-radius" id="shRadA" d="" />
-              <path class="sa-radius" id="shRadB" d="" />
-              <path class="sa-chord" id="shChord" d="" />
-              <path class="sg-mark" id="shMark" d="" />
-              <circle class="sa-centre" id="shCentre" cx="500" cy="210" r="6" />
-              <circle class="arc-dot" id="shDotA" cx="500" cy="52" r="7" />
-              <circle class="arc-dot" id="shDotB" cx="500" cy="52" r="7" />
-              <text class="figure-label sh-len" id="shLen" x="0" y="0"
-                    text-anchor="middle"></text>
-              <text class="figure-label sh-deg" id="shDeg" x="0" y="0"
-                    text-anchor="middle" data-i18n="p21Deg">90°</text>
-            </g>
-
-            <!-- ---- Skill 4, section 1, pages 13 and 14: the major segment,
-                 worked and asked (js/segarea.js). The figure of pages 8 and
-                 9 with the other piece coloured: the major segment from the
-                 chord round the major arc (coloured in through the clip
-                 circle in the defs), the small piece pale blue under its
-                 blue arc, the major arc in lavender. Slid aside as ONE
-                 thing. Nothing here is a target. -->
-            <g class="figure__si" id="si" hidden>
-              <defs>
-                <clipPath id="siClipMajor">
-                  <circle id="siClipMajorC" cx="500" cy="210" r="400" />
-                </clipPath>
-              </defs>
-              <circle class="sa-disc" id="siDisc" cx="500" cy="210" r="158" />
-              <path class="sa-region sa-region--major" id="siMajor" d=""
-                    clip-path="url(#siClipMajor)" />
-              <path class="sa-region sa-region--blue" id="siMinor" d="" />
-              <path class="sa-rim" id="siRim"
-                    d="M500 52 A158 158 0 0 1 500 368 A158 158 0 0 1 500 52" />
-              <circle class="rim-tip" id="siTip" cx="500" cy="52" r="7" />
-              <path class="sa-arc sa-arc--major" id="siArcMajor" d="" />
-              <path class="sa-arc sa-arc--blue" id="siArcMinor" d="" />
-              <path class="sa-radius" id="siRadA" d="" />
-              <path class="sa-radius" id="siRadB" d="" />
-              <path class="sa-chord" id="siChord" d="" />
-              <path class="sg-mark" id="siMark" d="" />
-              <circle class="sa-centre" id="siCentre" cx="500" cy="210" r="6" />
-              <circle class="arc-dot" id="siDotA" cx="500" cy="52" r="7" />
-              <circle class="arc-dot" id="siDotB" cx="500" cy="52" r="7" />
-              <text class="figure-label sh-len" id="siLen" x="0" y="0"
-                    text-anchor="middle"></text>
-              <text class="figure-label sh-deg" id="siDeg" x="0" y="0"
-                    text-anchor="middle" data-i18n="p21Deg">90°</text>
-            </g>
-
-            <!-- ---- Skill 4, section 1, page 11: the major segment made
-                 (js/segarea.js). Its own circle: the wash, the major
-                 segment (whose apex segarea.js carries from the chord to
-                 the centre as it is drawn back to the sector), the
-                 triangle that comes in from outside and is put back on,
-                 the rim and its pen, the major arc, the small blue arc,
-                 the two radii, the chord, the centre and the two red
-                 points. Nothing here is a target. -->
+            <!-- ---- Skill 4, page 11: the major segment made (js/segarea.js)
+                 Its own circle: the wash, the major segment (whose apex
+                 segarea.js carries from the chord to the centre as it is
+                 drawn back to the major sector), the piece that comes in
+                 from outside and is put back on -- the triangle, its two
+                 sides, its angle with its "θ" and its copy of the chord,
+                 in a group of their own -- the rim and its pen, the major
+                 arc, the two radii, the chord, the centre, the two red
+                 points, and the name. Nothing here is a target. -->
             <g class="figure__sj" id="sj" hidden>
               <defs>
                 <clipPath id="sjClip">
@@ -1269,25 +905,34 @@
               <circle class="sa-disc" id="sjDisc" cx="500" cy="210" r="158" />
               <path class="sa-region sa-region--major" id="sjMajor" d=""
                     clip-path="url(#sjClip)" />
-              <path class="se-tri" id="sjTri" d="" />
+              <g class="se-piece" id="sjPiece">
+                <path class="se-tri" id="sjTri" d="" />
+                <path class="sa-radius" id="sjTriA" d="" />
+                <path class="sa-radius" id="sjTriB" d="" />
+                <path class="sa-chord" id="sjTriC" d="" />
+                <path class="s4-angle" id="sjAngle" d="" />
+                <text class="figure-label s4-theta" id="sjTheta" x="0" y="0"
+                      text-anchor="middle" data-i18n="lblTheta">θ</text>
+              </g>
               <path class="sa-rim" id="sjRim"
                     d="M500 52 A158 158 0 0 1 500 368 A158 158 0 0 1 500 52" />
               <circle class="rim-tip" id="sjTip" cx="500" cy="52" r="7" />
               <path class="sa-arc sa-arc--major" id="sjArcMajor" d="" />
-              <path class="sa-arc sa-arc--blue" id="sjArcMinor" d="" />
               <path class="sa-radius" id="sjRadA" d="" />
               <path class="sa-radius" id="sjRadB" d="" />
               <path class="sa-chord" id="sjChord" d="" />
               <circle class="sa-centre" id="sjCentre" cx="500" cy="210" r="6" />
               <circle class="arc-dot" id="sjDotA" cx="500" cy="52" r="7" />
               <circle class="arc-dot" id="sjDotB" cx="500" cy="52" r="7" />
+              <text class="figure-label sc-label sc-label--major" id="sjLbl" x="0" y="0"
+                    text-anchor="middle" data-i18n="s4p4Major">Major segment</text>
             </g>
 
-            <!-- ---- Skill 4, section 1, page 12: the major recap
-                 (js/segarea.js). Three small circles in a row -- the major
-                 sector, the triangle, the major segment -- built by
-                 segarea.js into the group, with "+" and "=" between them
-                 and a name under each. Nothing here is a target. -->
+            <!-- ---- Skill 4, page 12: the major recap (js/segarea.js).
+                 Three small circles in a row -- the major sector, the
+                 triangle, the major segment -- built by segarea.js into the
+                 group, with "+" and "=" between them and a name under
+                 each. Nothing here is a target. -->
             <g class="figure__sk" id="sk" hidden>
               <g class="sf-figs" id="skFigs"></g>
               <text class="figure-label sf-sign" id="skPlus" x="335" y="202"
@@ -1300,58 +945,6 @@
                     text-anchor="middle" data-i18n="s4p1Triangle">Triangle</text>
               <text class="figure-label sf-label sf-label--msegment" id="skLblSegment" x="830" y="348"
                     text-anchor="middle" data-i18n="s4p4Major">Major segment</text>
-            </g>
-
-            <!-- ---- Skill 4, section 1, page 15: the pipe (js/segarea.js).
-                 A ring with no wash, its water at the bottom: the water's
-                 region, the rim and its pen, the water's arc, the two radii
-                 down to the ends of the surface, the surface itself, the
-                 right angle at the centre, the centre, the length turned
-                 along its radius (by the group round it), "90°" and the
-                 word "water". Written by segarea.js. Nothing here is a
-                 target. -->
-            <g class="figure__sl" id="sl" hidden>
-              <path class="sa-region sa-region--water" id="slSeg" d="" />
-              <path class="sa-rim" id="slRim"
-                    d="M500 52 A158 158 0 0 1 500 368 A158 158 0 0 1 500 52" />
-              <circle class="rim-tip" id="slTip" cx="500" cy="52" r="7" />
-              <path class="sa-arc sa-arc--blue" id="slArc" d="" />
-              <path class="sa-radius" id="slRadA" d="" />
-              <path class="sa-radius" id="slRadB" d="" />
-              <path class="sa-chord" id="slChord" d="" />
-              <path class="sg-mark" id="slMark" d="" />
-              <circle class="sa-centre" id="slCentre" cx="500" cy="210" r="6" />
-              <g id="slLenG">
-                <text class="figure-label sh-len" id="slLen" x="0" y="0"
-                      text-anchor="middle" data-i18n="val14cm">14 cm</text>
-              </g>
-              <text class="figure-label sh-deg" id="slDeg" x="0" y="0"
-                    text-anchor="middle" data-i18n="p21Deg">90°</text>
-              <text class="figure-label sl-word" id="slWord" x="0" y="0"
-                    text-anchor="middle" data-i18n="s4p15Water">water</text>
-            </g>
-
-            <!-- ---- Skill 4, section 1, page 16: the flower bed
-                 (js/segarea.js). The quarter of page 8 in the bed's colours:
-                 the wash, the smaller piece, the rim and its pen, its arc,
-                 the two radii, the path, the right angle, the centre, "21 m"
-                 and "90°". Nothing here is a target. -->
-            <g class="figure__sm" id="sm" hidden>
-              <circle class="sa-disc" id="smDisc" cx="500" cy="210" r="158" />
-              <path class="sa-region" id="smSeg" d="" />
-              <path class="sa-rim" id="smRim"
-                    d="M500 52 A158 158 0 0 1 500 368 A158 158 0 0 1 500 52" />
-              <circle class="rim-tip" id="smTip" cx="500" cy="52" r="7" />
-              <path class="sa-arc" id="smArc" d="" />
-              <path class="sa-radius" id="smRadA" d="" />
-              <path class="sa-radius" id="smRadB" d="" />
-              <path class="sa-chord" id="smChord" d="" />
-              <path class="sg-mark" id="smMark" d="" />
-              <circle class="sa-centre" id="smCentre" cx="500" cy="210" r="6" />
-              <text class="figure-label sh-len" id="smLen" x="0" y="0"
-                    text-anchor="middle" data-i18n="val21m">21 m</text>
-              <text class="figure-label sh-deg" id="smDeg" x="0" y="0"
-                    text-anchor="middle" data-i18n="p21Deg">90°</text>
             </g>
           </svg>
 
@@ -1445,7 +1038,7 @@
           </div>
 
           <!-- Skill 2, section 3 (js/central.js): the legend of the
-               arc-length page. The right half of the stage, as #cfPane is:
+               naming page. The right half of the stage, as #cfPane is:
                the three names arrive one by one under the bird, where the
                answers usually stand, each in the colour of the mark it
                names, and move to the middle of the half once the bird has
@@ -1456,336 +1049,6 @@
               <li class="cl-item cl-item--r" id="clR" data-i18n="p25LegendR">r = Radius</li>
               <li class="cl-item cl-item--th" id="clTh" data-i18n="p25LegendTheta">θ = Central Angle</li>
             </ul>
-          </div>
-
-          <!-- Skill 2, section 3 (js/central.js): the arc-length formula.
-               The right half of the stage, as #clPane is: the formula in
-               words, then a copy of it under it whose words are turned one
-               by one into the letters, each letter in the colour of the
-               mark it names on the figure. Every term is its own span so
-               it can arrive and be swapped on its own; in the second line
-               each cell that becomes a letter keeps both the word and the
-               letter, and central.js shows one or the other. The "r" of
-               2πr is its own span, so it alone can wear the radius's
-               colour. Glass throughout -- nothing here is a control. -->
-          <div class="ff-pane" id="ffPane" hidden>
-            <div class="ff-lines" id="ffLines">
-              <p class="ff-line" id="ffLine1">
-                <span class="ff-t"><span class="ff-word" data-i18n="ffArcLength">Arc length</span></span>
-                <span class="ff-t ff-op" data-i18n="symEq">=</span>
-                <span class="ff-t ff-frac">
-                  <span class="ff-n"><span class="ff-word" data-i18n="ffAngle">Angle</span></span>
-                  <span class="ff-bar"></span>
-                  <span class="ff-d" data-i18n="lbl360">360°</span>
-                </span>
-                <span class="ff-t ff-op" data-i18n="symTimes">×</span>
-                <span class="ff-t"><span class="ff-word" data-i18n="ffCircumference">circumference</span></span>
-              </p>
-              <p class="ff-line ff-line--2" id="ffLine2">
-                <span class="ff-t ff-k--s" data-k="s"><span class="ff-word" data-i18n="ffArcLength">Arc length</span><span class="ff-sym" data-i18n="lblS">s</span></span>
-                <span class="ff-t ff-op" data-i18n="symEq">=</span>
-                <span class="ff-t ff-frac">
-                  <span class="ff-n ff-k--th" data-k="th"><span class="ff-word" data-i18n="ffAngle">Angle</span><span class="ff-sym" data-i18n="lblTheta">θ</span></span>
-                  <span class="ff-bar"></span>
-                  <span class="ff-d" data-i18n="lbl360">360°</span>
-                </span>
-                <span class="ff-t ff-op" data-i18n="symTimes">×</span>
-                <span class="ff-t ff-k--c" data-k="c"><span class="ff-word" data-i18n="ffCircumference">circumference</span><span class="ff-sym"><span data-i18n="sym2Pi">2π</span><span class="ff-r" data-i18n="lblR">r</span></span></span>
-              </p>
-            </div>
-          </div>
-
-          <!-- Skill 2, section 4 (js/practice.js): the arc length, worked.
-               The right half of the stage, as #ffPane is: four lines of
-               working, one under the other, left-aligned on one edge, and
-               the three values to choose from in a row under the last.
-               Every term is its own span so it can be lit, swapped or
-               moved on its own; a box (.ps-slot) is the one empty cell of
-               a line, filled by the value pressed. Line 3 keeps both the
-               cells it starts with and the cells that replace them
-               (.ps-new), and practice.js turns them over one at a time.
-               Only the pills are ever live. -->
-          <div class="ps-pane" id="psPane" hidden>
-            <div class="ps-lines" id="psLines" aria-live="polite">
-              <p class="ps-line" id="psLine1" hidden>
-                <span class="ps-t" data-i18n="lblS">s</span>
-                <span class="ps-t ps-op" data-i18n="symEq">=</span>
-                <span class="ps-t ps-frac">
-                  <span class="ps-n"><span class="ps-slot" id="psSlot1" role="img"
-                        data-i18n-attr="aria-label:a11ySlot"
-                        aria-label="An empty box for the value to choose."><span class="ps-slot__v"></span></span></span>
-                  <span class="ps-bar"></span>
-                  <span class="ps-d" data-i18n="lbl360">360°</span>
-                </span>
-                <span class="ps-t ps-op" data-i18n="symTimes">×</span>
-                <span class="ps-t" data-i18n="lbl2PiR">2πr</span>
-              </p>
-              <p class="ps-line" id="psLine2" hidden>
-                <span class="ps-t" data-i18n="lblS">s</span>
-                <span class="ps-t ps-op" data-i18n="symEq">=</span>
-                <span class="ps-t ps-frac">
-                  <span class="ps-n" data-i18n="val90">90°</span>
-                  <span class="ps-bar"></span>
-                  <span class="ps-d" data-i18n="lbl360">360°</span>
-                </span>
-                <span class="ps-t ps-op" data-i18n="symTimes">×</span>
-                <span class="ps-t" data-i18n="num2">2</span>
-                <span class="ps-t ps-op" data-i18n="symTimes">×</span>
-                <span class="ps-t ps-frac">
-                  <span class="ps-n" data-i18n="num22">22</span>
-                  <span class="ps-bar"></span>
-                  <span class="ps-d" data-i18n="num7">7</span>
-                </span>
-                <span class="ps-t ps-op" data-i18n="symTimes">×</span>
-                <span class="ps-t"><span class="ps-slot" id="psSlot2" role="img"
-                      data-i18n-attr="aria-label:a11ySlot"
-                      aria-label="An empty box for the value to choose."><span class="ps-slot__v"></span></span></span>
-              </p>
-              <!-- Line 3: line 2 with its value in, and the cells it is
-                   solved into -- ¼ for the angle's fraction, 22 cm for
-                   22⁄7 × 7 cm, 44 cm for 2 × 22 cm -- each placed where
-                   it will stand. -->
-              <p class="ps-line" id="psLine3" hidden>
-                <span class="ps-t" data-i18n="lblS">s</span>
-                <span class="ps-t ps-op" data-i18n="symEq">=</span>
-                <span class="ps-t ps-frac ps-k--th" data-k="frac">
-                  <span class="ps-n" data-i18n="val90">90°</span>
-                  <span class="ps-bar"></span>
-                  <span class="ps-d" data-i18n="lbl360">360°</span>
-                </span>
-                <span class="ps-t ps-frac ps-k--th ps-new" data-k="quarter">
-                  <span class="ps-n" data-i18n="num1">1</span>
-                  <span class="ps-bar"></span>
-                  <span class="ps-d" data-i18n="num4">4</span>
-                </span>
-                <span class="ps-t ps-op" data-i18n="symTimes">×</span>
-                <span class="ps-t ps-k--c" data-k="two" data-i18n="num2">2</span>
-                <span class="ps-t ps-op ps-k--c" data-k="x2" data-i18n="symTimes">×</span>
-                <span class="ps-t ps-frac ps-k--c" data-k="pi">
-                  <span class="ps-n" data-i18n="num22">22</span>
-                  <span class="ps-bar"></span>
-                  <span class="ps-d" data-i18n="num7">7</span>
-                </span>
-                <span class="ps-t ps-op ps-k--c" data-k="x3" data-i18n="symTimes">×</span>
-                <span class="ps-t ps-k--c" data-k="r" data-i18n="val7cm">7 cm</span>
-                <span class="ps-t ps-k--c ps-new" data-k="twentytwo" data-i18n="val22cm">22 cm</span>
-                <span class="ps-t ps-k--c ps-new" data-k="circ" data-i18n="val44cm">44 cm</span>
-              </p>
-              <p class="ps-line" id="psLine4" hidden>
-                <span class="ps-t" data-i18n="lblS">s</span>
-                <span class="ps-t ps-op" data-i18n="symEq">=</span>
-                <span class="ps-t"><span class="ps-slot" id="psSlot4" role="img"
-                      data-i18n-attr="aria-label:a11ySlot"
-                      aria-label="An empty box for the value to choose."><span class="ps-slot__v"></span></span></span>
-              </p>
-            </div>
-            <div class="ps-opts" id="psOpts" role="group"
-                 data-i18n-attr="aria-label:a11yAnswers" aria-label="Choose your answer"></div>
-          </div>
-
-          <!-- Skill 2, section 4 (js/practice.js): the central angle, worked.
-               The right half of the stage, as #psPane is: the formula, a
-               copy of it rewritten with two boxes, a copy of that solved
-               for θ, and a copy of that with the box θ is chosen into. A
-               box here is a dropdown (.ps-drop): a button in the line's
-               own type with the menu of three values hung under its cell.
-               Line 2 keeps both the cells it starts with (s, 2πr) and the
-               cells they are rewritten into; line 3 keeps the cells of
-               every move it is solved by, each placed where it will stand
-               once the line has been turned round (practice.js reorders
-               it); line 4 keeps the cells of line 3's last form and the
-               box. Only the boxes and their values are ever live. -->
-          <div class="ps-pane" id="pnPane" hidden>
-            <div class="ps-lines" id="pnLines" aria-live="polite">
-              <p class="ps-line" id="pnLine1" hidden>
-                <span class="ps-t" data-i18n="lblS">s</span>
-                <span class="ps-t ps-op" data-i18n="symEq">=</span>
-                <span class="ps-t ps-frac">
-                  <span class="ps-n" data-i18n="lblTheta">θ</span>
-                  <span class="ps-bar"></span>
-                  <span class="ps-d" data-i18n="lbl360">360°</span>
-                </span>
-                <span class="ps-t ps-op" data-i18n="symTimes">×</span>
-                <span class="ps-t" data-i18n="lbl2PiR">2πr</span>
-              </p>
-              <p class="ps-line" id="pnLine2" hidden>
-                <span class="ps-t" data-k="s0" data-i18n="lblS">s</span>
-                <span class="ps-t ps-cell ps-new" data-k="slotS"><button class="ps-slot ps-drop" id="pnSlotS" type="button" tabindex="-1" aria-haspopup="listbox" aria-expanded="false" data-i18n-attr="aria-label:a11yDrop" aria-label="A dropdown. Open it and choose the value."><span class="ps-slot__v"></span><span class="ps-drop__chev" aria-hidden="true"></span></button><span class="ps-menu" id="pnMenuS" role="listbox" hidden data-i18n-attr="aria-label:a11yAnswers" aria-label="Choose your answer"></span></span>
-                <span class="ps-t ps-op" data-i18n="symEq">=</span>
-                <span class="ps-t ps-frac">
-                  <span class="ps-n" data-i18n="lblTheta">θ</span>
-                  <span class="ps-bar"></span>
-                  <span class="ps-d" data-i18n="lbl360">360°</span>
-                </span>
-                <span class="ps-t ps-op" data-i18n="symTimes">×</span>
-                <span class="ps-t" data-k="c0" data-i18n="lbl2PiR">2πr</span>
-                <span class="ps-t ps-new" data-k="two" data-i18n="num2">2</span>
-                <span class="ps-t ps-op ps-new" data-k="x2" data-i18n="symTimes">×</span>
-                <span class="ps-t ps-frac ps-new" data-k="pi">
-                  <span class="ps-n" data-i18n="num22">22</span>
-                  <span class="ps-bar"></span>
-                  <span class="ps-d" data-i18n="num7">7</span>
-                </span>
-                <span class="ps-t ps-op ps-new" data-k="x3" data-i18n="symTimes">×</span>
-                <span class="ps-t ps-cell ps-new" data-k="slotR"><button class="ps-slot ps-drop" id="pnSlotR" type="button" tabindex="-1" aria-haspopup="listbox" aria-expanded="false" data-i18n-attr="aria-label:a11yDrop" aria-label="A dropdown. Open it and choose the value."><span class="ps-slot__v"></span><span class="ps-drop__chev" aria-hidden="true"></span></button><span class="ps-menu" id="pnMenuR" role="listbox" hidden data-i18n-attr="aria-label:a11yAnswers" aria-label="Choose your answer"></span></span>
-              </p>
-              <!-- Line 3: line 2 with its values in, and the cells it is
-                   solved into -- 132 cm for the product, 22 cm over 132 cm
-                   for the division, 1⁄6 for the fraction simplified, and
-                   θ = 360° × 1⁄6 at the end. -->
-              <p class="ps-line" id="pnLine3" hidden>
-                <span class="ps-t ps-k--s" data-k="s" data-i18n="val22cm">22 cm</span>
-                <span class="ps-t ps-op" data-k="eq" data-i18n="symEq">=</span>
-                <span class="ps-t ps-frac ps-k--th" data-k="th">
-                  <span class="ps-n" data-i18n="lblTheta">θ</span>
-                  <span class="ps-bar"></span>
-                  <span class="ps-d" data-i18n="lbl360">360°</span>
-                </span>
-                <span class="ps-t ps-op" data-k="x1" data-i18n="symTimes">×</span>
-                <span class="ps-t ps-k--c" data-k="two" data-i18n="num2">2</span>
-                <span class="ps-t ps-op ps-k--c" data-k="x2" data-i18n="symTimes">×</span>
-                <span class="ps-t ps-frac ps-k--c" data-k="pi">
-                  <span class="ps-n" data-i18n="num22">22</span>
-                  <span class="ps-bar"></span>
-                  <span class="ps-d" data-i18n="num7">7</span>
-                </span>
-                <span class="ps-t ps-op ps-k--c" data-k="x3" data-i18n="symTimes">×</span>
-                <span class="ps-t ps-k--c" data-k="r" data-i18n="val21cm">21 cm</span>
-                <span class="ps-t ps-k--c ps-new" data-k="circ" data-i18n="val132cm">132 cm</span>
-                <span class="ps-t ps-c--th ps-new" data-k="thetaL" data-i18n="lblTheta">θ</span>
-                <span class="ps-t ps-frac ps-new" data-k="ratio">
-                  <span class="ps-n ps-c--s" data-i18n="val22cm">22 cm</span>
-                  <span class="ps-bar"></span>
-                  <span class="ps-d ps-c--c" data-i18n="val132cm">132 cm</span>
-                </span>
-                <span class="ps-t ps-frac ps-new" data-k="sixth">
-                  <span class="ps-n" data-i18n="num1">1</span>
-                  <span class="ps-bar"></span>
-                  <span class="ps-d" data-i18n="num6">6</span>
-                </span>
-                <span class="ps-t ps-c--th ps-new" data-k="deg360" data-i18n="lbl360">360°</span>
-                <span class="ps-t ps-op ps-new" data-k="x4" data-i18n="symTimes">×</span>
-                <span class="ps-t ps-frac ps-new" data-k="sixthR">
-                  <span class="ps-n" data-i18n="num1">1</span>
-                  <span class="ps-bar"></span>
-                  <span class="ps-d" data-i18n="num6">6</span>
-                </span>
-              </p>
-              <!-- Line 4: line 3's last form, and the box for θ. -->
-              <p class="ps-line" id="pnLine4" hidden>
-                <span class="ps-t ps-c--th" data-i18n="lblTheta">θ</span>
-                <span class="ps-t ps-op" data-i18n="symEq">=</span>
-                <span class="ps-t ps-c--th" data-k="deg360" data-i18n="lbl360">360°</span>
-                <span class="ps-t ps-op" data-k="x4" data-i18n="symTimes">×</span>
-                <span class="ps-t ps-frac" data-k="sixth">
-                  <span class="ps-n" data-i18n="num1">1</span>
-                  <span class="ps-bar"></span>
-                  <span class="ps-d" data-i18n="num6">6</span>
-                </span>
-                <span class="ps-t ps-cell ps-new" data-k="slotTh"><button class="ps-slot ps-drop" id="pnSlotTh" type="button" tabindex="-1" aria-haspopup="listbox" aria-expanded="false" data-i18n-attr="aria-label:a11yDrop" aria-label="A dropdown. Open it and choose the value."><span class="ps-slot__v"></span><span class="ps-drop__chev" aria-hidden="true"></span></button><span class="ps-menu" id="pnMenuTh" role="listbox" hidden data-i18n-attr="aria-label:a11yAnswers" aria-label="Choose your answer"></span></span>
-              </p>
-            </div>
-          </div>
-
-          <!-- Skill 4 (js/segarea.js): the segment, worked. The right half
-               of the stage, in skill 2's worked lines (.ps-pane, css/
-               practice.css): three lines of working, one under the other --
-               the sector, the triangle, the segment -- each ending in a
-               box that is a dropdown (.ps-drop) with its menu of three
-               values hung under its cell. Only the boxes and their values
-               are ever live. -->
-          <div class="ps-pane" id="swPane" hidden>
-            <div class="ps-lines" id="swLines" aria-live="polite">
-              <p class="ps-line" id="swLine1" hidden>
-                <span class="ps-t sw-name--sector" data-i18n="s4p8Sector">sector</span>
-                <span class="ps-t ps-op" data-i18n="symEq">=</span>
-                <span class="ps-t ps-frac sw-c--th">
-                  <span class="ps-n" data-i18n="num90">90</span>
-                  <span class="ps-bar"></span>
-                  <span class="ps-d" data-i18n="num360">360</span>
-                </span>
-                <span class="ps-t ps-op" data-i18n="symTimes">×</span>
-                <span class="ps-t ps-frac sw-c--pi">
-                  <span class="ps-n" data-i18n="num22">22</span>
-                  <span class="ps-bar"></span>
-                  <span class="ps-d" data-i18n="num7">7</span>
-                </span>
-                <span class="ps-t ps-op" data-i18n="symTimes">×</span>
-                <span class="ps-t" data-i18n="val14sqd">14²</span>
-                <span class="ps-t ps-op" data-i18n="symEq">=</span>
-                <span class="ps-t ps-cell"><button class="ps-slot ps-drop" id="swSlot1" type="button" tabindex="-1" aria-haspopup="listbox" aria-expanded="false" data-i18n-attr="aria-label:a11yDrop" aria-label="A dropdown. Open it and choose the value."><span class="ps-slot__v"></span><span class="ps-drop__chev" aria-hidden="true"></span></button><span class="ps-menu" id="swMenu1" role="listbox" hidden data-i18n-attr="aria-label:a11yAnswers" aria-label="Choose your answer"></span></span>
-              </p>
-              <p class="ps-line" id="swLine2" hidden>
-                <span class="ps-t sw-name--triangle" data-i18n="s4p8Triangle">triangle</span>
-                <span class="ps-t ps-op" data-i18n="symEq">=</span>
-                <span class="ps-t" data-i18n="numHalf">½</span>
-                <span class="ps-t ps-op" data-i18n="symTimes">×</span>
-                <span class="ps-t" data-i18n="num14">14</span>
-                <span class="ps-t ps-op" data-i18n="symTimes">×</span>
-                <span class="ps-t" data-i18n="num14">14</span>
-                <span class="ps-t ps-op" data-i18n="symEq">=</span>
-                <span class="ps-t ps-cell"><button class="ps-slot ps-drop" id="swSlot2" type="button" tabindex="-1" aria-haspopup="listbox" aria-expanded="false" data-i18n-attr="aria-label:a11yDrop" aria-label="A dropdown. Open it and choose the value."><span class="ps-slot__v"></span><span class="ps-drop__chev" aria-hidden="true"></span></button><span class="ps-menu" id="swMenu2" role="listbox" hidden data-i18n-attr="aria-label:a11yAnswers" aria-label="Choose your answer"></span></span>
-              </p>
-              <p class="ps-line" id="swLine3" hidden>
-                <span class="ps-t sw-name--segment" data-i18n="s4p8Segment">segment</span>
-                <span class="ps-t ps-op" data-i18n="symEq">=</span>
-                <span class="ps-t" data-i18n="num154">154</span>
-                <span class="ps-t ps-op" data-i18n="symMinus">−</span>
-                <span class="ps-t" data-i18n="num98">98</span>
-                <span class="ps-t ps-op" data-i18n="symEq">=</span>
-                <span class="ps-t ps-cell"><button class="ps-slot ps-drop" id="swSlot3" type="button" tabindex="-1" aria-haspopup="listbox" aria-expanded="false" data-i18n-attr="aria-label:a11yDrop" aria-label="A dropdown. Open it and choose the value."><span class="ps-slot__v"></span><span class="ps-drop__chev" aria-hidden="true"></span></button><span class="ps-menu" id="swMenu3" role="listbox" hidden data-i18n-attr="aria-label:a11yAnswers" aria-label="Choose your answer"></span></span>
-              </p>
-            </div>
-          </div>
-
-          <!-- Skill 4 (js/segarea.js): the major segment, worked. The same
-               three lines as #swPane, for the other piece: the major
-               sector, the triangle, the major segment -- the last a sum.
-               Only the boxes and their values are ever live. -->
-          <div class="ps-pane" id="sxPane" hidden>
-            <div class="ps-lines" id="sxLines" aria-live="polite">
-              <p class="ps-line" id="sxLine1" hidden>
-                <span class="ps-t sw-name--msector" data-i18n="s4p13Sector">major sector</span>
-                <span class="ps-t ps-op" data-i18n="symEq">=</span>
-                <span class="ps-t ps-frac sw-c--th">
-                  <span class="ps-n" data-i18n="num270">270</span>
-                  <span class="ps-bar"></span>
-                  <span class="ps-d" data-i18n="num360">360</span>
-                </span>
-                <span class="ps-t ps-op" data-i18n="symTimes">×</span>
-                <span class="ps-t sw-c--pi" data-i18n="num616">616</span>
-                <span class="ps-t ps-op" data-i18n="symEq">=</span>
-                <span class="ps-t ps-cell"><button class="ps-slot ps-drop" id="sxSlot1" type="button" tabindex="-1" aria-haspopup="listbox" aria-expanded="false" data-i18n-attr="aria-label:a11yDrop" aria-label="A dropdown. Open it and choose the value."><span class="ps-slot__v"></span><span class="ps-drop__chev" aria-hidden="true"></span></button><span class="ps-menu" id="sxMenu1" role="listbox" hidden data-i18n-attr="aria-label:a11yAnswers" aria-label="Choose your answer"></span></span>
-              </p>
-              <p class="ps-line" id="sxLine2" hidden>
-                <span class="ps-t sw-name--triangle" data-i18n="s4p8Triangle">triangle</span>
-                <span class="ps-t ps-op" data-i18n="symEq">=</span>
-                <span class="ps-t" data-i18n="numHalf">½</span>
-                <span class="ps-t ps-op" data-i18n="symTimes">×</span>
-                <span class="ps-t" data-i18n="num14">14</span>
-                <span class="ps-t ps-op" data-i18n="symTimes">×</span>
-                <span class="ps-t" data-i18n="num14">14</span>
-                <span class="ps-t ps-op" data-i18n="symEq">=</span>
-                <span class="ps-t ps-cell"><button class="ps-slot ps-drop" id="sxSlot2" type="button" tabindex="-1" aria-haspopup="listbox" aria-expanded="false" data-i18n-attr="aria-label:a11yDrop" aria-label="A dropdown. Open it and choose the value."><span class="ps-slot__v"></span><span class="ps-drop__chev" aria-hidden="true"></span></button><span class="ps-menu" id="sxMenu2" role="listbox" hidden data-i18n-attr="aria-label:a11yAnswers" aria-label="Choose your answer"></span></span>
-              </p>
-              <p class="ps-line" id="sxLine3" hidden>
-                <span class="ps-t sw-name--msegment" data-i18n="s4p13Segment">major segment</span>
-                <span class="ps-t ps-op" data-i18n="symEq">=</span>
-                <span class="ps-t" data-i18n="num462">462</span>
-                <span class="ps-t ps-op" data-i18n="symPlus">+</span>
-                <span class="ps-t" data-i18n="num98">98</span>
-                <span class="ps-t ps-op" data-i18n="symEq">=</span>
-                <span class="ps-t ps-cell"><button class="ps-slot ps-drop" id="sxSlot3" type="button" tabindex="-1" aria-haspopup="listbox" aria-expanded="false" data-i18n-attr="aria-label:a11yDrop" aria-label="A dropdown. Open it and choose the value."><span class="ps-slot__v"></span><span class="ps-drop__chev" aria-hidden="true"></span></button><span class="ps-menu" id="sxMenu3" role="listbox" hidden data-i18n-attr="aria-label:a11yAnswers" aria-label="Choose your answer"></span></span>
-              </p>
-            </div>
-          </div>
-
-          <!-- Skill 2, section 4 (js/practice.js): the note under page 3's
-               figure, "Take π = 22⁄7" -- the left half of the stage, with
-               the note at its foot. practice.js writes the line, so its
-               fraction is stood up. Glass throughout. -->
-          <div class="pn-note" id="pnNote" hidden>
-            <span class="pn-note__t" id="pnNoteText" data-i18n="p31Pi">Take π = 22⁄7</span>
           </div>
 
           <!-- Skill 3 (js/sector-area.js): every scene builds its own
@@ -1884,17 +1147,16 @@
   <!-- Skill 2, section 3: the central angle. Same board, same bird; its
        two points are section 2's interaction, and its questions are asked
        from section 2 of the skill's bubble-02. To split it out later, this
-       line, js/central.js, css/central.css, the five groups in the
-       figure (#ca, #cm, #ce, #cz and #cv), #clPane and #ffPane are the
-       whole of it. -->
+       line, js/central.js, css/central.css, the one group in the figure
+       (#ca) and #clPane are the whole of it. -->
   <script src="js/central.js"></script>
-  <!-- Skill 2, section 4: the arc length, worked and asked. Same board,
-       same bird; its first page is answered on the header and in #psPane,
-       its second asked from bubble-02. To split it out later, this line,
-       js/practice.js, css/practice.css, the five groups in the figure
-       (#pa, #pb, #pc, #pw and #ck), #psPane, #pnPane and #pnNote are the
-       whole of it. -->
-  <script src="js/practice.js"></script>
+  <!-- Skill 2, section 4: the arc-length formula derived, then worked and
+       asked, and the skill summed up -- built with skill 3's kit (which
+       loads next and hands it over on window.SectorArea) in #saStage, in
+       skill 3's own design. Loaded here because a section's scenes join
+       the lesson in load order. To split it out later, this line,
+       js/arc-formula.js and css/arc-formula.css are the whole of it. -->
+  <script src="js/arc-formula.js"></script>
   <!-- Skill 3: area of a sector. Same board, same bird; its pictures are
        built in #saStage, and its confetti thrown in #saBurst. Loaded here,
        between skills 2 and 4, because a section's scenes join the lesson
