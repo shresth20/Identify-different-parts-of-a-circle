@@ -78,7 +78,9 @@ body.sa-lesson .board { --row-bottom: 13% !important; }
 .sa-lesson .prompt__line { max-width: 30em; }
 .sa-lesson .prompt__line .type,
 .sa-lesson .prompt__line .type-ghost { white-space: pre-wrap; }
-.sa-lesson .prompt__line { font-size: clamp(15px, 3.05vh, 30px); }
+/* The line's size and weight, and the bird's height on the header, are
+   skill 1's own (.prompt__line / .prompt__mascot, style.css): one header
+   for the whole game (user, 2026-10-09). */
 
 /* ---- Welcome -----------------------------------------------------------
    index.html's welcome, in this lesson's name: the same sunset over the
@@ -292,10 +294,8 @@ body.sa-lesson .board { --row-bottom: 13% !important; }
   letter-spacing: .2px;
   fill: var(--text-primary);
   opacity: 0;
-  paint-order: stroke;
-  stroke: color-mix(in srgb, #FFFFFF 75%, transparent);
-  stroke-width: 5px;
-  stroke-linejoin: round;
+  /* Plain ink, as skill 1's figure labels are: no white edge round the
+     letters (user, 2026-10-09). */
 }
 :where(body.sa-lesson) .lbl--angle  { fill: var(--sa-angle); }
 :where(body.sa-lesson) .lbl--radius { fill: var(--sa-radius); }
@@ -505,6 +505,9 @@ body.sa-lesson .board { --row-bottom: 13% !important; }
   display: flex;
   align-items: center;
   justify-content: center;
+  /* as tall as an answer pill, so a value with a fraction in it and a
+     plain one stand in rows of one height (user, 2026-10-09) */
+  min-height: 2.3em;
   padding: .26em .8em;
   border: 0;
   border-radius: .42em;
@@ -701,11 +704,23 @@ body.sa-lesson .board { --row-bottom: 13% !important; }
   align-items: center;
   gap: .9em;
   margin-bottom: .2em;
+  /* The row gives way before the answers under it do: when the panel is
+     too short for bubble, bird and tiles together, it is the bird that
+     steps down a size (see .sa-perch), never the tiles or the words. */
+  flex: 0 1 auto;
+  min-height: 0;
 }
+/* The bird: skill 1's size beside the circle (--bird-beside, style.css),
+   the one size it is wherever it stands on the right -- the aside's card,
+   skill 2's pane, this perch. Stated as a height with the width following
+   (aspect-ratio), so that when the panel has not the room the flex column
+   can shorten it, and the sprite keeps its shape as it shrinks. */
 :where(body.sa-lesson) .sa-perch {
   position: relative;
-  flex: 0 0 auto;
-  width: 5.4em;
+  flex: 0 1 auto;
+  min-height: 0;
+  height: var(--bird-beside);
+  width: auto;
   aspect-ratio: 1;
   pointer-events: none;
 }
@@ -740,16 +755,21 @@ body.sa-lesson .board { --row-bottom: 13% !important; }
   --sb-lip:      #4c46d9a6;            /* the rounded underside */
   --sb-shade:    #7d88f040;            /* the shade drawn in at either side */
   --sb-border:   .075em;
-  --sb-tail-w:   1.1em;
-  /* The tail stands clear of the big corner, on a straight stretch of
-     foot, and its tip comes down onto the bird's head (see .sa-speak--above). */
-  --sb-tail-left: 1.65em;
+  --sb-tail-w:   1.4em;
+  /* The tail where skill 1's card carries it: well along the foot, clear
+     of the big corner, so that with the card's left edge level with the
+     bird's the tip comes down about 45% across the head (see
+     .sa-speak--above). The card is never narrower than the stretch of foot
+     the tail needs -- its offset, its width and the corner's radius -- so
+     a short line ("Yes!") still has the tail on a straight edge. */
+  --sb-tail-left: 3.4em;
+  min-width: calc(var(--sb-tail-left) + var(--sb-tail-w) + 1.45em);
   /* read by the tail's fill and stroke (index.html's drawing) */
   --bubble-bg: var(--sb-face);
   --note-edge: var(--sb-rim-low);
   position: relative;
-  max-width: 15em;
-  padding: .62em 1.05em .7em;
+  max-width: 100%;
+  padding: .85em 1.05em .95em;
   border: var(--sb-border) solid transparent;
   border-radius: 1.45em;
   /* The rim deepening toward the foot, drawn round a white card. The fill
@@ -770,8 +790,12 @@ body.sa-lesson .board { --row-bottom: 13% !important; }
   filter: drop-shadow(0 .1em .07em var(--sb-lip))
           drop-shadow(0 .25em .22em #2f2aa54d)
           drop-shadow(0 .75em .9em #231f8a52);
+  /* bubble-01's type and leading (--bubble-beside-fs, style.css: 5.3cqw of
+     the half-stage, as .aside--message sets it), not the panel's: the bird
+     speaks at one size wherever it stands on the right. */
+  font-size: var(--bubble-beside-fs);
   font-weight: 700;
-  line-height: 1.25;
+  line-height: 1.38;
   letter-spacing: 0;
   text-align: left;
   color: var(--text-primary);
@@ -786,8 +810,8 @@ body.sa-lesson .board { --row-bottom: 13% !important; }
    drawing, stamped into the bubble by perchIn (js/sector-area.js). Its
    stroke starts 8 of its 44 units down, so it is lifted until that point
    sits on the rim's outer edge and the fill closes the rim across the
-   opening; the stroke is as thick as the rim in the tail's own units (3 of
-   44 across 1.1em), and scales with it. Every perch in this skill stands
+   opening; the stroke is as thick as the rim in the tail's own units (2.36
+   of 44 across 1.4em), and scales with it. Every perch in this skill stands
    the bird UNDER its bubble (.sa-speak--above), so this is the one place
    the tail is drawn. */
 :where(body.sa-lesson) .sa-bubble .bubble-tail {
@@ -799,7 +823,7 @@ body.sa-lesson .board { --row-bottom: 13% !important; }
   overflow: visible;
 }
 :where(body.sa-lesson) .sa-bubble .bubble-tail path:last-child {
-  stroke-width: 3;
+  stroke-width: 2.36;
   vector-effect: none;
 }
 :where(body.sa-lesson) .sa-bubble .type-wrap { display: inline-block; vertical-align: top; }
@@ -946,15 +970,8 @@ body.sa-lesson .board { --row-bottom: 13% !important; }
   pointer-events: none;
   z-index: 1;
 }
-/* The arrows: dotted, in the board's softer ink, light -- guides, not marks. */
-:where(body.sa-lesson) .s-callout--dots {
-  stroke: var(--text-secondary);
-  stroke-width: 3;
-  stroke-dasharray: .1 9;
-  stroke-linecap: round;
-  stroke-opacity: .75;
-}
-:where(body.sa-lesson) .s-callout--dothead { stroke: var(--text-secondary); stroke-width: 2.4; stroke-opacity: .75; }
+/* The leaders from the boxes are the first lesson's .q-leader (style.css),
+   drawn by boxLeader in js/sector-area.js: nothing of their own here. */
 
 /* The blank boxes: the first lesson's own -- see nameBox in
    js/sector-area.js and .q-box in style.css, which dresses them, waiting,
@@ -1010,15 +1027,25 @@ body.sa-lesson .board { --row-bottom: 13% !important; }
 /* The perch with its bubble ABOVE the bird: the words rise out of its beak.
    The bubble stands clear of the bird, set in from its left edge so its
    tail, on the bubble's underside (--sb-tail-left, .sa-bubble above),
-   comes down onto the head. The gap is the tail's own height, so the tip
-   lands on the bird rather than hanging over it. */
+   comes down onto the head where skill 1's card lands its own: the tip
+   about 45% across the cell and a tenth of the way down it. The card's
+   left edge is level with the bird's, as skill 1's is, so the panel's
+   whole width is the line's. The gap is the tail's height less that
+   tenth, so the tip rests on the bird rather than hanging over it. */
 :where(body.sa-lesson) .sa-speak.sa-speak--above {
   flex-direction: column-reverse;
   align-items: flex-start;
-  gap: .9em;
+  gap: .35em;
 }
-:where(body.sa-lesson) .sa-speak--above .sa-perch { width: 5.2em; }
-:where(body.sa-lesson) .sa-speak--above .sa-bubble { margin-left: 1.3em; }
+:where(body.sa-lesson) .sa-speak--above .sa-bubble { max-width: 100%; }
+/* A panel with a perch in it fills its row, so that a page too short for
+   bubble, bird and answers together is one the bird gives way on (see
+   .sa-speak) rather than one that spills off the board. The contents stay
+   centred in the panel, as every panel's are. */
+:where(body.sa-lesson) .sa-panel:has(> .sa-speak) {
+  align-self: stretch;
+  min-height: 0;
+}
 
 /* The bird has gone up to the header: its bubble stays as the question's
    card, and the tail that pointed at it fades away. */
@@ -1131,8 +1158,6 @@ body.sa-lesson .board { --row-bottom: 13% !important; }
    the bird's longest line, a sentence and a half, in the bubble. */
 :where(body.sa-lesson) .sa-panel--practice { gap: .5em; }
 :where(body.sa-lesson) .sa-panel--practice .sa-speak--above { gap: .35em; }
-:where(body.sa-lesson) .sa-panel--practice .sa-speak--above .sa-perch { width: 4.2em; }
-:where(body.sa-lesson) .sa-panel--practice .sa-bubble { font-size: .92em; max-width: 16em; }
 :where(body.sa-lesson) .sa-panel--practice .sa-rule { padding: .2em 1.1em .25em; gap: .15em; font-size: .86em; }
 
 /* ---- The magnifying glass ------------------------------------------------ */
@@ -1170,15 +1195,10 @@ body.sa-lesson .board { --row-bottom: 13% !important; }
   font-size: .95em;
 }
 :where(body.sa-lesson) .sa-scene--practice > .sa-rule .sa-rule__tag { font-size: .85em; }
-/* The bird a step smaller than on the "Tap the area" perch, as skill 2's
-   is beside its answers: the panel holds four things, one above another. */
-:where(body.sa-lesson) .sa-panel--practice .sa-speak--above .sa-perch { width: 4.2em; }
-/* At the size skill 2's question bubble is set at beside its answers, and
-   as wide as the panel allows: a long line -- the bird's last word on
-   "Major: which angle" runs to a sentence and a half -- takes three rows
-   rather than four, so the bird, the tiles and the formula under them all
-   fit the panel's height, with air to spare. */
-:where(body.sa-lesson) .sa-panel--practice .sa-bubble { font-size: .92em; max-width: 100%; }
+/* The bird and its bubble are the one size they are on every perch (see
+   .sa-perch and .sa-bubble): when the panel has not the room for them with
+   the tiles and the formula, the bird gives way (user, 2026-10-09: one
+   size for the bird and its type wherever it stands on the right). */
 
 /* ==========================================================================
    Which is bigger? -- two matching cards in the middle of the board
@@ -1527,8 +1547,7 @@ body.sa-lesson .board { --row-bottom: 13% !important; }
 
 /* ---- type: a hierarchy of weight and size -------------------------------- */
 .sa-lesson .sa-scene { font-weight: 700; }
-.sa-lesson .prompt__line { font-size: clamp(17px, 3.6vh, 34px); font-weight: 800; }
-.sa-lesson .prompt__mascot { height: 135%; }
+/* (the header's type and bird are skill 1's own -- see the head of this file) */
 .sa-lesson .sa-dstep__cap,
 .sa-lesson .sa-soft { font-weight: 600; }
 .sa-lesson .sa-dstep__cap { font-size: .86em; color: color-mix(in srgb, var(--text-secondary) 85%, #000); }
@@ -1543,12 +1562,12 @@ body.sa-lesson .board { --row-bottom: 13% !important; }
 .sa-lesson .sa-rule__tag { font-size: .84em; color: #4A36C2; letter-spacing: .05em; }
 .sa-lesson .sa-wk__formula b { color: #4A36C2; }
 
-/* ---- labels on the figures: larger, with a soft white halo ---------------- */
-.sa-lesson .lbl { font-size: 24px; stroke-width: 6px; }
+/* ---- labels on the figures: larger ---------------------------------------- */
+.sa-lesson .lbl { font-size: 24px; }
 .sa-lesson .lbl--big { font-size: 32px; }
 .sa-lesson .lbl--along { font-size: 21px; }
 .sa-lesson .lbl--soft { font-size: 20px; }
-.sa-lesson .s-found-lbl { font-size: 23px; stroke: rgba(255, 255, 255, .92); stroke-width: 9px; }
+.sa-lesson .s-found-lbl { font-size: 23px; }
 .sa-lesson .s-found-lbl--fan { font-size: 28px; }
 
 /* ---- faded things stay readable ------------------------------------------- */
@@ -1713,10 +1732,7 @@ body.sa-lesson .board { --row-bottom: 13% !important; }
 :where(body.sa-lesson) .sa-done__again:hover { filter: brightness(1.04); }
 :where(body.sa-lesson) .sa-done__again:focus-visible { outline: 3px solid #FFFFFF; outline-offset: 2px; }
 
-/* Figure labels: a thin halo in the board's own lavender rather than white --
-   barely seen, but it still lifts a letter off a line it touches. */
-.sa-lesson .lbl { stroke: rgba(240, 236, 255, .7); stroke-width: 3px; }
-.sa-lesson .s-found-lbl { stroke: rgba(240, 236, 255, .6); stroke-width: 3.5px; }
+/* Figure labels: plain ink, no halo of any colour (user, 2026-10-09). */
 
 /* Equations in a column: every = lined up under the one above. */
 :where(body.sa-lesson) .sa-eqgrid {

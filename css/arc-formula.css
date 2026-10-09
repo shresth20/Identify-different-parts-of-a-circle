@@ -38,14 +38,9 @@
    of it -- in the arc's ink, faint. */
 :where(body.sa-lesson) .af-fig .af-ghost-arc { stroke-width: 10; opacity: 0; }
 
-/* A length written over the arc -- what is given, or what was found --
-   with a thin white edge under its ink, so it reads over the rim. */
-:where(body.sa-lesson) .af-arc-lbl {
-  paint-order: stroke;
-  stroke: rgba(255, 255, 255, .92);
-  stroke-width: 7px;
-  stroke-linejoin: round;
-}
+/* A length written over the arc -- what is given, or what was found -- is
+   plain ink, as every label in skill 1 is: no white edge round the letters
+   (user, 2026-10-09). */
 
 /* The glass over 1°: the little arc between the two radii, in the arc's
    ink, drawn at the lens's scale. */

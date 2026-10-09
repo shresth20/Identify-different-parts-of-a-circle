@@ -43,3 +43,6 @@
     at runFrom (http://localhost:8765/js/pages.js:2806:5)
     at Object.run (http://localhost:8765/js/pages.js:2816:27)
     at http://localhost:8765/js/script.js:70:69
+[ 9722357ms] [ERROR] Failed to load resource: net::ERR_CONNECTION_RESET @ http://localhost:8765/js/sector-area.js:0
+[ 9722363ms] [ERROR] segarea.js: load js/pages.js, js/arcs.js and js/sector-area.js before js/segarea.js. @ http://localhost:8765/js/segarea.js:59
+[ 9722386ms] [ERROR] arc-formula.js: js/sector-area.js did not hand over its kit. @ http://localhost:8765/js/arc-formula.js:1353

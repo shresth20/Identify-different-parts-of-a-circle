@@ -503,8 +503,7 @@
       .then(function () { return Flow.wait(SHORT); })
       .then(function () {
         var ids = K.shuffle(spec.options);
-        chips = K.buildChips(dom.alOpts, ids.map(function (id) { return T(id); }));
-        chips.forEach(function (c, i) { c.dataset.name = ids[i]; });
+        chips = K.buildChips(dom.alOpts, ids);
         return Flow.anim(chipsIn(chips));
       })
 
@@ -610,7 +609,15 @@
         K.clearBubble();
         return Flow.anim(Beats.boardIn(dom.board));
       })
-      .then(function () { return Flow.wait(SHORT); });
+      /* The board has closed over the bird: it is away now, so the next
+         page's wipe has nothing to spring off the field -- a bird
+         springing up from under the board was seen behind it (user,
+         2026-10-09) -- and its next jump in comes up from behind the
+         board as ever. */
+      .then(function () {
+        mascot.el.classList.add('is-away');
+        return Flow.wait(SHORT);
+      });
   }
 
   /* ======================================================================

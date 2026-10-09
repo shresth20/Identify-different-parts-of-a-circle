@@ -1054,6 +1054,58 @@
             function (err) { jumpDone(); throw err; });
   }
 
+  /* Straight from the spot it stands on to another -- the header to a
+     pane, a pane to the header -- in ONE arc over the board, never behind
+     it: for a bird that has just finished a line and is wanted somewhere
+     else at once (user, 2026-10-09: no leaving behind the board and
+     coming up again). The sprite itself makes the trip: it is re-parented
+     to the new spot, set back to where it stood by a transform, and
+     carried to rest -- across evenly, and up and over on the way, growing
+     or shrinking to the new spot's size as it goes. Leaving the header
+     closes it, as a jump out does, unless `keep`; the header is closed
+     BEFORE the new spot is measured, so the bird lands where the spot
+     will really be. A bird that is away comes up from behind the board
+     as ever. */
+  var HOP_TIME = 0.72;      /* s: the trip across                        */
+  var HOP_RISE = 0.9;       /* of the bird's height: how high the arc goes */
+
+  function mascotHopTo(slot, keep) {
+    var el = mascot.el;
+    slot = slot || dom.slotHeader;
+    if (el.hidden || el.classList.contains('is-away')) return mascotJumpIn(slot);
+    if (el.parentNode === slot) return Promise.resolve();
+    var leaves = el.parentNode === dom.slotHeader && !keep;
+    var was = el.getBoundingClientRect();
+    /* the header's own move, not awaited: the hop is what the scene waits on */
+    if (slot === dom.slotHeader) quiet(Flow.anim(openHeader()));
+    if (leaves) quiet(Flow.anim(collapseHeader(true)));
+    mascot.placeIn(slot);
+    var now = el.getBoundingClientRect();
+    if (!was.width || !now.width || M.reducedMotion()) return Promise.resolve();
+
+    var dx = (was.left + was.width / 2) - (now.left + now.width / 2);
+    var dy = (was.bottom) - (now.bottom);
+    var k = was.height / now.height;
+    /* The arc rises only on a trip UP the board. A bird on the header
+       already stands at the board's top edge, which clips whatever goes
+       above it, so a trip down from there is a leap straight across and
+       down -- quick to leave, settling as it lands. */
+    var rise = dy > 0 ? Math.max(was.height, now.height) * HOP_RISE : 0;
+    M.set(el, { x: dx, y: dy, scale: k, transformOrigin: '50% 100%' });
+    var tl = M.timeline({
+      willChange: el, willChangeValue: 'transform',
+      revert: function () { M.set(el, { clearProps: 'transform' }); }
+    });
+    tl.to(el, { x: 0, scale: 1, duration: M.dur(HOP_TIME), ease: 'power1.inOut' }, 0);
+    if (rise) {
+      tl.to(el, { y: dy - rise, duration: M.dur(HOP_TIME * 0.45), ease: 'power2.out' }, 0)
+        .to(el, { y: 0, duration: M.dur(HOP_TIME * 0.55), ease: 'power2.in' }, M.gap(HOP_TIME * 0.45));
+    } else {
+      tl.to(el, { y: 0, duration: M.dur(HOP_TIME), ease: 'power2.inOut' }, 0);
+    }
+    return Flow.anim(tl);
+  }
+
   /* The bird comes up to say a line.
        The line is RESERVED before the jump starts. The prompt row is centred
      as a pair, so the bird's resting spot depends on how wide the finished
@@ -1607,6 +1659,70 @@
         return picked;
       },
       function (err) { off(); throw err; });
+  }
+
+  /* ---- the drag, shown ---------------------------------------------------
+     A faint card and a hand carried from the tray to the box the learner is
+     to fill, while the instruction is said: the gesture shown, not the
+     answer -- the card is blank, the size of a name. It plays twice and is
+     gone; gone at once when the learner presses a name. It is one tracked
+     timeline, so a skip lands it (at nothing) and Replay or a jump takes it
+     away with the scene. Nothing under reduced motion: a demonstration that
+     only moves has nothing to show standing still.
+       `to` is the box to aim at -- anything with a client rect. */
+  var GUIDE_ALPHA = 0.5;     /* "a little low": seen, never mistaken for a name */
+  var GUIDE_LOOPS = 2;
+
+  function dragGuide(to) {
+    var none = { stop: function () {} };
+    if (!to || Flow.isFast() || M.reducedMotion() || dom.tray.hasAttribute('hidden')) return none;
+    var sample = dom.tray.querySelector('[data-name]');
+    var tray = dom.tray.getBoundingClientRect();
+    var end = to.getBoundingClientRect();
+    if (!sample || !tray.width || !end.width) return none;
+    var size = sample.getBoundingClientRect();
+
+    var wrap = document.createElement('div');
+    wrap.className = 'drag-guide';
+    wrap.setAttribute('aria-hidden', 'true');
+    var card = document.createElement('div');
+    card.className = 'drag-guide__card';
+    card.style.width = size.width + 'px';
+    card.style.height = size.height + 'px';
+    card.style.left = -size.width / 2 + 'px';
+    card.style.top = -size.height / 2 + 'px';
+    wrap.appendChild(card);
+    var NS = 'http://www.w3.org/2000/svg';
+    var hand = document.createElementNS(NS, 'svg');
+    hand.setAttribute('class', 'drag-guide__hand');
+    hand.setAttribute('viewBox', '-16 -2 44 52');
+    var path = document.createElementNS(NS, 'path');
+    path.setAttribute('d', global.Arcs ? global.Arcs.HAND_D : '');
+    hand.appendChild(path);
+    wrap.appendChild(hand);
+    document.body.appendChild(wrap);
+
+    /* from the top of the tray, over no name in particular, to the box */
+    var sx = tray.left + tray.width / 2, sy = tray.top;
+    var ex = end.left + end.width / 2, ey = end.top + end.height / 2;
+
+    function stop() { if (tl.totalProgress() < 1) tl.totalProgress(1); }
+    var tl = M.timeline({
+      willChange: [wrap, card], willChangeValue: 'transform, opacity',
+      revert: function () {
+        dom.tray.removeEventListener('pointerdown', stop, true);
+        if (wrap.parentNode) wrap.parentNode.removeChild(wrap);
+      }
+    });
+    tl.set(wrap, { x: sx, y: sy, opacity: 0 })
+      .to(wrap, { opacity: GUIDE_ALPHA, duration: M.dur(0.3), ease: 'power2.out' })
+      .to(card, { scale: 0.94, duration: M.dur(0.15), ease: 'power2.out' })
+      .to(wrap, { x: ex, y: ey, duration: M.dur(1.0), ease: 'power2.inOut' })
+      .to(card, { scale: 1, duration: M.dur(0.2), ease: 'back.out(2)' })
+      .to(wrap, { opacity: 0, duration: M.dur(0.3), ease: 'power2.in' }, '+=' + M.dur(0.25));
+    tl.repeat(GUIDE_LOOPS - 1).repeatDelay(M.dur(0.4));
+    dom.tray.addEventListener('pointerdown', stop, true);
+    return { stop: stop };
   }
 
   /* ---- the activity's interaction -----------------------------------------
@@ -2242,27 +2358,19 @@
         choiceBtns = buildChoices(dom.choices, [T('optYes'), T('optNo')]);
         return Flow.anim(Beats.trayIn(dom.choices, choiceBtns));
       })
-      /* The two answers are read out as they land -- heard, not written
-         again: their buttons are the words. The buttons listen from the
-         first word, and a tap cuts the reading short; "No" is only read
-         if "Yes" was heard to the end. */
-      .then(function () {
-        quiet(hear('optYes').then(function (heard) { if (heard) return hear('optNo'); }));
-        return askChoice(choiceBtns, { answer: 0 });
-      })
+      /* The two answers are not read out: their buttons are the words. */
+      .then(function () { return askChoice(choiceBtns, { answer: 0 }); })
 
       /* Right or wrong, the lesson is the same one -- so only the word in
          front of it changes, and the closing line with it. A right answer
          is praised, under a light shower of confetti. A wrong answer
-         is shaken and then the right one is lit beside it, because being
-         told "no" without being shown "this one" teaches nothing. */
+         is shaken, and only that: "Yes" is not lit for the learner -- the
+         line after it says why. */
       .then(function (picked) {
         var right = picked === 0;               /* 'Yes' is the answer */
         var marked = right
           ? Flow.anim(Beats.choiceRight(choiceBtns[0]))
-          : Flow.anim(Beats.choiceWrong(choiceBtns[1])).then(function () {
-              return Flow.anim(Beats.choiceRight(choiceBtns[0]));
-            });
+          : Flow.anim(Beats.choiceWrong(choiceBtns[1]));
         var said = right ? praise('praiseAwesome') : speak(keyed('fbNotQuite'), 'confused');
         return Promise.all([marked, said])
           .then(function () { return Flow.wait(SHORT); })
@@ -2377,29 +2485,15 @@
     if (target === 's1LblDiameter' && name === 's1LblChord') return 's1QzWrongChordDia';
     return WRONG_KEY[name] || 'fbNotQuite';
   }
-  /* How long the answer to a wrong drop stays up before the instruction
-     comes back. */
-  var WRONG_HOLD = 1800;
 
   function sceneQuiz() {
     var marks = [];
     var steps = {};
-    /* The header's feedback: `n` counts wrong-drop lines, so a newer one --
-       or the part being answered -- retires the older one's hand-back to
-       the instruction; `up` is whether one is on the header now. */
-    var fb = { n: 0, up: false };
 
-    function sayAsk() { return speak(keyed('s1QzAsk')); }
+    /* A wrong drop is answered, and the answer left up: the learner
+       already knows what to do, so the instruction is not said again. */
     function sayWrong(target, name) {
-      var mine = ++fb.n;
-      fb.up = true;
-      return speakBySentence(wrongKey(target, name), 'confused')
-        .then(function () { return Flow.wait(WRONG_HOLD); })
-        .then(function () {
-          if (mine !== fb.n) return;
-          fb.up = false;
-          return sayAsk();
-        });
+      return speakBySentence(wrongKey(target, name), 'confused');
     }
 
     /* One part asked for. It is lit and its box lifted; then -- the first
@@ -2416,27 +2510,32 @@
       Beats.pulseHold(step.lit);
       if (halo) Beats.centreGlow(dom.centre);
       targetBox(box, true);
+      var last = name === ASK_ORDER[ASK_ORDER.length - 1];
+      /* the first time, the drag is shown, faintly, as the bird says it */
+      var guide = null;
       var told = first
         ? Flow.wait(BEAT)
-            .then(function () { return arriveSaying(keyed('s1QzAsk')); })
+            .then(function () {
+              return arriveSaying(keyed('s1QzAsk'), null, function () {
+                guide = dragGuide(box.rect);
+              });
+            })
             .then(function () { mascot.settle(); })
         : Promise.resolve();
       return told
         .then(function () {
           return armQuiz({ boxes: [box] }, chips, {
-            onWrong: function (b, chip) { quiet(sayWrong(name, chip.dataset.name)); }
+            onWrong: function (b, chip) { quiet(sayWrong(name, chip.dataset.name)); },
+            /* a right drop is told so -- not the last, which "Great job"
+               answers a moment later */
+            onRight: function () {
+              if (!last) quiet(speak(keyed('fbCorrect'), 'happy'));
+            }
           });
         })
         .then(function () {
+          if (guide) guide.stop();
           targetBox(box, false);
-          /* A wrong-drop line still up is answered by the right drop: the
-             instruction goes back up for the next part, unless that was
-             the last one. */
-          if (fb.up) {
-            fb.n++;
-            fb.up = false;
-            if (name !== ASK_ORDER[ASK_ORDER.length - 1]) quiet(sayAsk());
-          }
           return Promise.all([
             Flow.anim(Beats.pulseRelease(step.lit)),
             halo ? Flow.anim(Beats.centreUnglow(dom.centre, dom.glow)) : null
@@ -2481,7 +2580,6 @@
 
       /* ---- All five in ---------------------------------------------------- */
       .then(function () {
-        fb.n++;
         celebrate();
         return speak(keyed('s1QzDone'), 'happy');
       })
@@ -2511,10 +2609,10 @@
      into them. The bird comes up with the instruction and STAYS on the
      header while the names are being placed -- it is not sent away and
      brought back. A wrong drop is answered on the spot -- "Not quite!", then
-     the reason, one at a time (speakBySentence) --
-     the name goes home, and the instruction comes back up after it; there
-     is no last-chance reveal -- the learner places both. A right drop says
-     nothing: the green box and its tick are the answer. Once both are in,
+     the reason, one at a time (speakBySentence) -- and the name goes home;
+     the instruction is not said again. There is no last-chance reveal --
+     the learner places both. A right drop is told "Correct!", but for the
+     one that fills the last box, which the praise answers. Once both are in,
      the bird praises the learner as confetti comes down, then it and its
      line leave (the header kept open, so the picture does not move) and
      the page turns itself -- no Next.
@@ -2526,15 +2624,19 @@
                 wrong box
        o.praise the word of praise said once both are in (a praise* key),
                 over a light shower of confetti */
-  var WRONG_HOLD_PAIR = 1800;
 
   function namePair(o) {
-    var fb = { n: 0 };
+    var placed = 0;
+    /* A wrong drop is answered and the answer left up; a right one is told
+       "Correct!" -- except the one that fills the last box, which the
+       praise answers. The instruction is never said again: the learner
+       already knows what to do. */
     function sayWrong(name) {
-      var mine = ++fb.n;
-      return speakBySentence(o.wrong[name] || 'fbNotQuite', 'confused')
-        .then(function () { return Flow.wait(WRONG_HOLD_PAIR); })
-        .then(function () { if (mine === fb.n) return speak(keyed(o.ask)); });
+      return speakBySentence(o.wrong[name] || 'fbNotQuite', 'confused');
+    }
+    function sayRight() {
+      placed++;
+      if (placed < o.boxes.length || !o.praise) quiet(speak(keyed('fbCorrect'), 'happy'));
     }
 
     chips = buildChips(dom.tray, o.names);
@@ -2544,13 +2646,11 @@
         mascot.settle();
         return armQuiz({ boxes: o.boxes }, chips, {
           group: o.group,
-          onWrong: function (box, chip) { quiet(sayWrong(chip.dataset.name)); }
+          onWrong: function (box, chip) { quiet(sayWrong(chip.dataset.name)); },
+          onRight: sayRight
         });
       })
-      .then(function () {
-        fb.n++;                       /* no instruction after this */
-        return Flow.wait(SHORT);
-      })
+      .then(function () { return Flow.wait(SHORT); })
       .then(function () { return o.praise ? praise(o.praise) : null; })
       .then(function () { return Flow.wait(BEAT); })
       .then(function () { return birdAway(); })
@@ -2826,7 +2926,7 @@
        to be watched at the same speed as the first one was */
     DRAW_TIME: DRAW_TIME, DRAWN_HOLD: DRAWN_HOLD, DOT_TIME: DOT_TIME,
     DOT_HOLD: DOT_HOLD, LINE_TIME: LINE_TIME, DIA_HOLD: DIA_HOLD,
-    CX: CX, CY: CY, RR: RR, VB_W: VB_W, VB_H: VB_H, BOX_W: BOX_W, BOX_H: BOX_H,
+    CX: CX, CY: CY, RR: RR, VB_W: VB_W, VB_H: VB_H, BOX_W: BOX_W, BOX_H: BOX_H, LEAD_STUB: LEAD_STUB,
     dom: function () { return dom; },
     mascot: function () { return mascot; },
     el: el, seg: seg, round2: round2, onRim: onRim, arrowHead: arrowHead,
@@ -2838,6 +2938,7 @@
     choices: function (list) { if (list) choiceBtns = list; return choiceBtns; },
     handOver: handOver, speak: speak, arriveSaying: arriveSaying,
     clearPrompt: clearPrompt, mascotJumpIn: mascotJumpIn, mascotJumpOut: mascotJumpOut,
+    mascotHopTo: mascotHopTo, birdOnHeader: birdOnHeader,
     sayBubble: function (text) { return sayBubble(text); },
     clearBubble: function () { sayBubble.clear(); },
     restoreBubble: restoreBubble,
@@ -2852,7 +2953,7 @@
        through restoreAside as ever */
     cardUp: cardUp, cardAway: cardAway, alignMessage: alignMessageTo,
     wipeBoard: wipeBoard, collapseHeader: collapseHeader, resetFooter: resetFooter,
-    askChoice: askChoice, armQuiz: armQuiz, namePair: namePair,
+    askChoice: askChoice, armQuiz: armQuiz, namePair: namePair, dragGuide: dragGuide,
     /* the speaking helpers by key, and a page that turns itself */
     keyed: keyed, hear: hear, onWord: onWord, celebrate: celebrate, praise: praise, wordAt: wordAt, autoTurn: autoTurn, birdAway: birdAway, AUTO_TURN: AUTO_TURN,
     ripple: ripple, quiet: quiet, clearInline: clearInline

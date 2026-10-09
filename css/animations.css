@@ -295,3 +295,40 @@
   .centre__dot.is-pulsing,
   .end-dot.is-pulsing { stroke-width: 0; }
 }
+
+/* ---- The drag, shown (dragGuide in pages.js) ----------------------------
+   A blank card the size of a name, and a hand on it, carried from the tray
+   to a box while the instruction is said. Laid over the board in the
+   viewport's own units, never a target; the timeline moves and fades the
+   whole of it, and presses the card. It rests at nothing. */
+.drag-guide {
+  position: fixed;
+  left: 0;
+  top: 0;
+  z-index: var(--z-next);
+  pointer-events: none;
+  opacity: 0;
+}
+.drag-guide__card {
+  position: absolute;
+  border-radius: 999px;
+  background: #fff;
+  border: 3px solid var(--lavender-border);
+  box-shadow: 0 6px 14px var(--shadow-soft);
+}
+/* the fingertip (the path's origin) set just below the card's middle */
+.drag-guide__hand {
+  position: absolute;
+  left: -13px;
+  top: 4px;
+  width: 36px;
+  height: 43px;
+  overflow: visible;
+}
+.drag-guide__hand path {
+  fill: #fff;
+  stroke: var(--text-secondary);
+  stroke-width: 2.2;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}

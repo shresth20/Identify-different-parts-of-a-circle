@@ -70,6 +70,18 @@
   function pt(C, r, deg) { return S.pt(C, r, deg); }
   function r2(n) { return Math.round(n * 100) / 100; }
 
+  /* Confetti thrown ON a mark -- from the middle of it -- rather than
+     beside it, as SectorArea's burstAt does: for a circle that is the
+     whole point of the moment (user, 2026-10-09: on the circle, not at
+     the side). In the frame's own pixels, into skill 3's burst layer. */
+  function burstOn(el) {
+    if (!el) return;
+    var d = D();
+    var f = d.frame.getBoundingClientRect();
+    var r = el.getBoundingClientRect();
+    quiet(anim(Beats.confetti(d.burst, r.left + r.width / 2 - f.left, r.top + r.height / 2 - f.top)));
+  }
+
   /* The words of the formula, in their inks: s and the circumference in
      the sector-lesson's inks, the angle in its magenta. */
   function TWO_PI_R() { return c('pi', '2πr'); }
@@ -263,7 +275,7 @@
     A.lbl.classList.remove('lbl--big');
     A.set(a0, a1, 'θ = ' + (a1 - a0) + '°');
     await anim(S.popIn(A.lbl, { from: 0.7 }));
-    await S.say(keyed('s3CentralHere', { deg: a1 - a0 }));
+    await S.say(keyed('s2CentralHere', { deg: a1 - a0 }));
     await wait(SHORT);
     var hand = { a: a0 };
     function place() {
@@ -291,7 +303,7 @@
     Beats.sfx('correct');
     [Sec.arc, A.arc, A.lbl].forEach(function (el) { el.classList.add('is-flash2'); });
     await anim(Beats.linePulse([Sec.arc], ARC_W));
-    S.burstAt(F.svg);
+    burstOn(C.disc);
     await S.say(keyed('s2WholeFull'), 'happy');
     await wait(SHORT);
     Sec.arc.classList.remove('is-flash2');
@@ -324,7 +336,8 @@
       M.set(wrap, { x: (r0.left + r0.width / 2) - (r1.left + r1.width / 2),
                     y: (r0.top + r0.height / 2) - (r1.top + r1.height / 2),
                     scale: k, transformOrigin: '50% 50%' });
-      await Promise.all([S.leaveHeader(),
+      /* the line goes; the bird stays on the header until its perch is up */
+      await Promise.all([S.hush(),
         anim(M.to(wrap, { x: 0, y: 0, scale: 1, duration: M.dur(0.9), ease: 'power3.inOut' }))]);
     } else {
       /* Reached straight from the level bar: the full-turn circle, whole. */
@@ -485,8 +498,8 @@
     var X = S.X, EQ = S.EQ, DD = S.DD;
 
     /* ---- 1. The whole circle ---------------------------------------------- */
-    await S.say(keyed('s3DeriveWhole'));
-    var s1 = await addStep(tr('s3DeriveWhole'), [[SS()], [EQ], [TWO_PI_R()]]);
+    await S.say(keyed('s2DeriveWhole'));
+    var s1 = await addStep(tr('s2DeriveWhole'), [[SS()], [EQ], [TWO_PI_R()]]);
     await writeBits(s1);
     Sec.arc.classList.add('is-flash2');
     await wait(LOOK);
@@ -633,7 +646,7 @@
       yes: [keyed('fbThatsCorrect'), keyed('s2DeriveRight')],
       why: {
         0: [keyed('fbNotQuite'), keyed('s2DeriveWrongPiR2')],
-        1: [keyed('fbNotQuite'), keyed('s3DeriveWrong180')]
+        1: [keyed('fbNotQuite'), keyed('s2DeriveWrong180')]
       }
     });
     await wait(LOOK);
@@ -735,7 +748,7 @@
     hd.__live = false;
     hd.classList.add('is-done');
     await wait(600);
-    await S.say(keyed('s3DeriveWorks'), 'happy');
+    await S.say(keyed('s2DeriveWorks'), 'happy');
     await wait(BEAT);
     await S.handOver();
   }
@@ -814,7 +827,7 @@
     await d1.ask({
       yes: [keyed('fbThatsCorrect'), keyed('s2WkThetaRight')],
       why: {
-        1: [keyed('fbNotQuite'), keyed('s3WkThetaWrongFlip')],
+        1: [keyed('fbNotQuite'), keyed('s2WkThetaWrongFlip')],
         2: [keyed('fbNotQuite'), keyed('s3FullTurn360')]
       }
     });
@@ -942,7 +955,7 @@
 
     /* 2. r into the formula. */
     await S.stepIn(s2);
-    await S.say(keyed('s3WkPutR'));
+    await S.say(keyed('s2AnPutR'));
     pulse(fig.R);
     await d2.ask({
       yes: [keyed('fbThatsCorrect'), keyed('s2AnRRight')],
@@ -1077,7 +1090,7 @@
 
     /* 3. What the formula needs, then how far the tip goes: both from the
           perch. */
-    await S.leaveHeader();
+    await S.hush();                /* the bird stays: it hops to the perch next */
     trace.classList.add('is-flash2');
     var Q1 = keyed('p32Ask');
     await anim(S.fadeIn(P.row, { y: 0 }));
@@ -1206,7 +1219,7 @@
     await wait(LOOK);
 
     /* 3. Through how many degrees? From the perch. */
-    await S.leaveHeader();
+    await S.hush();                /* the bird stays: it hops to the perch next */
     var Q1 = keyed('p34Ask');
     await anim(S.fadeIn(P.row, { y: 0 }));
     await S.perchSay(P, Q1);

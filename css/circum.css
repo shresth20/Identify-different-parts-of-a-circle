@@ -37,21 +37,22 @@
      grow to -- the row of answers' own -- named once, because the box's
      widest reach is worked out from all three (see .bubble--cf). */
   --cf-bird-left: -2cqw;
-  --cf-bird-size: 29cqh;
+  /* As big as skill 1's bird beside the circle (--bird-beside, style.css):
+     the one size the bird is wherever it stands on the right. */
+  --cf-bird-size: var(--bird-beside);
   --cf-reach: 97cqw;
 }
 .cf-pane[hidden] { display: none; }
 
 /* The bird's spot: at the pane's left, its wing in line with the first
    answer, a little above the middle -- between the question over its head
-   and the answers under its feet -- and smaller than the aside's bird: it
-   is beside the question, not the whole of it. Standing left leaves the box
-   the width of the pane to grow across. Square, as every slot is, so the
-   bubble's tail anchoring (percentages of the cell) reads straight off
-   it. */
+   and the answers under its feet -- at the size it is beside the circle in
+   skill 1. Standing left leaves the box the width of the pane to grow
+   across. Square, as every slot is, so the bubble's tail anchoring
+   (percentages of the cell) reads straight off it. */
 .slot--cf {
   left: var(--cf-bird-left);
-  bottom: 39cqh;
+  bottom: 33cqh;
   height: var(--cf-bird-size);
   aspect-ratio: 1;
 }
@@ -85,9 +86,8 @@
   /* The tail stands clear of the big corner, so the rim it opens is a
      straight stretch of foot. */
   --cf-tail-left: 1.3em;
-  /* A step smaller than bubble-01's 1.4em: on this smaller bird a card-
-     sized tail crowded the crest. */
-  --cf-tail-w: 1.1em;
+  /* bubble-01's own tail, on a bird of bubble-01's own size. */
+  --cf-tail-w: 1.4em;
   --bubble-bg: var(--cf-face);
   --note-edge: var(--cf-rim-low);
 
@@ -110,7 +110,7 @@
   max-width: calc(var(--cf-reach) - var(--cf-bird-left)
                   - var(--cf-tip-x) * var(--cf-bird-size) + var(--cf-set-back));
 
-  padding: .66em 1.2em .74em;
+  padding: .85em 1.05em .95em;
   border: var(--cf-border) solid transparent;
   border-radius: 1.45em;
   /* A rim deepening toward the foot, drawn round a white card. The fill is
@@ -131,8 +131,11 @@
   filter: drop-shadow(0 .1em .07em var(--cf-lip))
           drop-shadow(0 .25em .22em #2f2aa54d)
           drop-shadow(0 .75em .9em #231f8a52);
-  /* Sized so the question stands on one row across the pane. */
-  font-size: clamp(13px, 4.3cqw, 28px);
+  /* The card's own type size and leading (--bubble-beside-fs, style.css:
+     5.3cqw of the half-stage, as .aside--message sets it), so the question
+     reads at the size the definitions did. */
+  font-size: var(--bubble-beside-fs);
+  line-height: 1.38;
   /* The verdict is a colour that comes and goes, not a shape: the box is
      repainted in place, so the recolour is eased and nothing moves. The
      transform is GSAP's (the pop in and out) and is left alone. */
@@ -145,15 +148,15 @@
 /* The tail, drawn as bubble-01's. Its stroke starts 8 of its 44 units down
    (index.html), so it is lifted until that point sits on the rim's outer
    edge and the fill closes the rim across the opening. The stroke is as
-   thick as the rim, in the tail's own units -- .075em is 3 of 44 across
-   1.1em, so it changes with --cf-tail-w -- and scales with it. */
+   thick as the rim, in the tail's own units -- .075em is 2.36 of 44 across
+   1.4em, so it changes with --cf-tail-w -- and scales with it. */
 .bubble--cf .bubble-tail {
   left: var(--cf-tail-left);
   top: calc(100% + var(--cf-border) - var(--cf-tail-w) * 8 / 44);
   width: var(--cf-tail-w);
 }
 .bubble--cf .bubble-tail path:last-child {
-  stroke-width: 3;
+  stroke-width: 2.36;
   vector-effect: none;
 }
 /* Three classes deep, as the aside's copy of this rule is: animations.css
@@ -206,7 +209,7 @@
   position: absolute;
   left: 0;
   right: 0;
-  bottom: 21cqh;
+  bottom: 15cqh;
   display: flex;
   flex-wrap: wrap;
   justify-content: center;
@@ -222,7 +225,10 @@
      the half-stage: the type nearly fills it, so the sides are snugger
      than the footer's pills. */
   font-size: clamp(12px, 4cqw, 26px);
-  padding: .36em 1.05em .42em;
+  padding: .36em .95em .42em;
+  /* The game-wide pill height (.choice, style.css) and, on top of it, the
+     same width for every pill in the row (circum.js sets the widest and
+     the tallest on all). */
 }
 /* A spent pill -- refused, or passed over once the answer is in -- is not
    a control: restated here, because the rule above outranks style.css's. */
@@ -240,7 +246,6 @@
    style.css), so the pill is no taller for it. */
 .cf-opts .choice .frac__n,
 .cf-opts .choice .frac__d { font-size: .92em; padding: 0 .18em; }
-.cf-opts .choice .frac__n { padding-bottom: .1em; }
 .cf-opts .choice .frac__d { padding-top: .12em; border-top-width: .1em; }
 .cf-opts .choice .frac-paren { transform: scaleY(2.05); }
 

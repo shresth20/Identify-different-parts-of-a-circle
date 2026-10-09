@@ -945,7 +945,12 @@
     ]);
   }
 
-  function askPart(part, last) {
+  /* `first`: the bird comes up to ask, and the drag is shown, for the
+     first part only. After that the instruction is the voice alone -- no
+     bird, no header opening -- and so is the answer to every drop:
+     "Correct!" or "Not quite!", heard and not written, so nothing on the
+     board moves while the learner works. */
+  function askPart(part, last, first) {
     var isArc = part.kind === 'arc';
     var arcs = isArc ? onFor(part) : [];
     var on = isArc ? arcs.concat(dots()) : [];
@@ -955,11 +960,17 @@
       .filter(function (e) { return on.indexOf(e) < 0 && rim.indexOf(e) < 0; });
     var region = regionOf(part);
     var told = null;
+    var guide = null;
+    var asks = first && !last;
     var thin = arcs.map(function (a) { return parseFloat(getComputedStyle(a).strokeWidth) || 7; });
 
-    return (last ? Promise.resolve() : header(true))
+    return (asks ? header(true) : Promise.resolve())
       .then(function () {
-        told = last ? { done: Promise.resolve(), cut: function () {} } : tell(keyed('s1QzDragName'));
+        if (asks) told = tell(keyed('s1QzDragName'));
+        else {
+          told = { done: Promise.resolve(), cut: function () {} };
+          if (!last) K.quiet(K.hear('s1QzDragName'));
+        }
         return Promise.all([
           Flow.anim(Beats.quizFocus(on, off, [], PART_DIM)),
           Flow.anim(Beats.quizFocus([], rim, [], RIM_DIM)),
@@ -977,10 +988,16 @@
         return Flow.anim(Beats.boxIn(box));
       })
       .then(function () {
-        return K.armQuiz({ boxes: [box] }, chips,
-                         { group: dom.qzBoxes, auto: last ? AUTO_LAST : null });
+        if (asks) guide = K.dragGuide(box.rect);
+        return K.armQuiz({ boxes: [box] }, chips, {
+          group: dom.qzBoxes, auto: last ? AUTO_LAST : null,
+          onWrong: function () { K.quiet(K.hear('fbNotQuite')); },
+          /* the last name goes in by itself: nothing to praise */
+          onRight: last ? null : function () { K.quiet(K.hear('fbCorrect')); }
+        });
       })
       .then(function () {
+        if (guide) guide.stop();
         told.cut(false);
         /* the burst goes up as the name lands in the box, not as it leaves
            the tray */
@@ -1069,7 +1086,7 @@
       .then(function () { return Flow.wait(BEAT); })
       .then(function () {
         return order.reduce(function (chain, part, i) {
-          return chain.then(function () { return askPart(part, i === order.length - 1); });
+          return chain.then(function () { return askPart(part, i === order.length - 1, i === 0); });
         }, Promise.resolve());
       })
 

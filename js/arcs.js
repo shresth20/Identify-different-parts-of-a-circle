@@ -1354,7 +1354,7 @@
     MIN_SPAN: MIN_SPAN, MAX_SPAN: MAX_SPAN,
     norm: norm, norm180: norm180, clamp: clamp, coin: coin,
     P: P, arcD: arcD, place: place, reversed: reversed,
-    hand: hand, handAt: handAt, rippleAt: rippleAt,
+    hand: hand, handAt: handAt, rippleAt: rippleAt, HAND_D: HAND_D,
     pickPoints: pickPoints,
     cue: cue
   };

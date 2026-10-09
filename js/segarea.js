@@ -468,7 +468,13 @@
         K.clearBubble();
         return Flow.anim(Beats.boardIn(dom.board));
       })
-      .then(function () { return Flow.wait(SHORT); });
+      /* The board has closed over the bird: it is away now, so the next
+         page's wipe has nothing to spring off the field, and its next
+         jump in comes up from behind the board as ever. */
+      .then(function () {
+        mascot.el.classList.add('is-away');
+        return Flow.wait(SHORT);
+      });
   }
 
   function sceneIntro() { return fieldTalk(['s4IntroHey', 's4IntroWarmup']); }
@@ -1960,7 +1966,9 @@
       await spec.tell[i].draw(fig);
       await Flow.wait(LOOK);
     }
-    await SA.leaveHeader();
+    /* the story's last line goes, the bird stays: it hops straight from
+       the header down onto its perch to ask (perchSay) */
+    await SA.hush();
     var panel = await askInPanel(sc, fig, spec);
     await SA.writeSteps(panel, spec.steps(fig));
     await Flow.wait(600);

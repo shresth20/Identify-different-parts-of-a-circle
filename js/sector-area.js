@@ -572,11 +572,18 @@
      bubble opens out of its beak. */
   function perchSay(P, text, mood) {
     var line = lineOf(text);
+    /* A bird standing on the header hops straight across to the perch --
+       one arc over the board, the header kept open (user, 2026-10-09: no
+       leaving behind the board and coming up again); a bird that is away
+       comes up from behind the board as ever. */
+    var el = mascot.el;
+    var onHeader = el.parentNode === dom.slotHeader && !el.hidden && !el.classList.contains('is-away');
     perch = P;
     var mine = ++speaking;
     told++;
     var reveal = P.typer.reserve(line.text);
-    return mascotJumpIn(P.slot).then(function () {
+    var come = onHeader ? K.mascotHopTo(P.slot, true) : mascotJumpIn(P.slot);
+    return come.then(function () {
       mascot.state(mood || 'talking');
       voiceOf(line);
       P.open = true;
@@ -1418,27 +1425,39 @@
   var carry = null;            /* the figure the cards scene hands on */
   var maskN = 0;
 
-  /* A dotted curve from a box to the region it is about, drawn like a pen
-     line: a dotted stroke seen through a mask whose solid line is grown
-     along it, then a small head. In the scene's own pixels. */
-  function dottedArrow(ink, from, to, bend) {
-    var P = pointer(ink, from, to, bend);
-    P.line.classList.add('s-callout--dots');
-    P.head.classList.add('s-callout--dothead');
+  /* The line that ties a box to the region it names: the first lesson's
+     own leader (buildBox in pages.js, .q-leader in style.css) -- a dashed
+     line that runs level out of the box's side for a short stub, turns
+     once, and runs straight to its spot on the region, with no head. It
+     is drawn as boxIn draws it there: a solid copy in a mask is grown
+     along it and the dashes show through behind it. In the scene's own
+     pixels, at the first lesson's weight and dash scaled by `unit` (what
+     one of its picture units measures on this board, see nameBox). */
+  function boxLeader(ink, box, to) {
+    var R = ink.getBoundingClientRect();
+    var b = box.rect.getBoundingClientRect();
+    var u = box.unit;
+    var left = (b.left + b.width / 2) < (R.left + R.width / 2);
+    var edge = { x: (left ? b.right : b.left) - R.left, y: b.top + b.height / 2 - R.top };
+    var turn = { x: edge.x + (left ? 1 : -1) * K.LEAD_STUB * u, y: edge.y };
+    var d = 'M' + r2(edge.x) + ' ' + r2(edge.y) + ' L' + r2(turn.x) + ' ' + r2(turn.y) +
+            ' L' + r2(to.x) + ' ' + r2(to.y);
     var defs = ink.querySelector('defs') || svgEl('defs', {}, ink);
-    var id = 'saDots' + (++maskN);
-    var box = ink.getBoundingClientRect();
+    var id = 'saLead' + (++maskN);
     var mask = svgEl('mask', { id: id, maskUnits: 'userSpaceOnUse', x: 0, y: 0,
-                                width: r2(box.width), height: r2(box.height) }, defs);
-    var pen = svgEl('path', { d: P.line.getAttribute('d'), fill: 'none', stroke: '#fff',
-                              'stroke-width': 12, 'stroke-linecap': 'round' }, mask);
-    P.line.setAttribute('mask', 'url(#' + id + ')');
-    M.set([P.line, P.head], { opacity: 0 });
+                               width: r2(R.width), height: r2(R.height) }, defs);
+    var pen = svgEl('path', { 'class': 'q-leader-mask', d: d }, mask);
+    pen.style.strokeWidth = r2(8 * u) + 'px';
+    var line = svgEl('path', { 'class': 'q-leader is-shown', d: d, mask: 'url(#' + id + ')' }, ink);
+    line.style.strokeWidth = r2(2 * u) + 'px';
+    line.style.strokeDasharray = r2(4 * u) + ' ' + r2(7 * u);
+    /* armQuiz lifts a box's leader with it (is-over); this is that line */
+    box.leader = line;
+    M.set(pen, { opacity: 0 });
     return {
       draw: function () {
-        M.set(P.line, { opacity: 1 });
-        return anim(Beats.growLine(pen, 0.8, 'power2.inOut'))
-          .then(function () { return anim(fadeIn(P.head, { y: 0, d: 0.2 })); });
+        M.set(pen, { opacity: 1 });
+        return anim(Beats.growLine(pen, 0.52, 'power1.inOut'));
       }
     };
   }
@@ -1480,7 +1499,7 @@
     var txt = svgEl('text', { 'class': 'figure-label q-box__text', x: W / 2 + 9, y: cy + 7.5,
       'text-anchor': 'middle' }, g);
     var box = { name: name, g: g, rect: rect, badge: badge, text: txt, leader: leader,
-                mask: null, filled: false, el: svg };
+                mask: null, filled: false, el: svg, unit: unit };
     K.emptyBox(box);
     g.classList.add('is-shown');
     return box;
@@ -1541,18 +1560,18 @@
     carry = null;
     await wait(SHORT);
 
-    /* The arrows, in the scene's own pixels, from each box to its region. */
+    /* The leaders, in the scene's own pixels, from each box to its region;
+       each box lands at the end of its line as it is drawn, as the first
+       lesson's boxIn has it. */
     var R = sc.getBoundingClientRect();
     ink.setAttribute('viewBox', '0 0 ' + r2(R.width) + ' ' + r2(R.height));
-    function edge(box, side) {
-      var b = box.rect.getBoundingClientRect();
-      return { x: (side === 'r' ? b.right + 10 : b.left - 10) - R.left, y: b.top + b.height / 2 - R.top };
-    }
-    var aL = dottedArrow(ink, edge(boxL, 'r'), figToScene(fig, sc, pt(C, 92, 118)), -42);
-    var aR = dottedArrow(ink, edge(boxR, 'l'), figToScene(fig, sc, pt(C, 92, 300)), -42);
+    var aL = boxLeader(ink, boxL, figToScene(fig, sc, pt(C, 92, 118)));
+    var aR = boxLeader(ink, boxR, figToScene(fig, sc, pt(C, 92, 300)));
     await aL.draw();
+    await anim(popIn(boxL.el, { from: 0.72 }));
+    await wait(320);
     await aR.draw();
-    await anim(popIn([boxL.el, boxR.el], { from: 0.8, stagger: 0.15 }));
+    await anim(popIn(boxR.el, { from: 0.72 }));
     await wait(SHORT);
 
     /* The two names, in the band under the board, as the first lesson's
@@ -1725,6 +1744,12 @@
     await anim(Beats.bubbleOut(dom.bubble));
     sayBubble.clear();
     await anim(Beats.boardIn(dom.board));
+    /* The board has closed over the bird: it is away now, so the next
+       page's leave-taking has nothing to spring off the field -- a bird
+       springing up from under the board was seen behind it (user,
+       2026-10-09) -- and its next jump in comes up from behind the board
+       as ever. */
+    mascot.el.classList.add('is-away');
     await wait(SHORT);
   }
 
@@ -1898,7 +1923,8 @@
       M.set(wrap, { x: (r0.left + r0.width / 2) - (r1.left + r1.width / 2),
                     y: (r0.top + r0.height / 2) - (r1.top + r1.height / 2),
                     scale: k, transformOrigin: '50% 50%' });
-      await Promise.all([leaveHeader(),
+      /* the line goes; the bird stays on the header until its perch is up */
+      await Promise.all([hush(),
         anim(M.to(wrap, { x: 0, y: 0, scale: 1, duration: M.dur(0.9), ease: 'power3.inOut' }))]);
     } else {
       /* Reached straight from the level bar: the full-turn circle, drawn whole. */
@@ -2923,21 +2949,25 @@
     var sc = await stage('split');
     var fig = majorFigure(sc, 100, { majorLabel: '260°' });
     /* The question asked from a perch: the bird and its bubble above, the
-       three angles as plain tiles, and the formula card under them. */
+       three angles as plain tiles, and the formula card under the FIGURE,
+       where the practice pages carry theirs (.sa-scene--practice): in the
+       panel it took the room the bird needs to stand at its full size
+       (user, 2026-10-09: one size for the bird wherever it is on the right). */
     var panel = h('div', 'sa-panel sa-panel--practice', null, sc);
     var P = perchIn(panel);
     P.row.classList.add('sa-speak--above');
     P.bubble.classList.add('sa-bubble--sun');
     var slot = h('div', 'sa-qslot', null, panel);
+    sc.classList.add('sa-scene--practice');
     /* the rule of the screen before: the major sector's own angle, 360° − θ */
-    var rule = ruleCard(panel, tr('s3RuleAreaMajor'),
+    var rule = ruleCard(sc, tr('s3RuleAreaMajor'),
       c('a', 'A') + EQ + '<span class="frac c-ang"><span class="frac__n" data-k="num">360° − θ</span>' +
       '<span class="frac__d">360</span></span>' + X + PIR2, 'sa-rule--small');
     var num = rule.el.querySelector('[data-k="num"]');
     M.set(rule.el, { opacity: 0 });
     var Q = keyed('s3MaAsk');
 
-    await leaveHeader();
+    await hush();                /* the bird stays: it hops to the perch next */
     await fig.draw();
     await angleIn(fig.B);
     await anim(fadeIn(P.row, { y: 0 }));
@@ -3339,7 +3369,7 @@
 
     /* 3. The paper itself: the fan folds shut and opens again, so the
           paper it spreads is seen -- the area being asked about. */
-    await leaveHeader();
+    await hush();                /* the bird stays: it hops to the perch next */
     M.set([ang, aLbl, mRib, ribLbl], { opacity: 0 });
     await anim(M.to(open, { s: 12, duration: M.dur(0.8), ease: 'power2.in', onUpdate: drawFan }));
     Beats.pop();
@@ -3475,7 +3505,7 @@
 
     /* 3. The scan itself: the beam goes once round the screen, trailing
           light, and comes to rest on its wedge -- the area it covers. */
-    await leaveHeader();
+    await hush();                /* the bird stays: it hops to the perch next */
     var spin = { a: a1 };
     function drawBeam() {
       beam.setAttribute('d', wedgeD(C, C.r, spin.a - 45, spin.a));
@@ -3818,6 +3848,6 @@
     noteCard: noteCard, ruleCard: ruleCard, lineIn: lineIn, clearStage: clearStage, stage: stage,
     bubbleVoice: bubbleVoice, writeSteps: writeSteps, fieldTalk: fieldTalk, keyWord: keyWord,
     flyNumber: flyNumber, dissolveTo: dissolveTo, magnifier: magnifier,
-    dottedArrow: dottedArrow, figToScene: figToScene
+    boxLeader: boxLeader, figToScene: figToScene
   };
 })(window);

@@ -40,9 +40,10 @@
  *
  * Page 2 -- measuring it. The same figure, read off a protractor:
  *
- *   The protractor is laid on the circle -- its centre hole on the dot --
- *   and swung round until its 0° line lies along the first radius, so the
- *   second radius crosses its inner scale at the angle. The piece of the
+ *   The figure is turned until its first radius lies level, and the
+ *   protractor is laid on it -- its centre hole on the dot, its 0° line
+ *   along that radius -- so the second radius crosses its inner scale at
+ *   the angle. The piece of the
  *   rim between the two points is picked out, "r" is set beside a radius
  *   (both are radii; one label says so). The figure slides to the left
  *   half and the bird comes up in the right pane to ask, from bubble-02,
@@ -203,7 +204,7 @@
      closed. */
   var PROT = { w: 2000, h: 1104, cx: 999, cy: 999, r: 998 };
   var PROT_R = 235;
-  var PROT_TIME = 1.1;     /* s: the protractor laid on and swung into line */
+  var PROT_TIME = 0.7;     /* s: the protractor laid on                   */
   var PROT_OUT = 0.4;      /* s: and lifted off again                     */
   var PROT_ALPHA = 0.9;    /* how solid it is: the marks under it still show */
   var R_AT = 118;          /* how far out along the second radius "r" is set */
@@ -323,6 +324,13 @@
     dom.caS.setAttribute('y', round2(sp.y + LABEL_DY));
   }
 
+  /* Both points and every mark, written from the cut. */
+  function placeAll() {
+    A.place(cut.origin === 'b' ? dom.caPointA : dom.caPointB, cut.a);
+    A.place(farDot(), cut.a + cut.span);
+    redraw();
+  }
+
   /* The learner's cut, caught to the protractor's marks: the span is
      rounded to SNAP degrees and the far point is moved to match, so the
      dot, the radius and the reading agree. */
@@ -330,9 +338,24 @@
     cut.a = A.norm(c.a);
     cut.span = Math.max(MIN_SPAN, Math.min(MAX_SPAN, Math.round(c.span / SNAP) * SNAP));
     cut.origin = c.origin;
-    A.place(farDot(), cut.a + cut.span);
-    A.place(cut.origin === 'b' ? dom.caPointA : dom.caPointB, cut.a);
-    redraw();
+    placeAll();
+  }
+
+  /* The figure turned until its first radius lies level, the short way
+     round: the points, the radii, the angle and its θ are rewritten from
+     the cut every frame, so the whole angle turns as one and the
+     protractor can then be laid on LEVEL, its 0° line along that radius
+     (user, 2026-10-09: a tilted protractor looks wrong). */
+  var LEVEL_TIME = 1.0;
+  function levelFigure() {
+    var from = A.norm(cut.a);
+    if (from < 0.01) return Promise.resolve();
+    var turn = { a: from };
+    var to = from > 180 ? 360 : 0;
+    var tl = M.timeline({ revert: function () { cut.a = 0; placeAll(); } });
+    tl.to(turn, { a: to, duration: M.dur(LEVEL_TIME), ease: 'power2.inOut',
+                  onUpdate: function () { cut.a = A.norm(turn.a); placeAll(); } });
+    return Flow.anim(tl);
   }
 
   /* What arcs.js's two-point interaction works on here: this section's
@@ -368,18 +391,15 @@
    * This section's own beats
    * ====================================================================== */
 
-  /* The protractor laid on the circle and swung into line: it comes up
-     from a little under its size about the circle's centre, level, and
-     turns as it settles until its 0° line lies along the first radius --
-     one movement, as a hand sets a protractor down and squares it up. Its
-     turn is the SVG's, clockwise on screen, so a radius `a` degrees
-     anticlockwise from three o'clock is reached by turning -a. */
+  /* The protractor laid on the circle, level: it comes up from a little
+     under its size about the circle's centre, its centre hole on the dot
+     and its 0° line along the first radius -- which levelFigure has just
+     turned to lie level -- as a hand sets a protractor down. */
   function protractorIn(img) {
-    M.set(img, { opacity: 0, scale: 0.92, rotation: 0, svgOrigin: CX + ' ' + CY });
+    M.set(img, { opacity: 0, scale: 0.92, svgOrigin: CX + ' ' + CY });
     dom.ca.classList.add('is-prot');
     var tl = M.timeline({ willChange: img, willChangeValue: 'transform, opacity' });
-    tl.to(img, { opacity: PROT_ALPHA, scale: 1, duration: M.dur(0.5), ease: M.OUT }, 0)
-      .to(img, { rotation: -cut.a, duration: M.dur(PROT_TIME), ease: 'power2.inOut' }, M.gap(0.25));
+    tl.to(img, { opacity: PROT_ALPHA, scale: 1, duration: M.dur(PROT_TIME), ease: M.OUT });
     return tl;
   }
 
@@ -566,7 +586,10 @@
     var lines = measureLines();
     return Flow.wait(BEAT)
 
-      /* ---- the protractor laid on, and turned to the first radius -------- */
+      /* ---- the figure turned until its first radius is level, then the
+         protractor laid on, level, with its 0° line along it ------------- */
+      .then(function () { return levelFigure(); })
+      .then(function () { return Flow.wait(SHORT); })
       .then(function () { return Flow.anim(protractorIn(dom.caProt)); })
       .then(function () { return Flow.wait(BEAT); })
 
@@ -767,9 +790,7 @@
     dom.caTheta.classList.remove('is-hot');
     dom.caNudges.setAttribute('hidden', '');
     cut.a = DEFAULT.a; cut.span = DEFAULT.span; cut.origin = DEFAULT.origin;
-    A.place(dom.caPointA, cut.a);
-    A.place(dom.caPointB, cut.a + cut.span);
-    redraw();
+    placeAll();
     dom.caMeasure.textContent = '';
     restoreLegend();
     if (global.I18n) global.I18n.stop();
@@ -789,6 +810,9 @@
     dom.ca.removeAttribute('hidden');
     showMade([dom.caRim, dom.caCentre, dom.caRadA, dom.caRadB, dom.caAngle, dom.caTheta].concat(dots()));
     if (i === 2) return;
+    /* ...and, past the protractor page, turned level as that page left it */
+    cut.a = 0;
+    placeAll();
     showMade([dom.caArc, dom.caR, dom.caMeasure]);
     M.set(dom.caTheta, { opacity: 0 });
     dom.caMeasure.textContent = T('lblThetaIs', { deg: cut.span });

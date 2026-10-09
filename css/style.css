@@ -211,6 +211,23 @@
      where it is empty, or the figure below it would shift when text arrives. */
   --row-top: 16%;
   --row-bottom: 11%;
+
+  /* The board's own padding, named so a section can work out the stage's
+     full size -- the box skill 1's aside measures its bird and card
+     against (cqh / cqw of the right half, both bands closed). */
+  --board-pad-y: clamp(10px, 2.2vh, 22px);
+  --board-pad-x: clamp(18px, calc(var(--board-w) * .032), 44px);
+  --stage-full-h: calc(var(--board-w) * 9 / 16 - 2 * var(--board-pad-y) - 6px);
+  --stage-full-w: calc(var(--board-w) - 2 * var(--board-pad-x) - 6px);
+
+  /* The bird beside the circle, and the type of the card it speaks from,
+     as skill 1 sets them (.aside--message in arcs.css: the bird 36cqh of
+     the half-stage, the card's type 5.3cqw of it). Stated once here so
+     every section that stands the bird on the right -- skill 2's pane,
+     skill 3's and 4's perches -- sets it at the one size, whatever its
+     own layout is measured in. */
+  --bird-beside: calc(var(--stage-full-h) * .36);
+  --bubble-beside-fs: calc(var(--stage-full-w) * .5 * .053);
 }
 
 /* ---- Reset -------------------------------------------------------------- */
@@ -266,7 +283,7 @@ body {
 
   display: grid;
   grid-template-rows: var(--row-top) minmax(0, 1fr) var(--row-bottom);
-  padding: clamp(10px, 2.2vh, 22px) clamp(18px, 3.2%, 44px);
+  padding: var(--board-pad-y) var(--board-pad-x);
   border-radius: clamp(18px, 3.4vh, 34px);
   border: 3px solid var(--board-border);
   /* same pairing as the body: artwork over a token gradient that carries the
@@ -951,6 +968,15 @@ body {
   box-shadow:
     0 var(--edge) 0 var(--pill-wall),
     0 calc(var(--edge) + 3px) 10px var(--shadow-soft);
+  /* One height for every answer pill in the game, wherever it stands: tall
+     enough for a fraction stood up in it, so a pill with one is never the
+     odd one out beside a pill of plain words, and the words sit centred in
+     whatever room that gives (user, 2026-10-09). */
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  box-sizing: border-box;
+  min-height: 2.6em;
 
   font-family: var(--font-display);
   font-weight: 700;
@@ -1028,7 +1054,7 @@ body {
 .frac__n { padding-bottom: .06em; }
 .frac__d {
   padding-top: .08em;
-  border-top: .14em solid currentColor;
+  border-top: .1em solid currentColor;
 }
 .frac__n { padding-bottom: .08em; }
 .frac__d {

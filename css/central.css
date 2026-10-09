@@ -97,17 +97,12 @@
   pointer-events: none;
 }
 
-/* The words on this circle -- "θ", "r", "s", "θ = 80°" -- are set over the
-   protractor's fan of thin lines while it is on, so each is given a thin
-   white edge under its ink (the stroke painted first) that lifts it clear
-   of them. The figure's own lettering otherwise (.figure-label). */
+/* The words on this circle -- "θ", "r", "s", "θ = 80°": the figure's own
+   lettering (.figure-label), plain ink with no edge round it, as every
+   label in skill 1 is set (user, 2026-10-09: no white outline on text). */
 .cm-label {
   fill: var(--ca-ink);
   opacity: 0;
-  paint-order: stroke;
-  stroke: var(--board-highlight);
-  stroke-width: 5;
-  stroke-linejoin: round;
   pointer-events: none;
 }
 

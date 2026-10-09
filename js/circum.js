@@ -116,7 +116,9 @@
 
   /* page 2 -- the semicircle's arc length */
   function semiLines() {
-    var right = T('s2OptHalf2PiRadius'), full = T('s2Opt2PiRadius'), quarter = T('s2OptHalfPiRadius');
+    /* The right one is written simplified -- π × radius, the ½ and the 2
+       cancelled -- as the learner would write it (user, 2026-10-09). */
+    var right = T('s2OptPiRadius'), full = T('s2Opt2PiRadius'), quarter = T('s2OptHalfPiRadius');
     var wrong = {};
     wrong[full] = nope('s2CsWrongWhole', full);
     wrong[quarter] = nope('s2CsWrongQuarter', quarter);
@@ -354,6 +356,26 @@
      hand first, or the row flashes complete for the frame before the
      tween's first. */
   function optsIn(list) {
+    /* One size for the row: every pill as wide as the widest and as tall
+       as the tallest, so a formula with a fraction stood up in it does
+       not make its pill the odd one out (user, 2026-10-09). */
+    var w = 0, h = 0, sum = 0;
+    list.forEach(function (b) {
+      var r = b.getBoundingClientRect();
+      w = Math.max(w, r.width); h = Math.max(h, r.height); sum += r.width;
+    });
+    /* ...the width only while the row has the room: three pills as wide
+       as the widest that would no longer stand in one row keep their own
+       widths instead, which is better than a pill alone on a second row. */
+    var row = dom.cfOpts.getBoundingClientRect();
+    var cs = getComputedStyle(dom.cfOpts);
+    var room = row.width - parseFloat(cs.paddingLeft) - parseFloat(cs.paddingRight)
+             - parseFloat(cs.columnGap || cs.gap || 0) * (list.length - 1);
+    var same = w * list.length <= room;
+    list.forEach(function (b) {
+      if (same) b.style.minWidth = Math.ceil(w) + 'px';
+      b.style.minHeight = Math.ceil(h) + 'px';
+    });
     M.set(list, { opacity: 0 });
     var tl = M.timeline({ willChange: list, willChangeValue: 'transform, opacity' });
     tl.fromTo(list,
@@ -532,7 +554,11 @@
        bird already standing in the pane -- a second question on the same
        board -- simply asks from where it is. */
     dom.cfPane.removeAttribute('hidden');
-    var up = birdInPane() ? Promise.resolve() : K.mascotJumpIn(dom.slotCf);
+    /* A bird that has just finished a line on the header hops straight
+       across to the pane -- one arc over the board (user, 2026-10-09). */
+    var up = birdInPane() ? Promise.resolve()
+           : K.birdOnHeader() ? K.mascotHopTo(dom.slotCf)
+           : K.mascotJumpIn(dom.slotCf);
     return up
       .then(function () {
         mascot.state('talking');
@@ -674,12 +700,12 @@
       })
 
       /* ---- the circle stands aside, and the bird crosses -------------------
-         The bird springs off the header with its line -- the header closes
-         behind it -- while the circle slides smoothly to the left half; it
-         then comes up in the right pane to ask. */
+         The line goes and the circle slides smoothly to the left half
+         while the bird stays where it is; it then hops straight across
+         from the header to the right pane to ask (askFormula), the header
+         closing behind it. */
       .then(function () {
         return Promise.all([
-          K.mascotJumpOut(),
           Flow.anim(Beats.lineOut(dom.promptLine)),
           Flow.anim(Beats.slideArcs(dom.cs, SHIFT))
         ]);
