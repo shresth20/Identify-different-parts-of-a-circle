@@ -2,7 +2,7 @@
  * sectors.js -- section 4: sectors, minor and major
  * --------------------------------------------------------------------------
  * The fourth section of the lesson, registered with pages.js as a section
- * (see addSection there): three scenes on the same board, with the same
+ * (see addSection there): two scenes on the same board, with the same
  * bird and the same clock, built from the kit pages.js hands over, the
  * beats in animations.js, and the two-point interaction arcs.js hands over
  * on window.Arcs. Nothing here waits on anything except through Flow, so
@@ -18,7 +18,6 @@
  *   Name the         a clean board; the circle made again, cut at the same
  *   sectors          two points and coloured in two NEW colours; the two
  *                    names dragged into their boxes, then explained
- *   Sector summary   the whole idea drawn once more, with no bird
  *
  * Where section 3 cut the area with a chord, this one cuts it with two
  * radii, so the two regions are wedges that meet at the centre -- but they
@@ -43,17 +42,10 @@
   }
   var K = Pages.kit;
 
-  /* ---- the script ------------------------------------------------------- */
-  var LINES = {
-    pick:   'Draw two radii on the circle.',
-    divide: 'Radii divide the area of the circle into two regions.',
-    each:   'Each region is called a sector.'
-  };
-
   var BEAT = K.BEAT, SHORT = K.SHORT;
   var CX = K.CX, CY = K.CY, RR = K.RR;
   var round2 = K.round2, el = K.el;
-  var norm = A.norm, clamp = A.clamp, coin = A.coin, cue = A.cue;
+  var norm = A.norm, clamp = A.clamp, coin = A.coin;
   function T(key) { return global.T ? global.T(key) : key; }
   var P = A.P, arcD = A.arcD, place = A.place;
 
@@ -64,7 +56,6 @@
      placed LAST, which is the end both wedges are swept from. */
   var sec = { a: 35, span: 110, origin: 'a' };
   var DEFAULT = { a: 35, span: 110 };
-  var SUMMARY = { a: 35, span: 110 };
 
   var TILT = 40;          /* the activity: where the minor sector's middle is put */
   var APART = 18;         /* how far each wedge slides out when the two are
@@ -167,7 +158,6 @@
     }
     return which === 'minor' ? wedgeD(sec.a, minor, false) : wedgeD(sec.a, major, true);
   }
-  function wedgeFn(which) { return function (t) { return wedge(which, t); }; }
 
   /* Every mark that depends on the two points, rewritten from them: each
      wedge whole, a radius from the centre to each point, and the points. */
@@ -255,8 +245,8 @@
   var BOX_IN = 30, BOX_OFF = 44;
   function buildBoxes() {
     clearBoxes();
-    boxes = [{ name: 'Major sector', s: spot('major') },
-             { name: 'Minor sector', s: spot('minor') }].map(function (b, i) {
+    boxes = [{ name: 's4p12MajorSector', s: spot('major') },
+             { name: 's4p1Sector',       s: spot('minor') }].map(function (b, i) {
       var t = b.s.deg * Math.PI / 180;
       var right = Math.cos(t) >= 0;
       var anchor = P(b.s.deg, b.s.r);
@@ -333,8 +323,6 @@
     };
   }
 
-  function at(ms, fn) { return Flow.wait(ms).then(fn); }
-
   /* One wedge named for its size, as the arcs' minor and major are (see
      arcs.js): nothing to tap. The line is said, the wedge it is about
      comes up lit on the word "smaller" or "larger" while the other stands
@@ -343,17 +331,17 @@
      larger and its name are the only thing at full. */
   function nameRegion(which) {
     var minor = which === 'minor';
-    var key = minor ? 'secMinorIs' : 'secMajorIs';
+    var key = minor ? 's1SecMinorIs' : 's1SecMajorIs';
     var text = T(key);
     var want = minor ? dom.secMinor : dom.secMajor;
     var off = minor ? [dom.secMajor] : [dom.secMinor, callouts.minor.g];
     return Promise.all([
       K.speak(K.keyed(key)),
-      at(cue(text, minor ? 'smaller' : 'larger'), function () {
+      K.onWord(text, minor ? 'smaller' : 'larger', function () {
         return Flow.anim(Beats.segFocus([want], off));
       }),
-      at(cue(text, minor ? 'minor sector' : 'major sector'), function () {
-        aimCallout(callouts[which], spot(which), minor ? 'Minor sector' : 'Major sector');
+      K.onWord(text, minor ? 'minor sector' : 'major sector', function () {
+        aimCallout(callouts[which], spot(which), T(minor ? 's4p1Sector' : 's4p12MajorSector'));
         return showCallout(callouts[which]);
       })
     ]);
@@ -388,7 +376,7 @@
          told is not made to. */
       .then(function () {
         picked = K.quiet(A.pickPoints(pickCtx()));
-        return K.arriveSaying(LINES.pick);
+        return K.arriveSaying(K.keyed('s1SecPick'));
       })
       .then(function () {
         mascot.settle();
@@ -414,19 +402,19 @@
          with them. */
       .then(function () {
         dom.secMarks.removeAttribute('hidden');
-        var text = LINES.divide;
+        var text = T('s1SecDivide');
         var behind = radii().concat([dom.secRim, dom.secDisc, dom.secCentre], dots());
         var was = null;
         return Promise.all([
-          K.speak(text),
-          at(cue(text, 'Radii'), function () {
+          K.speak(K.keyed('s1SecDivide')),
+          K.onWord(text, 'radii', function () {
             return Flow.anim(Beats.linePulse(radii()));
           }),
-          at(cue(text, 'divide'), function () {
+          K.onWord(text, 'divide', function () {
             was = behind.map(function (e) { return parseFloat(getComputedStyle(e).opacity); });
             return Flow.anim(Beats.arcSplit(regions(), apart(APART), behind));
           }),
-          at(cue(text, 'two regions'), function () {
+          K.onWord(text, 'two regions', function () {
             return Flow.anim(Beats.arcJoin(regions())).then(function () {
               return Flow.anim(M.to(behind, {
                 opacity: function (i) { return was ? was[i] : 1; },
@@ -437,17 +425,17 @@
         ]);
       })
       .then(function () { return Flow.wait(BEAT); })
-      /* "Each region": the word on the smaller; "sector": on the larger. */
+      /* "region": the word on the smaller; "sector": on the larger. */
       .then(function () {
-        var text = LINES.each;
+        var text = T('s1SecEach');
         return Promise.all([
-          K.speak(text),
-          at(cue(text, 'Each'), function () {
-            aimLabel(labels.minor, spot('minor'), 'Sector');
+          K.speak(K.keyed('s1SecEach')),
+          K.onWord(text, 'region', function () {
+            aimLabel(labels.minor, spot('minor'), T('s4p6Sector'));
             return Flow.anim(Beats.labelIn(labels.minor));
           }),
-          at(cue(text, 'sector'), function () {
-            aimLabel(labels.major, spot('major'), 'Sector');
+          K.onWord(text, 'sector', function () {
+            aimLabel(labels.major, spot('major'), T('s4p6Sector'));
             return Flow.anim(Beats.labelIn(labels.major));
           })
         ]);
@@ -504,10 +492,10 @@
       .then(function () {
         buildBoxes();
         dom.secBoxes.removeAttribute('hidden');
-        return Flow.anim(Beats.boxIn(boxFor('Major sector')));
+        return Flow.anim(Beats.boxIn(boxFor('s4p12MajorSector')));
       })
       .then(function () { return Flow.wait(320); })
-      .then(function () { return Flow.anim(Beats.boxIn(boxFor('Minor sector'))); })
+      .then(function () { return Flow.anim(Beats.boxIn(boxFor('s4p1Sector'))); })
       .then(function () { return Flow.wait(SHORT); })
 
       /* ---- the names, placed with the bird watching -------------------------
@@ -515,74 +503,13 @@
          drop is answered in one line, and the page turns itself. */
       .then(function () {
         var done = K.namePair({
-          boxes: boxes, group: dom.secBoxes, names: coin('Minor sector', 'Major sector'),
+          boxes: boxes, group: dom.secBoxes, names: coin('s4p1Sector', 's4p12MajorSector'),
           ask: 'dragNames',
-          wrong: { 'Minor sector': 'secWrongMinor', 'Major sector': 'secWrongMajor' }
+          wrong: { s4p1Sector: 'secWrongMinor', s4p12MajorSector: 'secWrongMajor' }
         });
         chips = K.chips();
         return done;
       });
-  }
-
-  /* ======================================================================
-   * Scene 3 -- the summary. No bird: a clean board with both bands closed,
-   * so the circle sits at its very centre, and the idea drawn once more
-   * from the start -- circle, centre, two points, a radius to each, the
-   * two wedges in their two colours, and their names.
-   * ====================================================================== */
-  function sceneSummary() {
-    return K.wipeBoard()
-      .then(function () { return Flow.anim(K.collapseHeader(true, 'is-bare')); })
-      .then(function () { return Flow.wait(BEAT); })
-      .then(function () {
-        sec.a = SUMMARY.a; sec.span = SUMMARY.span; sec.origin = 'a';
-        redraw();
-        dom.secs.removeAttribute('hidden');
-        dom.secMarks.removeAttribute('hidden');
-        return drawCircle();
-      })
-      .then(function () { return Flow.wait(BEAT); })
-      .then(plantCentre)
-      .then(function () { return Flow.wait(BEAT); })
-      .then(function () { return Flow.anim(Beats.plotDot(dom.pointA.dot)); })
-      .then(function () { return Flow.wait(200); })
-      .then(function () { return Flow.anim(Beats.plotDot(dom.pointB.dot)); })
-      .then(function () { return Flow.wait(SHORT); })
-      .then(drawRadii)
-      .then(function () { return Flow.wait(BEAT); })
-
-      /* ---- the two regions, each coloured and called what it is ----------- */
-      .then(function () { return Flow.anim(Beats.secFill(dom.secMinor, wedgeFn('minor'), 0.7)); })
-      .then(function () {
-        aimLabel(labels.minor, spot('minor'), 'Sector');
-        return Flow.anim(Beats.labelIn(labels.minor));
-      })
-      .then(function () { return Flow.wait(BEAT); })
-      .then(function () { return Flow.anim(Beats.secFill(dom.secMajor, wedgeFn('major'), 1.0)); })
-      .then(function () {
-        aimLabel(labels.major, spot('major'), 'Sector');
-        return Flow.anim(Beats.labelIn(labels.major));
-      })
-      .then(function () { return Flow.wait(BEAT + SHORT); })
-
-      /* ---- and named ------------------------------------------------------- */
-      .then(function () { return Flow.anim(Beats.labelsOut([labels.minor, labels.major])); })
-      .then(function () { return Flow.wait(SHORT); })
-      .then(function () {
-        aimCallout(callouts.minor, spot('minor'), 'Minor sector');
-        return showCallout(callouts.minor);
-      })
-      .then(function () { return Flow.wait(BEAT); })
-      .then(function () {
-        aimCallout(callouts.major, spot('major'), 'Major sector');
-        return showCallout(callouts.major);
-      })
-      .then(function () { return Flow.wait(BEAT); })
-      .then(function () { return K.handOver(dom.nextBtn); })
-
-      /* ---- and the section closes ------------------------------------------ */
-      .then(function () { return K.wipeBoard(); })
-      .then(function () { return Flow.anim(K.collapseHeader(false, 'is-bare')); });
   }
 
   /* ======================================================================
@@ -634,30 +561,13 @@
     mascot.placeIn(dom.slotHeader);
     mascot.el.classList.remove('is-away');
     mascot.idle();
-    if (local === 1) return;
-
-    /* turned and coloured for the activity, its two boxes filled: the
-       summary opens by wiping this */
-    sec.a = norm(TILT - sec.span / 2); sec.origin = 'a';
-    redraw();
-    dom.secs.classList.add('is-quiz');
-    buildBoxes();
-    dom.secBoxes.removeAttribute('hidden');
-    boxes.forEach(function (b) {
-      b.filled = true;
-      b.text.textContent = b.name;
-      b.g.classList.add('is-shown', 'is-right');
-      b.leader.classList.add('is-shown');
-      M.set([b.text, b.badge], { opacity: 1 });
-    });
   }
 
   Pages.addSection({
     name: 'Sectors',
     scenes: [
       { name: 'Sectors',          play: sceneSectors     },
-      { name: 'Name the sectors', play: sceneNameSectors },
-      { name: 'Sector summary',   play: sceneSummary     }
+      { name: 'Name the sectors', play: sceneNameSectors }
     ],
     build: build,
     parts: parts,
@@ -665,5 +575,5 @@
     stage: stage
   });
 
-  global.Sectors = { LINES: LINES, state: function () { return sec; } };
+  global.Sectors = { state: function () { return sec; } };
 })(window);

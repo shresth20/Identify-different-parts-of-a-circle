@@ -26,17 +26,19 @@
 }
 
 /* ---- The regions --------------------------------------------------------
-   Filled shapes with no edge of their own: the pieces of the rim, the
-   chord and the radii are their edges. All rest invisible; segFill and
-   secFill (animations.js) colour one in for the beat it is asked about,
-   and fillOut takes it away again. */
+   Filled shapes, each outlined in the deeper edge of its own colour so
+   the part's boundary reads while the circle's lines stand back. All rest
+   invisible; segFill and secFill (animations.js) colour one in for the
+   beat it is asked about, and fillOut takes it away again. */
 .qz-region {
   opacity: 0;
   pointer-events: none;
+  stroke-width: var(--qz-line);
+  stroke-linejoin: round;
   transition: fill .45s ease;
 }
-.qz-region--minor { fill: var(--qz-minor); }
-.qz-region--major { fill: var(--qz-major); }
+.qz-region--minor { fill: var(--qz-minor); stroke: var(--qz-minor-edge); }
+.qz-region--major { fill: var(--qz-major); stroke: var(--qz-major-edge); }
 
 /* ---- The circle's lines -------------------------------------------------
    The second activity's own palette, to the reference design: each piece

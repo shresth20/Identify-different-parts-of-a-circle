@@ -103,17 +103,24 @@
 
   /* Show each word at the moment its FIRST character would have been typed.
      `due` is a performance.now() stamp; `alive` lets a newer line take the box
-     over from this one. Resolves to the moment the line is done. */
-  function revealWords(words, due, perChar, alive) {
+     over from this one. Resolves to the moment the line is done.
+       `at`, when given, is the line's own clock instead: one offset in ms
+     per word, from `due` -- the moment each word is heard in the line's
+     recording -- so the words land as they are said, pauses and all, and
+     the last one goes on as the voice says it. */
+  function revealWords(words, due, perChar, alive, at) {
     var from = 0;
     var i = 0;
+    var timed = !!(at && at.length === words.length);
+    function when(n) { return timed ? due + at[n] : due + from * perChar; }
 
     function step() {
-      if (i >= words.length) return Promise.resolve(due + from * perChar);
+      if (i >= words.length) return Promise.resolve(timed ? when(words.length - 1) : due + from * perChar);
       if (alive && !alive()) return Promise.resolve(due);
 
-      var w = words[i++];
-      var left = due + from * perChar - performance.now();
+      var w = words[i];
+      var left = when(i) - performance.now();
+      i++;
       var ready = left > 0 ? sleep(left) : Promise.resolve();
 
       return ready.then(function () {
@@ -244,6 +251,7 @@
       var g = ++gen;
       var mine = function () { return g === gen; };
       var perChar = (over && over.perChar) || o.perChar || TYPE_MS;
+      var at = (over && over.at) || null;
       var words;
 
       morphBox(o.box, ghost.textContent.length > 0, function () {
@@ -255,7 +263,7 @@
       /* Pacing starts when this is CALLED, not when the line was laid out --
          so a caller may hold a reserved line for as long as it likes. */
       return function reveal() {
-        return revealWords(words, performance.now(), perChar, mine)
+        return revealWords(words, performance.now(), perChar, mine, at)
           .then(function (end) {
             if (!mine()) return;
             var left = end - performance.now();

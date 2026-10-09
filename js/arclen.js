@@ -49,18 +49,22 @@
   /* ---- the script -------------------------------------------------------
      Every word of the section in one place. The two wrong-answer notes are
      the definitions the learner will meet later in this skill, said early:
-     a refusal that only says "no" teaches nothing. */
-  var LINES = {
-    tryAgain: 'Try again!',
+     a refusal that only says "no" teaches nothing. Read by key when the
+     scene starts (the locale is in by then -- see start() in script.js). */
+  function T(key, repl) { return global.T ? global.T(key, repl) : key; }
+  function lines() {
+    return {
+      tryAgain: K.keyed('s2AlTryAgain'),
 
-    minorIs:  'The minor arc is the smaller arc of the circle.',
-    majorIs:  'The major arc is the larger arc of the circle.',
+      minorIs:  K.keyed('s2AlMinorIs'),
+      majorIs:  K.keyed('s2AlMajorIs'),
 
-    sectorNo:  'A sector is the region enclosed by two radii and an arc.',
-    segmentNo: 'A segment is the region enclosed by a chord and an arc.',
-    minorNo:   ['A minor arc is the smaller arc.',
-                'But this is the larger piece of the circle.']
-  };
+      sectorNo:  K.keyed('s2AlSectorNo'),
+      segmentNo: K.keyed('s2AlSegmentNo'),
+      minorNo:   [K.keyed('s2AlMinorNo1'), K.keyed('s2AlMinorNo2')]
+    };
+  }
+  var LINES = null;
 
   var BEAT = K.BEAT, SHORT = K.SHORT;
   var RR = K.RR;
@@ -78,19 +82,21 @@
   /* ---- the two rounds ----------------------------------------------------
      One shape for both: which piece is lit and which stands back, the names
      under the sentence, the right one, what the bird says for it, and what
-     it says for each wrong one. */
+     it says for each wrong one. A name is its locale key, written out only
+     on the pill and in the slot. */
   function rounds() {
+    LINES = lines();
     return [
       { on: [dom.alMinor], off: [dom.alMajor],
-        options: ['Minor arc', 'Sector', 'Segment'],
-        answer: 'Minor arc',
+        options: ['s2OptMinorArc', 's4p6Sector', 's2OptSegment'],
+        answer: 's2OptMinorArc',
         right: LINES.minorIs,
-        wrong: { 'Sector': LINES.sectorNo, 'Segment': LINES.segmentNo } },
+        wrong: { 's4p6Sector': LINES.sectorNo, 's2OptSegment': LINES.segmentNo } },
       { on: [dom.alMajor], off: [dom.alMinor],
-        options: ['Major arc', 'Minor arc'],
-        answer: 'Major arc',
+        options: ['s2OptMajorArc', 's2OptMinorArc'],
+        answer: 's2OptMajorArc',
         right: LINES.majorIs,
-        wrong: { 'Minor arc': LINES.minorNo } }
+        wrong: { 's2OptMinorArc': LINES.minorNo } }
     ];
   }
 
@@ -174,7 +180,7 @@
     dom.alSlot.classList.remove('is-over', 'is-right', 'is-wrong');
     dom.alSlotText.textContent = '';
     dom.alSlot.setAttribute('tabindex', '-1');
-    dom.alSlot.setAttribute('aria-label', 'Empty slot. Drop a name here.');
+    dom.alSlot.setAttribute('aria-label', T('s2AlSlotEmpty'));
     dom.alAsk.classList.remove('is-live');
     dom.alOpts.textContent = '';
     chips = [];
@@ -242,7 +248,7 @@
     s.classList.remove('is-over', 'is-wrong');
     s.classList.add('is-right');
     t.textContent = name;
-    s.setAttribute('aria-label', name + '. Correct.');
+    s.setAttribute('aria-label', T('s2AlSlotRight', { name: name }));
     Beats.sfx('correct');
 
     M.set(t, { opacity: 0, scale: 0.7, transformOrigin: 'center center' });
@@ -343,7 +349,7 @@
       Beats.chipDock(chip,
         (r.left + r.width / 2) - (c.left + c.width / 2),
         (r.top + r.height / 2) - (c.top + c.height / 2));
-      slotRight(spec.answer);
+      slotRight(T(spec.answer));
     }
     function right(chip) {
       dock(chip);
@@ -484,7 +490,9 @@
       .then(function () { return Flow.anim(askIn()); })
       .then(function () { return Flow.wait(SHORT); })
       .then(function () {
-        chips = K.buildChips(dom.alOpts, K.shuffle(spec.options));
+        var ids = K.shuffle(spec.options);
+        chips = K.buildChips(dom.alOpts, ids.map(function (id) { return T(id); }));
+        chips.forEach(function (c, i) { c.dataset.name = ids[i]; });
         return Flow.anim(chipsIn(chips));
       })
 
@@ -502,7 +510,7 @@
       })
       .then(function () { return Flow.wait(SHORT); })
       .then(function () {
-        return verdict(K.LINES.ackRight, spec.right, 'happy');
+        return verdict(K.keyed('fbCorrect'), spec.right, 'happy');
       })
       /* ---- the question is answered: the names not chosen go, smoothly,
          leaving the sentence with the right one in its slot. ---------------- */
@@ -651,7 +659,7 @@
      teaches on, and the sentence-and-slot ask, which later sections of the
      skill will put their own words through. */
   global.ArcLen = {
-    LINES: LINES,
+    lines: lines,
     state: function () { return ARC; },
     askIn: askIn,
     askOut: askOut,

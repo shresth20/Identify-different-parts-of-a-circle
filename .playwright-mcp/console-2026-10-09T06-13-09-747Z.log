@@ -1,0 +1,3 @@
+[     160ms] [ERROR] Failed to load resource: the server responded with a status of 404 (File not found) @ http://localhost:8765/favicon.ico:0
+[   12080ms] [ERROR] Failed to load resource: the server responded with a status of 404 (File not found) @ http://localhost:8765/favicon.ico:0
+[   26252ms] [ERROR] Failed to load resource: the server responded with a status of 404 (File not found) @ http://localhost:8765/assets/VO/en/s1QzDragName.webm?v=1:0

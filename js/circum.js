@@ -87,30 +87,51 @@
   var NB = ' ';
   function whole(s) { return s.replace(/ /g, NB); }
   function tie(s) { return s.replace(/ (\S+)$/, NB + '$1'); }
-  var LINES = {
-    ask:   tie('Correct formula of Circumference is'),
-    right: ['Correct!', 'Circumference' + NB + '= ' + whole('π × diameter.')],
-    wrong: {
-      'π × radius':    ['Not quite!', tie(whole('π × radius') + ' gives only half the circumference.')],
-      'π × (radius)²': ['Not quite!', tie(whole('π × (radius)²') + ' is the area of a circle, not its circumference.')]
-    },
-
-    /* page 2 -- the semicircle's arc length */
-    semiIs:    'This is the semicircle.',
-    semiAsk:   tie('Choose the correct formula to find the arc length of this semicircle.'),
-    semiRight: ['Correct!', tie('The arc length of the whole circle is ' + whole('2π × radius.'))],
-    semiWrong: {
-      '2π × radius':       ['Not quite!', tie(whole('2π × radius') + ' is the arc length of the whole circle, not half of it.')],
-      '½ × π × (radius)²': ['Not quite!', tie(whole('½ × π × (radius)²') + ' is the area of a semicircle, not its arc length.')]
-    }
-  };
-
-  /* page 3 -- the quadrant's arc length. Read by key at the moment the
-     scene starts (the locale is in by then -- see start() in script.js),
-     each line carrying its key so it can be voiced. The fractions are
-     spelled with U+2044 in the locale and stood up by mathtext.js. */
+  /* Every page's lines are read by key at the moment its scene starts (the
+     locale is in by then -- see start() in script.js), each line carrying
+     its key so it can be voiced. The fractions are spelled with U+2044 in
+     the locale and stood up by mathtext.js. */
   function T(key, repl) { return global.T ? global.T(key, repl) : key; }
   function said(key, text) { return { text: text, vo: key }; }
+  function nope(key, f) {
+    return [said('fbNotQuite', T('fbNotQuite')), said(key, tie(T(key, { f: whole(f) })))];
+  }
+
+  /* page 1 -- the circumference formula */
+  function formulaLines() {
+    var right = T('s2OptPiDiameter'), half = T('s2OptPiRadius'), area = T('s2OptPiRadiusSq');
+    var wrong = {};
+    wrong[half] = nope('s2CfWrongRadius', half);
+    wrong[area] = nope('s2CfWrongArea', area);
+    return {
+      ask:     said('s2CfAsk', tie(T('s2CfAsk'))),
+      options: [half, right, area],
+      answer:  right,
+      wrong:   wrong,
+      /* the formula's row is kept whole, and "=" never starts a row */
+      right:   [said('fbCorrect', T('fbCorrect')),
+                said('s2CfRight', T('s2CfRight', { f: whole(right) }).replace(' =', NB + '='))]
+    };
+  }
+
+  /* page 2 -- the semicircle's arc length */
+  function semiLines() {
+    var right = T('s2OptHalf2PiRadius'), full = T('s2Opt2PiRadius'), area = T('s2OptHalfPiRadiusSq');
+    var wrong = {};
+    wrong[full] = nope('s2CsWrongWhole', full);
+    wrong[area] = nope('s2CsWrongArea', area);
+    return {
+      is:      said('s2CsIs', T('s2CsIs')),
+      ask:     said('s2CsAsk', tie(T('s2CsAsk'))),
+      options: [right, full, area],
+      answer:  right,
+      wrong:   wrong,
+      right:   [said('fbCorrect', T('fbCorrect')),
+                said('s2CsRight', tie(T('s2CsRight', { f: whole(full) })))]
+    };
+  }
+
+  /* page 3 -- the quadrant's arc length */
   function quadLines() {
     var half = T('p21OptHalf');
     var quarter = T('p21OptQuarter');
@@ -126,15 +147,10 @@
     };
   }
 
-  var OPTIONS = ['π × radius', 'π × diameter', 'π × (radius)²'];
-  var ANSWER  = 'π × diameter';
-
-  /* ½ is spelled with the glyph here, as data, and DRAWN as 1 over 2 --
-     numerator, bar, denominator -- wherever it is shown: on the pills
-     (buildChoices, pages.js) and in the box's sentences (typer.js), both
-     written through mathtext.js. */
-  var SEMI_OPTIONS = ['½ × 2π × radius', '2π × radius', '½ × π × (radius)²'];
-  var SEMI_ANSWER  = '½ × 2π × radius';
+  /* ½ is spelled with the glyph in the locale, as data, and DRAWN as 1
+     over 2 -- numerator, bar, denominator -- wherever it is shown: on the
+     pills (buildChoices, pages.js) and in the box's sentences (typer.js),
+     both written through mathtext.js. */
 
   var BEAT = K.BEAT, SHORT = K.SHORT;
   /* Page 2 draws its circle at skill 1's pace (pages.js): the same slow
@@ -454,6 +470,7 @@
    * question asked and answered, and the bird gone only on Next.
    * ====================================================================== */
   function sceneFormula() {
+    var lines = formulaLines();
     return K.wipeBoard()
       .then(function () { return Flow.wait(BEAT); })
 
@@ -479,8 +496,8 @@
       .then(function () { return Flow.wait(SHORT); })
       .then(function () {
         return askFormula({
-          ask: LINES.ask, options: OPTIONS, answer: ANSWER,
-          wrong: LINES.wrong, right: LINES.right
+          ask: lines.ask, options: lines.options, answer: lines.answer,
+          wrong: lines.wrong, right: lines.right
         });
       })
       .then(function () { return closeOut(dom.cf); });
@@ -599,6 +616,7 @@
    * stands on: 180°.
    * ====================================================================== */
   function sceneSemicircle() {
+    var lines = semiLines();
     return K.wipeBoard()
       .then(function () { return Flow.wait(BEAT); })
 
@@ -637,7 +655,7 @@
       .then(function () { return Flow.wait(DIA_HOLD); })
 
       /* ---- named from the header ------------------------------------------ */
-      .then(function () { return K.arriveSaying(LINES.semiIs); })
+      .then(function () { return K.arriveSaying(lines.is); })
       .then(function () {
         mascot.settle();
         return Flow.wait(BEAT);
@@ -661,8 +679,8 @@
       .then(function () {
         dom.cfPane.classList.add('is-long');
         return askFormula({
-          ask: LINES.semiAsk, options: SEMI_OPTIONS, answer: SEMI_ANSWER,
-          wrong: LINES.semiWrong, right: LINES.semiRight,
+          ask: lines.ask, options: lines.options, answer: lines.answer,
+          wrong: lines.wrong, right: lines.right,
           reveal: showAngle
         });
       })
@@ -844,7 +862,6 @@
      stays this section's: its wipe and reset hooks put it away whoever
      spoke from it last. */
   global.Circum = {
-    LINES: LINES,
     verdict: verdict,
     armChoices: armChoices,
     ask: askFormula,

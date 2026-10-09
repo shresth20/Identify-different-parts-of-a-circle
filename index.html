@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
-  <title>Identify Different Parts of a Circle</title>
+  <title data-i18n="uiTitle">Identify Different Parts of a Circle</title>
 
   <link rel="stylesheet" href="css/style.css" />
   <link rel="stylesheet" href="css/arcs.css" />
@@ -90,7 +90,7 @@
                always letterboxed by its HEIGHT and the circle comes out the
                same size a square picture would have given it. -->
           <svg class="figure" id="figure" viewBox="0 0 1000 420"
-               role="img" aria-label="A circle">
+               role="img" data-i18n-attr="aria-label:a11yFigure" aria-label="A circle">
             <defs>
               <!-- The bloom under a part while it is being named. A blurred
                    copy of the mark itself, laid twice under the mark, so the
@@ -200,9 +200,9 @@
               <circle class="end-dot" id="endRight" cx="658" cy="210" r="4.4" />
               <circle class="end-dot" id="endLeft"  cx="342" cy="210" r="4.4" />
               <text class="figure-label dia__r" id="rLabelRight"
-                    x="579" y="246" text-anchor="middle">Radius</text>
+                    x="579" y="246" text-anchor="middle" data-i18n="lblRadius">Radius</text>
               <text class="figure-label dia__r" id="rLabelLeft"
-                    x="421" y="246" text-anchor="middle">Radius</text>
+                    x="421" y="246" text-anchor="middle" data-i18n="lblRadius">Radius</text>
               <!-- The diameter's name, written under the line it names
                    once the voice has said it (sceneParts, page 4). -->
               <text class="figure-label dia__name" id="diaName"
@@ -214,7 +214,7 @@
                    orange -- so the sentence points back at the picture. -->
               <rect class="dia__plate" id="diaPlate" x="0" y="0" width="0" height="0" />
               <text class="figure-label dia__rule" id="diaRule"
-                    x="500" y="411" text-anchor="middle"><tspan class="rule__dia">Diameter</tspan><tspan class="rule__eq"> = 2 × </tspan><tspan class="rule__rad">Radius</tspan></text>
+                    x="500" y="411" text-anchor="middle"><tspan class="rule__dia" data-i18n="s1LblDiameter">Diameter</tspan><tspan class="rule__eq"> = 2 × </tspan><tspan class="rule__rad" data-i18n="lblRadius">Radius</tspan></text>
             </g>
 
             <!-- The chords: the one that is taught and the three that follow
@@ -234,6 +234,7 @@
               <!-- A finger-sized hit area over a 10px dot. -->
               <circle class="centre__hit"  id="centreHit" cx="500" cy="210" r="34"
                       role="button" tabindex="0"
+                      data-i18n-attr="aria-label:a11yCentreHit"
                       aria-label="Tap the dot at the centre of the circle" />
             </g>
 
@@ -281,6 +282,7 @@
                    keyboard holds while it places one. -->
               <circle class="arc-band" id="arcBand" cx="500" cy="210" r="158"
                       tabindex="-1" role="button"
+                      data-i18n-attr="aria-label:a11yBand"
                       aria-label="The edge of the circle. Tap it to place a point." />
               <!-- The diameter, dashed: the line the two points are moved
                    onto in the third scene. Shown through a mask that arcs.js
@@ -312,11 +314,13 @@
               <g class="arc-point" id="arcPointA">
                 <circle class="arc-dot" cx="500" cy="52" r="6.5" />
                 <circle class="arc-dot__hit" cx="500" cy="52" r="30" tabindex="-1" role="button"
+                        data-i18n-attr="aria-label:a11yPointDrag"
                         aria-label="A point on the circle. Drag it along the edge." />
               </g>
               <g class="arc-point" id="arcPointB">
                 <circle class="arc-dot" cx="500" cy="52" r="6.5" />
                 <circle class="arc-dot__hit" cx="500" cy="52" r="30" tabindex="-1" role="button"
+                        data-i18n-attr="aria-label:a11yPointDrag"
                         aria-label="A point on the circle. Drag it along the edge." />
               </g>
               <!-- The hands: two pointing hands drawn in line, faint, that
@@ -377,6 +381,7 @@
               <circle class="rim-tip" id="segTip" cx="500" cy="52" r="7" />
               <circle class="arc-band" id="segBand" cx="500" cy="210" r="158"
                       tabindex="-1" role="button"
+                      data-i18n-attr="aria-label:a11yBand"
                       aria-label="The edge of the circle. Tap it to place a point." />
               <g class="arc-boxes" id="segBoxes" hidden></g>
               <g class="arc-marks" id="segMarks" hidden></g>
@@ -388,11 +393,13 @@
               <g class="arc-point" id="segPointA">
                 <circle class="arc-dot" cx="500" cy="52" r="6.5" />
                 <circle class="arc-dot__hit" cx="500" cy="52" r="30" tabindex="-1" role="button"
+                        data-i18n-attr="aria-label:a11yPoint"
                         aria-label="A point on the circle." />
               </g>
               <g class="arc-point" id="segPointB">
                 <circle class="arc-dot" cx="500" cy="52" r="6.5" />
                 <circle class="arc-dot__hit" cx="500" cy="52" r="30" tabindex="-1" role="button"
+                        data-i18n-attr="aria-label:a11yPoint"
                         aria-label="A point on the circle." />
               </g>
               <g class="arc-nudges" id="segNudges" hidden aria-hidden="true"></g>
@@ -421,9 +428,9 @@
                    for the one beat in which it is asked for; the label
                    names neither, or it would answer the question. -->
               <path class="sec-region sec-region--major" id="secMajor" d=""
-                    tabindex="-1" role="button" aria-label="A region of the circle." />
+                    tabindex="-1" role="button" data-i18n-attr="aria-label:a11yRegion" aria-label="A region of the circle." />
               <path class="sec-region sec-region--minor" id="secMinor" d=""
-                    tabindex="-1" role="button" aria-label="A region of the circle." />
+                    tabindex="-1" role="button" data-i18n-attr="aria-label:a11yRegion" aria-label="A region of the circle." />
               <!-- The two radii: the line section 1 taught, in its colour,
                    each from the centre out to one of the points. -->
               <path class="sec-radius" id="secRadiusA" d="" />
@@ -435,6 +442,7 @@
               <circle class="rim-tip" id="secTip" cx="500" cy="52" r="7" />
               <circle class="arc-band" id="secBand" cx="500" cy="210" r="158"
                       tabindex="-1" role="button"
+                      data-i18n-attr="aria-label:a11yBand"
                       aria-label="The edge of the circle. Tap it to place a point." />
               <g class="arc-boxes" id="secBoxes" hidden></g>
               <g class="arc-marks" id="secMarks" hidden></g>
@@ -447,11 +455,13 @@
               <g class="arc-point" id="secPointA">
                 <circle class="arc-dot" cx="500" cy="52" r="6.5" />
                 <circle class="arc-dot__hit" cx="500" cy="52" r="30" tabindex="-1" role="button"
+                        data-i18n-attr="aria-label:a11yPoint"
                         aria-label="A point on the circle." />
               </g>
               <g class="arc-point" id="secPointB">
                 <circle class="arc-dot" cx="500" cy="52" r="6.5" />
                 <circle class="arc-dot__hit" cx="500" cy="52" r="30" tabindex="-1" role="button"
+                        data-i18n-attr="aria-label:a11yPoint"
                         aria-label="A point on the circle." />
               </g>
               <g class="arc-nudges" id="secNudges" hidden aria-hidden="true"></g>
@@ -1379,14 +1389,15 @@
                before its next ELEMENT sibling -- a slot followed by bare
                text would be put back at the end of the sentence. -->
           <div class="ask-pane" id="alAsk" hidden>
-            <p class="ask-line" id="alLine"><span>This is the</span>
+            <p class="ask-line" id="alLine"><span data-i18n="askThisIsThe">This is the</span>
               <span class="ask-slot" id="alSlot" role="button" tabindex="-1"
+                    data-i18n-attr="aria-label:a11yDropSlot"
                     aria-label="Empty slot. Drop a name here."><span
                     class="ask-slot__text" id="alSlotText"></span></span>
-              <span>of the circle.</span></p>
+              <span data-i18n="askOfTheCircle">of the circle.</span></p>
             <!-- The names, under the sentence they answer: the tray's own
                  pills (see .chip in style.css), built here by arclen.js. -->
-            <div class="ask-opts" id="alOpts" aria-label="Names to drag"></div>
+            <div class="ask-opts" id="alOpts" data-i18n-attr="aria-label:a11yNamesTray" aria-label="Names to drag"></div>
           </div>
 
           <!-- Skill 2, section 2 (js/circum.js): the right half of the stage
@@ -1417,6 +1428,7 @@
               </div>
             </div>
             <div class="cf-opts" id="cfOpts" role="group"
+                 data-i18n-attr="aria-label:a11yFormulas"
                  aria-label="Choose the correct formula"></div>
           </div>
 
@@ -1778,9 +1790,9 @@
              answers to the yes/no question before it. Never both at once, so
              they share the band. -->
         <footer class="board__bottom" id="boardBottom">
-          <div class="tray" id="tray" hidden aria-label="Names to drag"></div>
+          <div class="tray" id="tray" hidden data-i18n-attr="aria-label:a11yNamesTray" aria-label="Names to drag"></div>
           <div class="tray tray--choice" id="choices" hidden
-               role="group" aria-label="Choose your answer"></div>
+               role="group" data-i18n-attr="aria-label:a11yAnswers" aria-label="Choose your answer"></div>
         </footer>
       </section>
 
@@ -1801,7 +1813,7 @@
            the top, and an arrow grown back by a round stroke so every corner
            of it is rounded evenly. Its colours are the --next-* tokens in
            style.css, so it is re-skinned with the rest of the palette. -->
-      <button class="next-btn" id="nextBtn" type="button" hidden aria-label="Next">
+      <button class="next-btn" id="nextBtn" type="button" hidden data-i18n-attr="aria-label:a11yNext" aria-label="Next">
         <svg viewBox="0 0 100 100" aria-hidden="true" focusable="false">
           <defs>
             <linearGradient id="icoNextFace" x1="50" y1="8" x2="50" y2="92" gradientUnits="userSpaceOnUse">
@@ -1823,8 +1835,8 @@
          bird are painted into the artwork (welcome-page.png), so the heading
          is there for screen readers only. -->
     <section class="welcome" id="welcome">
-      <h1 class="welcome__title">Identify Different Parts of a Circle</h1>
-      <button class="start-btn" id="startBtn" type="button" hidden>Start</button>
+      <h1 class="welcome__title" data-i18n="uiTitle">Identify Different Parts of a Circle</h1>
+      <button class="start-btn" id="startBtn" type="button" hidden data-i18n="btnStart">Start</button>
     </section>
   </main>
 

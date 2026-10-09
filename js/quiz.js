@@ -21,8 +21,8 @@
  *                    is lit while the rest stand back, a box is hung off
  *                    it level with the circle, and the bird asks for its
  *                    name and leaves. A wrong name is shaken off; the
- *                    right one is met with a small burst. Next, and the
- *                    next part, until all six are named.
+ *                    right one is met with a small burst; a moment, and
+ *                    the next part, until all six are named.
  *
  * The bird is on the header only while it has something to say. The rest
  * of the time the header is closed and the picture has the room -- see
@@ -48,11 +48,11 @@
   }
   var K = Pages.kit;
 
-  /* ---- the script ------------------------------------------------------- */
-  var LINES = {
-    tap:  'Tap the correct name.',
-    drag: 'Drag the correct name into the box.'
-  };
+  /* ---- the script -------------------------------------------------------
+     Every line and name is read by key from locales/locales.json; a part's
+     name is the key of its word, read through T wherever it is shown. */
+  function T(key) { return global.T ? global.T(key) : key; }
+  var keyed = K.keyed;
 
   var BEAT = K.BEAT, SHORT = K.SHORT;
   var HOLD_TELL = 2500;   /* ms the instruction stands, once said, before the
@@ -138,9 +138,9 @@
   var CARD_RIM = 1.1;                       /* seconds: the pen, quicker than
                                                the lesson's -- see drawRim  */
   var CARDS = [
-    { part: 'Minor segment', a: 80,  span: 110, wrong: ['Minor sector', 'Minor arc'] },
-    { part: 'Minor arc',     a: 40,  span: 100, wrong: ['Minor sector', 'Minor segment'] },
-    { part: 'Major segment', a: 355, span: 100, wrong: ['Major sector', 'Major arc'] }
+    { part: 's4p1Segment',   a: 80,  span: 110, wrong: ['s4p1Sector', 's1LblMinorArc'] },
+    { part: 's1LblMinorArc', a: 40,  span: 100, wrong: ['s4p1Sector', 's4p1Segment'] },
+    { part: 's4p4Major',     a: 355, span: 100, wrong: ['s4p12MajorSector', 's1LblMajorArc'] }
   ];
   /* the names: a pill the Start button's shape, standing on its wall */
   var OPT_W = 230, OPT_H = 50, OPT_EDGE = 5;
@@ -178,12 +178,12 @@
   var FIGURE_GROW = 1.08;                   /* --figure-grow in style.css: the
                                                figure's box over the stage's */
   var PARTS = [
-    { name: 'Minor arc',     kind: 'arc', which: 'minor', deg: 68  },
-    { name: 'Major arc',     kind: 'arc', which: 'major', deg: 300 },
-    { name: 'Minor segment', kind: 'seg', which: 'minor', deg: 75  },
-    { name: 'Major segment', kind: 'seg', which: 'major', deg: 290 },
-    { name: 'Minor sector',  kind: 'sec', which: 'minor', deg: 65  },
-    { name: 'Major sector',  kind: 'sec', which: 'major', deg: 300 }
+    { name: 's1LblMinorArc',    kind: 'arc', which: 'minor', deg: 68  },
+    { name: 's1LblMajorArc',    kind: 'arc', which: 'major', deg: 300 },
+    { name: 's4p1Segment',      kind: 'seg', which: 'minor', deg: 75  },
+    { name: 's4p4Major',        kind: 'seg', which: 'major', deg: 290 },
+    { name: 's4p1Sector',       kind: 'sec', which: 'minor', deg: 65  },
+    { name: 's4p12MajorSector', kind: 'sec', which: 'major', deg: 300 }
   ];
   /* the one box: the boxes' make, a size up, level with the circle and a
      set way out from its edge -- never nearer the stage's edge than
@@ -255,7 +255,7 @@
     var card = { spec: spec, g: g, geo: c, dots: [] };
     var a = spec.a, span = spec.span;
     var pA = c.pt(a), pB = c.pt(a + span);
-    var isArc = spec.part === 'Minor arc';
+    var isArc = spec.part === 's1LblMinorArc';
 
     /* No disc under an arc: the part is a piece of the rim, and an open
        ring keeps the eye on the line -- the way the arcs section draws its
@@ -267,7 +267,7 @@
       card.disc = el('circle', { 'class': 'figure__disc', cx: c.cx, cy: c.cy, r: c.r });
       g.appendChild(card.disc);
 
-      var minor = spec.part === 'Minor segment';
+      var minor = spec.part === 's4p1Segment';
       var mid = c.chordMid(a, span);
       var clip = el('clipPath', { id: 'qzCardClip' + i });
       card.clip = el('circle', { cx: mid.x, cy: mid.y, r: CLIP_OPEN });
@@ -344,8 +344,8 @@
   }
   function writeLabels() {
     opts.forEach(function (o, i) {
-      o.text.textContent = deal.labels[i];
-      o.g.setAttribute('aria-label', deal.labels[i]);
+      o.text.textContent = T(deal.labels[i]);
+      o.g.setAttribute('aria-label', T(deal.labels[i]));
     });
   }
 
@@ -618,7 +618,7 @@
       .then(function () { return header(true); })
       .then(function () {
         outcome = K.quiet(askUntil(deal.answer));
-        told = tell(LINES.tap);
+        told = tell(keyed('s1QzTapName'));
         return outcome;
       })
 
@@ -629,7 +629,7 @@
          from where it stands; if it has gone it comes back to say it. */
       .then(function (res) {
         var found = !!(res && res.found);
-        var ack = found ? K.LINES.ackRight : K.LINES.ackWrong;
+        var ack = keyed(found ? 'fbCorrect' : 'fbNotQuite');
         var mood = found ? 'happy' : 'confused';
         var said;
         if (told.gone()) {
@@ -845,10 +845,36 @@
       .then(function () { return Flow.anim(Beats.fillDisc(dom.qzDisc)); });
   }
 
+  /* The two regions a cut makes, coloured in one after the other -- the
+     smaller pink, the larger purple -- held a beat to be seen, and taken
+     off together: the board is left uncoloured for the parts to be asked
+     for. `fill(which)` colours one in. */
+  function flashRegions(fill, minor, major) {
+    return fill('minor')
+      .then(function () { return Flow.wait(160); })
+      .then(function () { return fill('major'); })
+      .then(function () { return Flow.wait(BEAT); })
+      .then(function () {
+        return Promise.all([Flow.anim(Beats.fillOut(minor)), Flow.anim(Beats.fillOut(major))]);
+      });
+  }
+  function segFillOf(which) {
+    var minor = which === 'minor';
+    return Flow.anim(Beats.segFill(minor ? dom.qzSegMinor : dom.qzSegMajor,
+                                   minor ? dom.qzClipMinor : dom.qzClipMajor,
+                                   MAIN.reach(qz.span)[minor ? 0 : 1], minor ? 0.6 : 0.8));
+  }
+  function secFillOf(which) {
+    var minor = which === 'minor';
+    return Flow.anim(Beats.secFill(minor ? dom.qzSecMinor : dom.qzSecMajor,
+                                   wedgeFn(which), minor ? 0.7 : 0.9));
+  }
+
   /* Every part put on it, one after the other, in the order the lesson
-     taught them: the centre, the two points, the chord between them, a
-     radius to each, and the rim recoloured as its two pieces. No region
-     is coloured: that is done for each part as it is asked for. */
+     taught them: the centre, the two points, the chord between them -- and
+     the two segments it cuts coloured in and taken off -- a radius to
+     each -- and the two sectors they cut coloured in and taken off -- and
+     the rim recoloured as its two pieces. */
   function drawParts() {
     return Flow.anim(Beats.plantCentre(dom.qzCentre, dom.qzCentreDot, { call: false }))
       .then(function () { return Flow.wait(SHORT); })
@@ -858,9 +884,13 @@
       .then(function () { return Flow.wait(SHORT); })
       .then(function () { return Flow.anim(Beats.growLine(dom.qzChord, 0.6)); })
       .then(function () { return Flow.wait(SHORT); })
+      .then(function () { return flashRegions(segFillOf, dom.qzSegMinor, dom.qzSegMajor); })
+      .then(function () { return Flow.wait(SHORT); })
       .then(function () { return Flow.anim(Beats.growLine(dom.qzRadiusA, 0.5)); })
       .then(function () { return Flow.wait(120); })
       .then(function () { return Flow.anim(Beats.growLine(dom.qzRadiusB, 0.5)); })
+      .then(function () { return Flow.wait(SHORT); })
+      .then(function () { return flashRegions(secFillOf, dom.qzSecMinor, dom.qzSecMajor); })
       .then(function () { return Flow.wait(SHORT); })
       .then(function () {
         return Flow.anim(Beats.arcSweep({
@@ -880,41 +910,62 @@
    * picture has the board while the learner works. A wrong name is
    * shaken off and goes home, for as many tries as it takes; the right
    * one flies into the box, the box goes green, and a small burst goes up
-   * off it. Then Next, and the box and the colour are taken away for the
-   * next part.
+   * off it. A moment later the page turns itself, and the box and the
+   * colour are taken away for the next part.
    * ====================================================================== */
   /* What is asked for is all but alone on the board: everything else --
      the other lines, the circle's own fill, and for a region the points
      too -- stands back to PART_DIM. An arc is held thick (ARC_BOLD) for as
      long as it is asked about. A segment or a sector is shown by its
-     colour alone, with none of its edges up: an arc, a chord or a radius
-     lit along its border would be one more thing it could be mistaken
-     for. */
+     colour, outlined in its own deeper edge (.qz-region in quiz.css) so
+     its boundary reads -- the circle's own lines stay back: an arc, a
+     chord or a radius lit along its border would be one more thing it
+     could be mistaken for. */
   var PART_DIM = 0.1;
+  /* ...except the rim: its pieces stand back only this far, so the
+     circle's outline is still there to read the part against. */
+  var RIM_DIM = 0.35;
   /* The last part: its name is the only one left, so nothing is asked --
      no bird, no line -- and the name goes into the box by itself this long
      after the box has landed. */
   var AUTO_LAST = 900;
   var ARC_BOLD = 9;        /* the circle's lines are 4 (--qz-line in quiz.css) */
 
+  /* The whole circle stood back: the rim to RIM_DIM, everything else on it
+     to PART_DIM. Once, as the circle stands aside, before any part is
+     asked for -- and again behind each part, so the next one pops up out
+     of a quiet circle rather than out of the last one. */
+  function dimAll() {
+    var rim = [dom.qzArcMinor, dom.qzArcMajor];
+    var rest = lines().concat([dom.qzDisc], dots())
+      .filter(function (e) { return rim.indexOf(e) < 0; });
+    return Promise.all([
+      Flow.anim(Beats.quizFocus([], rest, [], PART_DIM)),
+      Flow.anim(Beats.quizFocus([], rim, [], RIM_DIM))
+    ]);
+  }
+
   function askPart(part, last) {
     var isArc = part.kind === 'arc';
     var arcs = isArc ? onFor(part) : [];
     var on = isArc ? arcs.concat(dots()) : [];
-    var off = lines().concat([dom.qzDisc], dots())
+    var rim = [dom.qzArcMinor, dom.qzArcMajor]
       .filter(function (e) { return on.indexOf(e) < 0; });
+    var off = lines().concat([dom.qzDisc], dots())
+      .filter(function (e) { return on.indexOf(e) < 0 && rim.indexOf(e) < 0; });
     var region = regionOf(part);
     var told = null;
     var thin = arcs.map(function (a) { return parseFloat(getComputedStyle(a).strokeWidth) || 7; });
 
     return (last ? Promise.resolve() : header(true))
       .then(function () {
-        told = last ? { done: Promise.resolve(), cut: function () {} } : tell(LINES.drag);
+        told = last ? { done: Promise.resolve(), cut: function () {} } : tell(keyed('s1QzDragName'));
         return Promise.all([
           Flow.anim(Beats.quizFocus(on, off, [], PART_DIM)),
+          Flow.anim(Beats.quizFocus([], rim, [], RIM_DIM)),
           arcs.length ? Flow.anim(M.to(arcs, {
             strokeWidth: ARC_BOLD, autoRound: false,
-            duration: M.dur(0.35), ease: 'power2.out'
+            duration: M.dur(0.4), ease: 'back.out(2.2)'
           })) : null
         ]);
       })
@@ -939,7 +990,9 @@
         return Flow.anim(Beats.confetti(dom.qzBurst, box.centre.x, box.centre.y));
       })
       .then(function () { return told.done; })
-      .then(function () { return K.handOver(dom.nextBtn); })
+      /* no Next: the right name is left to be looked at, then the page
+         turns itself */
+      .then(function () { return K.autoTurn(K.AUTO_TURN); })
 
       /* ---- and cleared for the next -------------------------------------- */
       .then(function () {
@@ -957,6 +1010,8 @@
             duration: M.dur(0.3), ease: 'power2.inOut'
           })).then(function () { M.set(arcs, { clearProps: 'strokeWidth' }); }));
         }
+        /* and whatever came up with it back down with the rest */
+        if (on.length) gone.push(dimAll());
         return Promise.all(gone);
       })
       .then(function () {
@@ -1009,6 +1064,9 @@
          the first part, and the circle grows only once it has gone. */
       .then(function () { return Flow.anim(layoutTo({ aside: true, fit: 1 }, 0.8)); })
       .then(function () { return Flow.wait(SHORT); })
+      /* the whole circle low first, then its parts up out of it one by one */
+      .then(dimAll)
+      .then(function () { return Flow.wait(BEAT); })
       .then(function () {
         return order.reduce(function (chain, part, i) {
           return chain.then(function () { return askPart(part, i === order.length - 1); });
@@ -1043,7 +1101,7 @@
       .then(function () { return header(true, false); })
       .then(function () {
         Beats.sfx('cheer');
-        return K.arriveSaying(K.LINES.done);
+        return K.arriveSaying(keyed('s1QzFinalDone'));
       })
       .then(function () {
         mascot.state('celebrating');
@@ -1111,7 +1169,6 @@
   });
 
   global.Quiz = {
-    LINES: LINES,
     PARTS: PARTS,
     state: function () { return { deal: deal, cut: qz, box: box }; }
   };

@@ -2,7 +2,7 @@
  * segments.js -- section 3: segments, minor and major
  * --------------------------------------------------------------------------
  * The third section of the lesson, registered with pages.js as a section
- * (see addSection there): three scenes on the same board, with the same
+ * (see addSection there): two scenes on the same board, with the same
  * bird and the same clock, built from the kit pages.js hands over, the
  * beats in animations.js, and the two-point interaction arcs.js hands over
  * on window.Arcs. Nothing here waits on anything except through Flow, so
@@ -17,7 +17,6 @@
  *   Name the         a clean board; the circle made again, cut at the same
  *   segments         two points and coloured in two NEW colours; the two
  *                    names dragged into their boxes, then explained
- *   Segment summary  the whole idea drawn once more, with no bird
  *
  * Where section 2 was about the LINE round the circle, this one is about
  * the space inside it, so what it colours are filled shapes rather than
@@ -41,22 +40,16 @@
   }
   var K = Pages.kit;
 
-  /* ---- the script ------------------------------------------------------- */
-  var LINES = {
-    area:   'The space inside the circle is the area.',
-    divide: 'Let’s divide the area of the circle into two regions.',
-    pick:   'Tap any two points on the edge.',
-    chord:  'Chord divides the area of the circle into two regions.',
-    each:   'Each region is called a segment.',
-
-    minorIs: 'The smaller region is called the minor segment.',
-    majorIs: 'The larger region is called the major segment.'
-  };
+  /* ---- the script -------------------------------------------------------
+     Every line is read by key from locales/locales.json (s1Seg...), each
+     with the recording filed under the same key. */
+  function T(key) { return global.T ? global.T(key) : key; }
+  var keyed = K.keyed;
 
   var BEAT = K.BEAT, SHORT = K.SHORT;
   var CX = K.CX, CY = K.CY, RR = K.RR;
   var round2 = K.round2, el = K.el;
-  var norm = A.norm, clamp = A.clamp, coin = A.coin, cue = A.cue;
+  var norm = A.norm, clamp = A.clamp, coin = A.coin;
   var P = A.P, arcD = A.arcD, place = A.place;
 
   /* ---- the two points, as angles ----------------------------------------
@@ -66,7 +59,6 @@
      placed LAST, which is the end the chord is drawn from. */
   var seg = { a: 250, span: 110, origin: 'a' };
   var DEFAULT = { a: 250, span: 110 };
-  var SUMMARY = { a: 250, span: 110 };
 
   var TILT = -40;         /* the activity: where the minor segment's middle is put */
   var MAJOR_IN = 0.4;     /* how far out from the centre, as a share of the radius,
@@ -292,8 +284,8 @@
   var BOX_IN = 30, BOX_OFF = 44;
   function buildBoxes() {
     clearBoxes();
-    boxes = [{ name: 'Major segment', s: spot('major') },
-             { name: 'Minor segment', s: spot('minor') }].map(function (b, i) {
+    boxes = [{ name: 's4p4Major',   s: spot('major') },
+             { name: 's4p1Segment', s: spot('minor') }].map(function (b, i) {
       var t = b.s.deg * Math.PI / 180;
       var right = Math.cos(t) >= 0;
       var anchor = P(b.s.deg, b.s.r);
@@ -354,8 +346,6 @@
     };
   }
 
-  function at(ms, fn) { return Flow.wait(ms).then(fn); }
-
   /* ======================================================================
    * Scene 1 -- segments. A circle on the blank board; the space inside it
    * named; two points, the chord between them, and the two regions it
@@ -380,20 +370,20 @@
          it: the rim stands back and the wash spreads from the centre. */
       .then(function () { return K.mascotJumpIn(); })
       .then(function () {
-        var text = LINES.area;
+        var text = T('s1SegArea');
         return Promise.all([
-          K.speak(text),
-          at(cue(text, 'inside'), function () {
+          K.speak(keyed('s1SegArea')),
+          K.onWord(text, 'inside', function () {
             return Flow.anim(Beats.areaIn(dom.segRim, dom.segArea));
           })
         ]);
       })
       .then(function () { return Flow.wait(BEAT); })
       .then(function () {
-        var text = LINES.divide;
+        var text = T('s1SegDivide');
         return Promise.all([
-          K.speak(text),
-          at(cue(text, 'two regions'), function () {
+          K.speak(keyed('s1SegDivide')),
+          K.onWord(text, 'two regions', function () {
             return Flow.anim(Beats.areaPulse(dom.segArea));
           })
         ]);
@@ -408,7 +398,7 @@
       .then(function () { return Flow.anim(Beats.rimFull(dom.segRim)); })
       .then(function () {
         picked = K.quiet(A.pickPoints(pickCtx()));
-        return K.speak(LINES.pick);
+        return K.speak(keyed('s1SegPick'));
       })
       .then(function () { return picked; })
 
@@ -429,19 +419,19 @@
          Held so until "two regions" puts them back and the rest with them. */
       .then(function () {
         dom.segMarks.removeAttribute('hidden');
-        var text = LINES.chord;
+        var text = T('s1SegChord');
         var behind = [dom.segChord, dom.segRim, dom.segDisc, dom.segArea].concat(dots());
         var was = null;
         return Promise.all([
-          K.speak(text),
-          at(cue(text, 'Chord'), function () {
+          K.speak(keyed('s1SegChord')),
+          K.onWord(text, 'chord', function () {
             return Flow.anim(Beats.linePulse([dom.segChord]));
           }),
-          at(cue(text, 'divides'), function () {
+          K.onWord(text, 'divides', function () {
             was = behind.map(function (e) { return parseFloat(getComputedStyle(e).opacity); });
             return Flow.anim(Beats.arcSplit(regions(), apart(APART), behind));
           }),
-          at(cue(text, 'two regions'), function () {
+          K.onWord(text, 'two regions', function () {
             return Flow.anim(Beats.arcJoin(regions())).then(function () {
               return Flow.anim(M.to(behind, {
                 opacity: function (i) { return was ? was[i] : 1; },
@@ -452,17 +442,17 @@
         ]);
       })
       .then(function () { return Flow.wait(BEAT); })
-      /* "Each region": the word on the smaller; "segment": on the larger. */
+      /* "region": the word on the smaller; "segment": on the larger. */
       .then(function () {
-        var text = LINES.each;
+        var text = T('s1SegEach');
         return Promise.all([
-          K.speak(text),
-          at(cue(text, 'Each'), function () {
-            aimLabel(labels.minor, spot('minor'), 'Segment');
+          K.speak(keyed('s1SegEach')),
+          K.onWord(text, 'region', function () {
+            aimLabel(labels.minor, spot('minor'), T('s1LblSegment'));
             return Flow.anim(Beats.labelIn(labels.minor));
           }),
-          at(cue(text, 'segment'), function () {
-            aimLabel(labels.major, spot('major'), 'Segment');
+          K.onWord(text, 'segment', function () {
+            aimLabel(labels.major, spot('major'), T('s1LblSegment'));
             return Flow.anim(Beats.labelIn(labels.major));
           })
         ]);
@@ -477,30 +467,30 @@
       .then(function () { return Flow.anim(Beats.labelsOut([labels.minor, labels.major])); })
       .then(function () { return Flow.wait(SHORT); })
       .then(function () {
-        var text = LINES.minorIs;
+        var text = T('s1SegMinorIs');
         return Promise.all([
-          K.speak(text),
-          at(cue(text, 'smaller'), function () {
+          K.speak(keyed('s1SegMinorIs')),
+          K.onWord(text, 'smaller', function () {
             return Flow.anim(Beats.segFocus([dom.segMinor], [dom.segMajor]));
           }),
-          at(cue(text, 'minor segment'), function () {
-            aimCallout(callouts.minor, spot('minor'), 'Minor segment');
+          K.onWord(text, 'minor segment', function () {
+            aimCallout(callouts.minor, spot('minor'), T('s4p1Segment'));
             return showCallout(callouts.minor);
           })
         ]);
       })
       .then(function () { return Flow.wait(BEAT); })
       .then(function () {
-        var text = LINES.majorIs;
+        var text = T('s1SegMajorIs');
         return Promise.all([
-          K.speak(text),
+          K.speak(keyed('s1SegMajorIs')),
           /* the smaller region stands back with its name and arrow, so the
              larger one and its name are the only thing at full */
-          at(cue(text, 'larger'), function () {
+          K.onWord(text, 'larger', function () {
             return Flow.anim(Beats.segFocus([dom.segMajor], [dom.segMinor, callouts.minor.g]));
           }),
-          at(cue(text, 'major segment'), function () {
-            aimCallout(callouts.major, spot('major'), 'Major segment');
+          K.onWord(text, 'major segment', function () {
+            aimCallout(callouts.major, spot('major'), T('s4p4Major'));
             return showCallout(callouts.major);
           })
         ]);
@@ -545,10 +535,10 @@
       .then(function () {
         buildBoxes();
         dom.segBoxes.removeAttribute('hidden');
-        return Flow.anim(Beats.boxIn(boxFor('Major segment')));
+        return Flow.anim(Beats.boxIn(boxFor('s4p4Major')));
       })
       .then(function () { return Flow.wait(320); })
-      .then(function () { return Flow.anim(Beats.boxIn(boxFor('Minor segment'))); })
+      .then(function () { return Flow.anim(Beats.boxIn(boxFor('s4p1Segment'))); })
       .then(function () { return Flow.wait(SHORT); })
 
       /* ---- the names, placed with the bird watching -------------------------
@@ -556,79 +546,16 @@
          drop is answered in one line, and the page turns itself. */
       .then(function () {
         var done = K.namePair({
-          boxes: boxes, group: dom.segBoxes, names: coin('Minor segment', 'Major segment'),
+          boxes: boxes, group: dom.segBoxes, names: coin('s4p1Segment', 's4p4Major'),
           ask: 'dragNames',
-          wrong: { 'Minor segment': 'segWrongMinor', 'Major segment': 'segWrongMajor' }
+          wrong: { s4p1Segment: 'segWrongMinor', s4p4Major: 'segWrongMajor' }
         });
         chips = K.chips();
         return done;
-      });
-  }
+      })
 
-  /* ======================================================================
-   * Scene 3 -- the summary. No bird: a clean board with both bands closed,
-   * so the circle sits at its very centre, and the idea drawn once more
-   * from the start -- circle, centre, two points, the chord between them,
-   * the two regions in their two colours, and their names.
-   * ====================================================================== */
-  function sceneSummary() {
-    var far = null;                 /* how far each region's colour spreads */
-
-    return K.wipeBoard()
-      .then(function () { return Flow.anim(K.collapseHeader(true, 'is-bare')); })
-      .then(function () { return Flow.wait(BEAT); })
-      .then(function () {
-        seg.a = SUMMARY.a; seg.span = SUMMARY.span; seg.origin = 'a';
-        redraw();
-        far = reach();
-        dom.segs.removeAttribute('hidden');
-        dom.segMarks.removeAttribute('hidden');
-        return drawCircle();
-      })
-      .then(function () { return Flow.wait(BEAT); })
-      .then(function () {
-        return Flow.anim(Beats.plantCentre(dom.segCentre, dom.segCentreDot, { call: false }));
-      })
-      .then(function () { return Flow.wait(BEAT); })
-      .then(function () { return Flow.anim(Beats.plotDot(dom.pointA.dot)); })
-      .then(function () { return Flow.wait(200); })
-      .then(function () { return Flow.anim(Beats.plotDot(dom.pointB.dot)); })
-      .then(function () { return Flow.wait(SHORT); })
-      .then(function () { return Flow.anim(Beats.growLine(dom.segChord, 0.6)); })
-      .then(function () { return Flow.wait(BEAT); })
-
-      /* ---- the two regions, each coloured and called what it is ----------- */
-      .then(function () { return Flow.anim(Beats.segFill(dom.segMinor, dom.clipMinor, far[0])); })
-      .then(function () {
-        aimLabel(labels.minor, spot('minor'), 'Segment');
-        return Flow.anim(Beats.labelIn(labels.minor));
-      })
-      .then(function () { return Flow.wait(BEAT); })
-      .then(function () { return Flow.anim(Beats.segFill(dom.segMajor, dom.clipMajor, far[1])); })
-      .then(function () {
-        aimLabel(labels.major, spot('major'), 'Segment');
-        return Flow.anim(Beats.labelIn(labels.major));
-      })
-      .then(function () { return Flow.wait(BEAT + SHORT); })
-
-      /* ---- and named ------------------------------------------------------- */
-      .then(function () { return Flow.anim(Beats.labelsOut([labels.minor, labels.major])); })
-      .then(function () { return Flow.wait(SHORT); })
-      .then(function () {
-        aimCallout(callouts.minor, spot('minor'), 'Minor segment');
-        return showCallout(callouts.minor);
-      })
-      .then(function () { return Flow.wait(BEAT); })
-      .then(function () {
-        aimCallout(callouts.major, spot('major'), 'Major segment');
-        return showCallout(callouts.major);
-      })
-      .then(function () { return Flow.wait(BEAT); })
-      .then(function () { return K.handOver(dom.nextBtn); })
-
-      /* ---- and the section closes ------------------------------------------ */
-      .then(function () { return K.wipeBoard(); })
-      .then(function () { return Flow.anim(K.collapseHeader(false, 'is-bare')); });
+      /* ---- and the section closes: the next opens on a blank board ------- */
+      .then(function () { return K.wipeBoard(); });
   }
 
   /* ======================================================================
@@ -678,30 +605,13 @@
     mascot.placeIn(dom.slotHeader);
     mascot.el.classList.remove('is-away');
     mascot.idle();
-    if (local === 1) return;
-
-    /* turned and coloured for the activity, its two boxes filled: the
-       summary opens by wiping this */
-    seg.a = norm(TILT - seg.span / 2); seg.origin = 'a';
-    redraw();
-    dom.segs.classList.add('is-quiz');
-    buildBoxes();
-    dom.segBoxes.removeAttribute('hidden');
-    boxes.forEach(function (b) {
-      b.filled = true;
-      b.text.textContent = b.name;
-      b.g.classList.add('is-shown', 'is-right');
-      b.leader.classList.add('is-shown');
-      M.set([b.text, b.badge], { opacity: 1 });
-    });
   }
 
   Pages.addSection({
     name: 'Segments',
     scenes: [
       { name: 'Segments',          play: sceneSegments     },
-      { name: 'Name the segments', play: sceneNameSegments },
-      { name: 'Segment summary',   play: sceneSummary      }
+      { name: 'Name the segments', play: sceneNameSegments }
     ],
     build: build,
     parts: parts,
@@ -709,5 +619,5 @@
     stage: stage
   });
 
-  global.Segments = { LINES: LINES, state: function () { return seg; } };
+  global.Segments = { state: function () { return seg; } };
 })(window);

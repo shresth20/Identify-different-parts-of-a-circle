@@ -2,7 +2,7 @@
  * arcs.js -- section 2: arcs, major and minor, the semicircle
  * --------------------------------------------------------------------------
  * The second section of the lesson, registered with pages.js as a section
- * (see addSection there): five scenes on the same board, with the same bird
+ * (see addSection there): four scenes on the same board, with the same bird
  * and the same clock, built from the kit pages.js hands over and the beats
  * in animations.js. Nothing here waits on anything except through Flow, so
  * Skip, Replay and the level bar work on these scenes exactly as they do on
@@ -19,7 +19,6 @@
  *                  names dragged into their boxes, then explained
  *   Semicircle     the points moved until the pieces are equal, and the
  *                  half that makes named
- *   Arc summary    the whole idea drawn once more, with no bird
  *
  * The section draws its OWN circle -- the #arcs group in index.html -- and
  * everything in this file is measured from the same three numbers as the
@@ -54,9 +53,11 @@
   function T(key) { return global.T ? global.T(key) : key; }
   function keyed(key) { return { text: T(key), vo: key }; }
   /* A line's recording, for a line typed somewhere speak() does not reach
-     -- the speech card. Not under Skip: nothing is heard in a skip. */
+     -- the speech card. Resolves once the clip has run out, so the line is
+     not over, and the next one cannot cut it, until it has been heard.
+     Not under Skip: nothing is heard in a skip. */
   function voice(key) {
-    if (global.I18n && !Flow.isFast()) K.quiet(global.I18n.say(key));
+    return K.quiet(K.hear(key));
   }
 
 
@@ -73,7 +74,6 @@
      and meet at the first. */
   var arc = { a: 25, span: 100, origin: 'a' };
   var DEFAULT = { a: 25, span: 100 };
-  var SUMMARY = { a: 20, span: 100 };
 
   var MIN_SPAN = 105;     /* the least the learner may cut off, in degrees:
                              long enough to be plainly a piece of the circle */
@@ -358,8 +358,8 @@
   var BOX_IN = 30, BOX_OFF = 44, ANCHOR_OUT = ARC_W / 2 - 0.5;
   function buildBoxes() {
     clearBoxes();
-    boxes = [{ name: 'Major arc', deg: bisMajor() },
-             { name: 'Minor arc', deg: bisMinor() }].map(function (s, i) {
+    boxes = [{ name: 's1LblMajorArc', deg: bisMajor() },
+             { name: 's1LblMinorArc', deg: bisMinor() }].map(function (s, i) {
       var t = s.deg * Math.PI / 180;
       var right = Math.cos(t) >= 0;
       var anchor = P(s.deg, RR + ANCHOR_OUT);
@@ -452,15 +452,11 @@
      explanations wear -- K.cardUp, with this section's circle as the
      anchor -- so there is one card, one pill and one pulse everywhere. */
 
-  /* When a phrase of a line is due under the typer's clock. The reveal is
-     paced per character from the moment it starts, so the moment a phrase
-     begins is its offset into the line times the pace -- which is what
-     lets a mark on the circle land on the word that names it. */
-  function cue(text, phrase) {
-    var i = text.indexOf(phrase);
-    return i < 0 ? 0 : i * global.Typer.TYPE_MS;
-  }
-  function at(ms, fn) { return Flow.wait(ms).then(fn); }
+  /* When a phrase of a line is heard, in ms from the line's start -- on
+     its recording's clock (K.wordAt). A mark on the circle is put on the
+     word that names it with K.onWord, which counts from the moment the
+     line really starts. */
+  function cue(text, phrase) { return K.wordAt(text, phrase); }
 
   /* The sentence on the speech card swapped for the next one: the old one
      leaves the way a header line does, and the new one is laid out in its
@@ -896,10 +892,10 @@
       .then(function () {
         mascot.state('talking');
         Beats.bubbleArm(dom.bubble);
-        voice('arcIntro');
+        var heard = voice('arcIntro');
         var said = K.sayBubble(T('arcIntro'));
         Beats.bubbleIn(dom.bubble);
-        return said;
+        return Promise.all([said, heard]);
       })
       .then(function () {
         mascot.settle();
@@ -959,7 +955,7 @@
       })
       /* Two sentences on the card, one at a time, each acted out on the
          circle as it is said. The first: the circumference is divided into
-         two parts -- and on "divided" the two pieces pull well apart and
+         two parts -- and on "divide" the two pieces pull well apart and
          the two points between them fade away, so what is left on the board
          is two separate pieces. The second takes the first one's place:
          each part is called an arc -- and on "arc" the word goes on both. */
@@ -970,10 +966,10 @@
       .then(function (reveals) {
         var text = T('arcLook');
         mascot.state('talking');
-        voice('arcLook');
         return Promise.all([
+          voice('arcLook'),
           reveals[0](),
-          at(cue(text, 'divided'), function () {
+          K.onWord(text, 'divide', function () {
             return Flow.anim(Beats.arcSplit(pieces(), apart(SPLIT), dots()));
           })
         ]);
@@ -988,10 +984,10 @@
         aimLabel(labels.minor, bisMinor(), T('arcLbl'), SPLIT);
         aimLabel(labels.major, bisMajor(), T('arcLbl'), SPLIT);
         mascot.state('talking');
-        voice('arcEach');
         return Promise.all([
+          voice('arcEach'),
           reveal(),
-          at(cue(text, 'arc'), function () {
+          K.onWord(text, 'arc', function () {
             return Promise.all([
               Flow.anim(Beats.labelIn(labels.minor)),
               Flow.wait(140).then(function () { return Flow.anim(Beats.labelIn(labels.major)); })
@@ -1042,11 +1038,11 @@
         var text = T('arcMinorIs');
         return Promise.all([
           K.speak(keyed('arcMinorIs')),
-          at(cue(text, 'smaller'), function () {
+          K.onWord(text, 'shorter', function () {
             return Flow.anim(Beats.arcFocus([dom.arcMinor], [dom.arcMajor]));
           }),
-          at(cue(text, 'minor arc'), function () {
-            aimCallout(callouts.minor, bisMinor(), 'Minor arc');
+          K.onWord(text, 'minor arc', function () {
+            aimCallout(callouts.minor, bisMinor(), T('s1LblMinorArc'));
             return showCallout(callouts.minor);
           })
         ]);
@@ -1060,11 +1056,11 @@
           K.speak(keyed('arcMajorIs')),
           /* the smaller part stands back with its name and arrow, so the
              larger one and its name are the only thing at full */
-          at(cue(text, 'larger'), function () {
+          K.onWord(text, 'longer', function () {
             return Flow.anim(Beats.arcFocus([dom.arcMajor], [dom.arcMinor, callouts.minor.g]));
           }),
-          at(cue(text, 'major arc'), function () {
-            aimCallout(callouts.major, bisMajor(), 'Major arc');
+          K.onWord(text, 'major arc', function () {
+            aimCallout(callouts.major, bisMajor(), T('s1LblMajorArc'));
             return showCallout(callouts.major);
           })
         ]);
@@ -1108,20 +1104,20 @@
       .then(function () {
         buildBoxes();
         dom.arcBoxes.removeAttribute('hidden');
-        return Flow.anim(Beats.boxIn(boxFor('Major arc')));
+        return Flow.anim(Beats.boxIn(boxFor('s1LblMajorArc')));
       })
       .then(function () { return Flow.wait(320); })
-      .then(function () { return Flow.anim(Beats.boxIn(boxFor('Minor arc'))); })
+      .then(function () { return Flow.anim(Beats.boxIn(boxFor('s1LblMinorArc'))); })
       .then(function () { return Flow.wait(SHORT); })
 
       /* ---- the names, placed with the bird watching -------------------------
          See namePair in pages.js: the bird stays until both are in, a wrong
          drop is answered in one line, and the page turns itself. */
       .then(function () {
-        var names = coin('Minor arc', 'Major arc');
+        var names = coin('s1LblMinorArc', 's1LblMajorArc');
         var done = K.namePair({
           boxes: boxes, group: dom.arcBoxes, names: names, ask: 'dragNames',
-          wrong: { 'Minor arc': 'arcWrongMinor', 'Major arc': 'arcWrongMajor' }
+          wrong: { s1LblMinorArc: 'arcWrongMinor', s1LblMajorArc: 'arcWrongMajor' }
         });
         chips = K.chips();
         return done;
@@ -1234,72 +1230,10 @@
         return Flow.anim(Beats.labelIn(labels.major));
       })
       .then(function () { return Flow.wait(BEAT); })
-      .then(function () { return K.handOver(dom.nextBtn); });
-  }
-
-  /* ======================================================================
-   * Scene 5 -- the summary. No bird: a clean board with both bands closed,
-   * so the circle sits at its very centre, and the idea drawn once more
-   * from the start -- circle, centre, two points, the two pieces, and
-   * their names.
-   * ====================================================================== */
-  function sceneSummary() {
-    return K.wipeBoard()
-      .then(function () { return Flow.anim(K.collapseHeader(true, 'is-bare')); })
-      .then(function () { return Flow.wait(BEAT); })
-      .then(function () {
-        arc.a = SUMMARY.a; arc.span = SUMMARY.span; arc.origin = 'a';
-        redraw();
-        dom.arcs.removeAttribute('hidden');
-        dom.arcMarks.removeAttribute('hidden');
-        return drawCircle();
-      })
-      .then(function () { return Flow.wait(BEAT); })
-      .then(function () {
-        return Flow.anim(Beats.plantCentre(dom.arcCentre, dom.arcCentreDot, { call: false }));
-      })
-      .then(function () { return Flow.wait(BEAT); })
-      .then(function () { return Flow.anim(Beats.plotDot(dom.pointA.dot)); })
-      .then(function () { return Flow.wait(200); })
-      .then(function () { return Flow.anim(Beats.plotDot(dom.pointB.dot)); })
-      .then(function () { return Flow.wait(BEAT); })
-
-      /* ---- the two pieces, each drawn and called what it is --------------- */
-      .then(function () { return Flow.anim(Beats.growLine(dom.arcMinor, 0.8)); })
-      .then(function () {
-        aimLabel(labels.minor, bisMinor(), 'Arc');
-        return Flow.anim(Beats.labelIn(labels.minor));
-      })
-      .then(function () { return Flow.wait(BEAT); })
-      .then(function () { return Flow.anim(Beats.growLine(dom.arcMajor, 1.1)); })
-      .then(function () {
-        aimLabel(labels.major, bisMajor(), 'Arc');
-        return Promise.all([
-          Flow.anim(Beats.labelIn(labels.major)),
-          /* the coral rim under the two colours has nothing left to show */
-          Flow.anim(M.to(dom.arcRim, { opacity: 0, duration: M.dur(0.3), ease: 'power2.out' }))
-        ]);
-      })
-      .then(function () { return Flow.wait(BEAT + SHORT); })
-
-      /* ---- and named ------------------------------------------------------- */
-      .then(function () { return Flow.anim(Beats.labelsOut([labels.minor, labels.major])); })
-      .then(function () { return Flow.wait(SHORT); })
-      .then(function () {
-        aimCallout(callouts.minor, bisMinor(), 'Minor arc');
-        return showCallout(callouts.minor);
-      })
-      .then(function () { return Flow.wait(BEAT); })
-      .then(function () {
-        aimCallout(callouts.major, bisMajor(), 'Major arc');
-        return showCallout(callouts.major);
-      })
-      .then(function () { return Flow.wait(BEAT); })
       .then(function () { return K.handOver(dom.nextBtn); })
 
-      /* ---- and the section closes ------------------------------------------ */
-      .then(function () { return K.wipeBoard(); })
-      .then(function () { return Flow.anim(K.collapseHeader(false, 'is-bare')); });
+      /* ---- and the section closes: the next opens on a blank board ------- */
+      .then(function () { return K.wipeBoard(); });
   }
 
   /* ======================================================================
@@ -1380,27 +1314,17 @@
        the bird gone, as the naming leaves it */
     arc.a = norm(TILT - arc.span / 2);
     redraw();
-    if (local === 3) {
-      mascot.el.classList.add('is-away');
-      dom.arcs.classList.add('is-quiz');
-      buildBoxes();
-      dom.arcBoxes.removeAttribute('hidden');
-      boxes.forEach(function (b) {
-        b.filled = true;
-        b.text.textContent = b.name;
-        b.g.classList.add('is-shown', 'is-right');
-        b.leader.classList.add('is-shown');
-        M.set([b.text, b.badge], { opacity: 1 });
-      });
-      return;
-    }
-
-    /* the summary wipes first; leave the two halves standing for it to
-       take away, with the bird behind the board as pages.js left it */
     mascot.el.classList.add('is-away');
-    arc.a = 0; arc.span = 180;
-    redraw();
-    M.set(dom.arcDia, { opacity: 1 });
+    dom.arcs.classList.add('is-quiz');
+    buildBoxes();
+    dom.arcBoxes.removeAttribute('hidden');
+    boxes.forEach(function (b) {
+      b.filled = true;
+      b.text.textContent = T(b.name);
+      b.g.classList.add('is-shown', 'is-right');
+      b.leader.classList.add('is-shown');
+      M.set([b.text, b.badge], { opacity: 1 });
+    });
   }
 
   Pages.addSection({
@@ -1409,8 +1333,7 @@
       { name: 'Arcs',          play: sceneArcs       },
       { name: 'Minor & major', play: sceneMinorMajor },
       { name: 'Name the arcs', play: sceneNameArcs   },
-      { name: 'Semicircle',    play: sceneSemicircle },
-      { name: 'Arc summary',   play: sceneSummary    }
+      { name: 'Semicircle',    play: sceneSemicircle }
     ],
     build: build,
     parts: parts,

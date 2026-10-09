@@ -31,20 +31,14 @@
 
   /* ---- the script -------------------------------------------------------
      Every word the learner reads, in one place. Short sentences and plain
-     words: the audience is grade 7. */
+     words: the audience is grade 7. Every line is read by key from
+     locales/locales.json; these are the ones later sections read here --
+     getters, because the words are loaded only after this file has run. */
   var LINES = {
-    hello:   'Hey there!',
-    warmup:  'Let’s do a quick warm-up!',
-
-    /* scene 1's, the chord's and the activity's lines are read by key from
-       locales/locales.json (s1...) */
-
-    /* the plain right / wrong words, which later sections still read here */
-    ackRight: 'Correct!',
-    ackWrong: 'Not quite!',
-
-    drag:  'Drag each name to the correct box.',
-    done:  'Great job! You know all the parts of a circle!'
+    get ackRight() { return keyed('fbCorrect'); },
+    get ackWrong() { return keyed('fbNotQuite'); },
+    get drag()     { return keyed('dragNames'); },
+    get done()     { return keyed('s1QzDone'); }
   };
 
   /* ---- pacing -----------------------------------------------------------
@@ -76,8 +70,8 @@
   /* The centre, to the storyboard's clock as well: the circle is left on
      its own, then the dot goes on, then the dot starts to glow, then the
      bird asks for it -- each a CENTRE_HOLD after the last. The name goes
-     on once it has been said, at NAME_PACE times a callout's ordinary
-     speed. */
+     on as it is said (nameAlong); NAME_PACE times a callout's ordinary
+     speed for a line with no recording to time it by. */
   var CENTRE_HOLD = 2000;
   var NAME_PACE   = 2.2;
 
@@ -147,7 +141,7 @@
     /* Every arrow is short: the word sits close to the thing it names and
        the arrow only bridges the gap (user, 2026-10-08). */
     circumference: {
-      text: 'Circumference',
+      text: 's1LblCircumference',
       from: { x: 648, y: 58 }, bend: { x: 630, y: 58 }, tip: { x: 609, y: 80 },
       label: { x: 656, y: 66 }
     },
@@ -155,7 +149,7 @@
        so the arrow is a short hop in to it. The tip stops just outside the
        soft halo. */
     centre: {
-      text: 'Center',
+      text: 's1LblCenter',
       from: { x: 554, y: 254 }, bend: { x: 536, y: 252 }, tip: { x: 514, y: 224 },
       label: { x: 562, y: 262 },
       part: function () { return dom.dot; }
@@ -163,7 +157,7 @@
     /* The word stands clear of the circle, up and to the right of the
        rim, and the arrow runs in from outside to the line. */
     radius: {
-      text: 'Radius',
+      text: 's1LblRadius',
       from: { x: 694, y: 146 }, bend: { x: 646, y: 150 }, tip: { x: 592, y: 199 },
       label: { x: 702, y: 154 }
     },
@@ -171,12 +165,12 @@
        carried on through the centre, and kept clear of the names that go
        under its two halves later. */
     diameter: {
-      text: 'Diameter',
+      text: 's1LblDiameter',
       from: { x: 694, y: 146 }, bend: { x: 642, y: 150 }, tip: { x: 582, y: 199 },
       label: { x: 702, y: 154 }
     },
     chord: {
-      text: 's1LblChord',             /* a key: aimCallout reads it through T */
+      text: 's1LblChord',
       from: { x: 640, y: 338 }, bend: { x: 614, y: 336 }, tip: { x: 592, y: 312 },
       label: { x: 648, y: 346 },
       part: function () { return chords[0] && chords[0].line; }
@@ -208,14 +202,16 @@
     chord:    { cls: 'q-chord',
                 from: CHORDS[0][0], to: CHORDS[0][1], ends: CHORDS[0] }
   };
+  /* A box's name is the key of its word: the id it is matched by, and
+     read through T wherever it is shown. */
   var QUIZ_BOXES = [
-    { name: 'Circumference', x: 30,  y: 56,  anchor: onRim(135) },
-    { name: 'Radius',        x: 720, y: 84,  anchor: midpoint({ x: CX, y: CY }, RADIUS_END) },
-    { name: 'Diameter',      x: 30,  y: 222, anchor: { x: 415, y: CY } },
+    { name: 's1LblCircumference', x: 30,  y: 56,  anchor: onRim(135) },
+    { name: 's1LblRadius',        x: 720, y: 84,  anchor: midpoint({ x: CX, y: CY }, RADIUS_END) },
+    { name: 's1LblDiameter',      x: 30,  y: 222, anchor: { x: 415, y: CY } },
     /* Raised so its leader runs into the dot about midway between the
        diameter and the chord, well clear of the chord's right end. */
-    { name: 'Center',        x: 720, y: 250, anchor: null },
-    { name: 'Chord',         x: 30,  y: 330, anchor: { x: 440, y: CHORD_Y } }
+    { name: 's1LblCenter',        x: 720, y: 250, anchor: null },
+    { name: 's1LblChord',         x: 30,  y: 330, anchor: { x: 440, y: CHORD_Y } }
   ];
   var CENTRE_GAP = 16;          /* how short of the dot the centre's leader stops */
 
@@ -473,7 +469,7 @@
       e.classList.remove('is-right', 'is-wrong', 'is-over', 'is-shown', 'is-quiet',
                          'is-target');
     });
-    box.g.setAttribute('aria-label', 'Empty box. Drop a name here.');
+    box.g.setAttribute('aria-label', T('s1A11yBox'));
   }
 
   /* The five names, as buttons in the tray. Buttons, so a keyboard can pick
@@ -484,9 +480,9 @@
       var b = document.createElement('button');
       b.type = 'button';
       b.className = 'chip';
-      b.textContent = name;
+      b.textContent = T(name);
       b.dataset.name = name;
-      b.setAttribute('aria-label', name + '. Drag it to a box, or press to pick it up.');
+      b.setAttribute('aria-label', T('s1A11yChip', { name: T(name) }));
       tray.appendChild(b);
       return b;
     });
@@ -772,8 +768,114 @@
     if (text && typeof text === 'object') return text;
     return { text: String(text), vo: null };
   }
+
+  /* A key's recording, played and listened to the end. Resolves true once
+     the clip has run out, false when there was none to play or it was cut
+     by a later line. Listened for on Flow's own waits, so a line is never
+     held past a Skip -- the clip is stopped and nothing is heard -- and a
+     scene retired by Replay or a jump takes its clip with it. */
+  function hear(key) {
+    if (!key || !global.I18n || Flow.isFast()) return Promise.resolve(false);
+    var done = false, ok = false;
+    quiet(global.I18n.say(key)).then(function (r) { done = true; ok = r; },
+                                     function () { done = true; });
+    function heard() {
+      if (Flow.isFast()) { global.I18n.stop(); return false; }
+      if (done) return ok;
+      return Flow.wait(80).then(heard, function (err) {
+        global.I18n.stop();
+        throw err;
+      });
+    }
+    return heard();
+  }
+  /* A line's clip, started as its words start. The line is not over until
+     both are: a clip that runs past the typing holds the next line back
+     rather than being cut off by it. */
   function voiceOf(line) {
-    if (line.vo && global.I18n) quiet(global.I18n.say(line.vo));
+    return line.vo ? hear(line.vo) : Promise.resolve(false);
+  }
+
+  /* ---- a line on its recording's clock ---------------------------------
+     A recorded line is typed to its voice, word for word: each word goes on
+     the moment it is heard (the cues in locales.json, see I18n.cues), so
+     the words keep the speaker's pace and pauses, and the sentence is
+     whole as the voice finishes it. A line is found by its words, so every
+     box that types one -- the header, the bubble, the card -- is timed
+     without its callers having to pass the key along. A line with no
+     recording keeps the Typer's own pace. */
+  var keyOfText = null;
+  function cuesFor(text) {
+    var I = global.I18n;
+    if (!I || !I.cues) return null;
+    if (!keyOfText) {
+      keyOfText = {};
+      I.voiced().forEach(function (k) { keyOfText[I.t(k)] = k; });
+    }
+    var key = keyOfText[text];
+    return key ? I.cues(key) : null;
+  }
+
+  /* When a phrase of a line is heard, in ms from the line's start: for a
+     mark on the figure to land on the word that names it. */
+  function wordAt(text, phrase) {
+    var i = text.indexOf(phrase);
+    if (i < 0) return 0;
+    var cues = cuesFor(text);
+    if (!cues) return i * global.Typer.TYPE_MS;
+    var cuts = global.Typer.wordCuts(text);
+    for (var w = 0; w < cuts.length && w < cues.length; w++) {
+      if (i < cuts[w]) return cues[w];
+    }
+    return cues[cues.length - 1];
+  }
+
+  /* The moment each line starts -- its first word and its clip together --
+     so a beat on the figure can be counted from there, not from whenever
+     the scene happened to ask for it (a line still has the last one to
+     clear, or the bird to land, before it begins). */
+  var begun = { text: null, at: 0 };
+  var awaiting = [];
+  function began(text) {
+    begun = { text: text, at: performance.now() };
+    awaiting = awaiting.filter(function (w) {
+      if (w.text !== text) return true;
+      w.resolve(begun.at);
+      return false;
+    });
+  }
+  function lineBegins(text) {
+    /* asked in the same breath as the line was started (a card's reveal
+       is called just before its beats are set up) */
+    if (begun.text === text && performance.now() - begun.at < 100) {
+      return Promise.resolve(begun.at);
+    }
+    return new Promise(function (resolve) {
+      awaiting.push({ text: text, resolve: resolve });
+    });
+  }
+  /* fn, run as `phrase` is heard in the line `text`. */
+  function onWord(text, phrase, fn) {
+    return lineBegins(text)
+      .then(function (t0) { return Flow.wait(t0 + wordAt(text, phrase) - performance.now()); })
+      .then(fn);
+  }
+
+  /* A typer whose every line is laid out on its recording's clock, and
+     reports the moment it starts. Same calls as the Typer's own. */
+  function onVoice(say) {
+    function reserve(text, over) {
+      var cues = over ? null : cuesFor(text);
+      var reveal = say.reserve(text, over || (cues ? { at: cues } : undefined));
+      return function () {
+        began(text);
+        return reveal();
+      };
+    }
+    function said(text, over) { return reserve(text, over)(); }
+    said.reserve = reserve;
+    said.clear = say.clear;
+    return said;
   }
 
   /* `along`, as for arriveSaying: something acted out on the figure while
@@ -791,9 +893,9 @@
          replaces the line in place. */
       M.set(dom.promptLine, { clearProps: 'opacity,transform,filter' });
       mascot.state(mood || 'talking');
-      voiceOf(line);
+      var heard = quiet(voiceOf(line));
       var said = sayInHeader(line.text);
-      return along ? Promise.all([said, along(line)]) : said;
+      return Promise.all([said, heard, along ? along(line) : null]);
     }).then(function () {
       if (mine === speaking) mascot.settle();
     });
@@ -971,8 +1073,8 @@
     var reveal = sayPrompt.reserve(line.text);
     return mascotJumpIn().then(function () {
       mascot.state(mood || 'talking');
-      voiceOf(line);
-      return along ? Promise.all([reveal(), along(line)]) : reveal();
+      var heard = quiet(voiceOf(line));
+      return Promise.all([reveal(), heard, along ? along(line) : null]);
     });
   }
 
@@ -984,26 +1086,28 @@
   /* How long a line takes to type, in seconds: for something acted out on
      the figure in step with it. */
   function typedFor(text) {
+    var cues = cuesFor(text);
+    if (cues) return (cues[cues.length - 1] + global.Typer.WORD_IN * 2) / 1000;
     return text.length * global.Typer.TYPE_MS / 1000;
   }
 
   /* A line said by the voice alone, with nothing written: its recording
-     (assets/VO/en/<key>.webm) is played and waited for. A line not yet
-     recorded is still given the time it would take to say, so the beats
-     round it keep their pace now and the clip drops in later unchanged.
-     Every wait is Flow's, so Skip and Replay cut it like any other; under
-     Skip nothing is played at all. */
+     (the voiceOver map in locales.json) is played and waited for, and what
+     follows it -- the arrow and the name going on -- comes as the voice
+     stops, not on a guess at its length. A line not yet recorded is still
+     given the time it would take to say, so the beats round it keep their
+     pace and the clip drops in later unchanged. Every wait is Flow's, so
+     Skip and Replay cut it like any other; under Skip nothing is played. */
   var VO_MIN  = 1600;   /* ms: the shortest hold for a line              */
   var VO_PACE = 65;     /* ms a character, for a line not yet recorded   */
 
   function voiceOver(key) {
     if (Flow.isFast() || !global.I18n) return Flow.wait(0);
-    var done = false;
-    quiet(global.I18n.say(key)).then(function () { done = true; },
-                                     function () { done = true; });
-    function heard() { return done ? null : Flow.wait(120).then(heard); }
+    var from = Date.now();
     var floor = Math.max(VO_MIN, global.I18n.t(key).length * VO_PACE);
-    return Flow.wait(floor).then(heard);
+    return hear(key).then(function (played) {
+      if (!played) return Flow.wait(floor - (Date.now() - from));
+    });
   }
 
   /* A page that turns itself: handOver without the button. The page is
@@ -1051,6 +1155,35 @@
   function birdVoice(key) {
     mascot.state('talking');
     return voiceOver(key).then(function () { mascot.settle(); });
+  }
+
+  /* When the last word of a voice-only line -- the part's name: "This is
+     the radius." -- is heard, in ms from the clip's start. 0 when the line
+     has no cues. */
+  function nameHeard(key) {
+    var cues = global.I18n && global.I18n.cues ? global.I18n.cues(key) : null;
+    return cues ? cues[cues.length - 1] : 0;
+  }
+
+  /* A part named by the voice alone, its arrow and name put on WITH the
+     voice: the arrow is drawn as the line is said and its word comes up as
+     the name is heard, so what is said and what is written go together.
+     The callout's word goes on half way through its pace (see
+     Beats.callout), and the whole callout plays at FIGURE_SPEED, so the
+     pace is set to put that moment on the name -- a hair early, so the
+     word is already up as the name is heard. A line with no cues names the
+     part at the old pace. `bird`: the bird on the header talks the line. */
+  var CALLOUT_WORD_AT = 0.5;   /* s, at pace 1: when a callout's word goes on */
+  var NAME_LEAD = 60;          /* ms: the word up this much before the name */
+  function nameAlong(key, spec, bird) {
+    var heard = Math.max(0, nameHeard(key) - NAME_LEAD);
+    var pace = heard
+      ? Math.max(0.5, heard / 1000 * FIGURE_SPEED / CALLOUT_WORD_AT)
+      : NAME_PACE;
+    return Promise.all([
+      bird ? birdVoice(key) : voiceOver(key),
+      Flow.anim(aimCallout(spec, { pace: pace }))
+    ]);
   }
 
   /* Whether the bird is standing on the header now, and so can simply say
@@ -1421,6 +1554,9 @@
         var on = (b === box);
         [b.g, b.leader].forEach(function (e) { e.classList.toggle('is-over', on); });
       });
+      /* a section that lights the part a box is for while a name is held
+         over it (skill 3's sectors) is told which box that is, or null */
+      if (o.onHover) o.onHover(box);
     }
     function pick(chip) {
       if (picked) picked.classList.remove('is-picked');
@@ -1455,9 +1591,11 @@
         (r.left + r.width / 2) - (c.left + c.width / 2),
         (r.top + r.height / 2) - (c.top + c.height / 2));
 
-      box.text.textContent = box.name;
-      box.g.setAttribute('aria-label', box.name + '. Correct.');
+      box.text.textContent = T(box.name);
+      box.g.setAttribute('aria-label', T('s1A11yBoxRight', { name: T(box.name) }));
       Beats.boxRight(box);
+      /* and told of each name that lands right, as it does of a wrong one */
+      if (o.onRight) o.onRight(box, chip);
     }
     function boxFor(name) {
       for (var i = 0; i < q.boxes.length; i++) {
@@ -1714,9 +1852,11 @@
            to be laid out and measurable when the line goes into it, or it
            would open at the wrong size and resize a beat later. */
         Beats.bubbleArm(dom.bubble);
-        var said = sayBubble(LINES.hello);
+        var hello = keyed('s1Hello');
+        var heard = quiet(voiceOf(hello));
+        var said = sayBubble(hello.text);
         Beats.bubbleIn(dom.bubble);
-        return said;
+        return Promise.all([said, heard]);
       })
       .then(function () { return Flow.wait(BEAT); })
       .then(function () {
@@ -1724,7 +1864,9 @@
            shape. sayBubble was built with the bubble as its box, so Flip
            eases the box between the two sizes while the words -- already
            laid out, still invisible -- wait inside it. */
-        return sayBubble(LINES.warmup);
+        var warmup = keyed('s1Warmup');
+        var heard = quiet(voiceOf(warmup));
+        return Promise.all([sayBubble(warmup.text), heard]);
       })
       .then(function () {
         mascot.settle();
@@ -1793,10 +1935,7 @@
         });
       })
       .then(function () { return Flow.wait(BEAT); })
-      .then(function () {
-        return Promise.all([birdVoice('s1CircVO'),
-                            Flow.anim(aimCallout(CALLOUTS.circumference, { pace: NAME_PACE }))]);
-      })
+      .then(function () { return nameAlong('s1CircVO', CALLOUTS.circumference, true); })
       .then(function () { return autoTurn(AUTO_TURN); })
 
       /* ---- 2. The centre --------------------------------------------------
@@ -1814,10 +1953,7 @@
       .then(function () { return Flow.wait(BEAT); })
       .then(function () {
         Beats.centreGlow(dom.centre);
-        return voiceOver('s1CentreVO');
-      })
-      .then(function () {
-        return Flow.anim(aimCallout(CALLOUTS.centre, { pace: NAME_PACE }));
+        return nameAlong('s1CentreVO', CALLOUTS.centre);
       })
       .then(function () { return Flow.wait(BEAT); })
       .then(function () { return handOver(dom.nextBtn); })
@@ -1860,10 +1996,7 @@
         return Promise.all([Flow.anim(Beats.marksOut(sweep.ghosts)),
                             Flow.anim(Beats.pulseRelease(dom.halfRight))]);
       })
-      .then(function () { return birdVoice('s1RadVO'); })
-      .then(function () {
-        return Flow.anim(aimCallout(CALLOUTS.radius, { pace: NAME_PACE }));
-      })
+      .then(function () { return nameAlong('s1RadVO', CALLOUTS.radius, true); })
       .then(function () { return autoTurn(AUTO_TURN); })
 
       /* ---- 4. The diameter ------------------------------------------------
@@ -1905,8 +2038,15 @@
       })
       .then(function () { return Flow.anim(collapseHeader(true, null, true)); })
       .then(function () { return Flow.wait(SHORT); })
-      .then(function () { return voiceOver('s1DiaVO'); })
-      .then(function () { return Flow.anim(Beats.labelIn(dom.diaName)); })
+      /* the name written under the line as the voice says it */
+      .then(function () {
+        return Promise.all([
+          voiceOver('s1DiaVO'),
+          Flow.wait(Math.max(0, nameHeard('s1DiaVO') - NAME_LEAD)).then(function () {
+            return Flow.anim(Beats.labelIn(dom.diaName));
+          })
+        ]);
+      })
       .then(function () { return Flow.wait(BEAT); })
       .then(function () { return Flow.anim(Beats.showRule(dom.diaRule, dom.diaPlate)); })
       .then(function () { return Flow.wait(BEAT); })
@@ -1970,11 +2110,8 @@
         return Flow.wait(BEAT);
       })
       /* Heard, not written: the line stays up while the voice names it,
-         and the arrow and its word go on once it has been said. */
-      .then(function () { return birdVoice('s1ChordVO'); })
-      .then(function () {
-        return Flow.anim(aimCallout(CALLOUTS.chord, { pace: NAME_PACE }));
-      })
+         and the arrow and its word go on as it is said. */
+      .then(function () { return nameAlong('s1ChordVO', CALLOUTS.chord, true); })
       .then(function () { return autoTurn(AUTO_TURN); })
 
       /* ---- 2. The chord through the centre --------------------------------
@@ -2002,7 +2139,14 @@
         choiceBtns = buildChoices(dom.choices, [T('optYes'), T('optNo')]);
         return Flow.anim(Beats.trayIn(dom.choices, choiceBtns));
       })
-      .then(function () { return askChoice(choiceBtns, { answer: 0 }); })
+      /* The two answers are read out as they land -- heard, not written
+         again: their buttons are the words. The buttons listen from the
+         first word, and a tap cuts the reading short; "No" is only read
+         if "Yes" was heard to the end. */
+      .then(function () {
+        quiet(hear('optYes').then(function (heard) { if (heard) return hear('optNo'); }));
+        return askChoice(choiceBtns, { answer: 0 });
+      })
 
       /* Right or wrong, the lesson is the same one -- so only the word in
          front of it changes, and the closing line with it. A wrong answer
@@ -2036,9 +2180,9 @@
           return right;
         });
       })
-      .then(function (right) {
-        return speak(keyed(right ? 's1LongestRight' : 's1LongestWrong'));
-      })
+      .then(function () { return speak(keyed('s1Longest')); })
+      .then(function () { return Flow.wait(SHORT); })
+      .then(function () { return speak(keyed('s1EveryDia')); })
       .then(function () { return Flow.wait(BEAT); })
       /* Stop, until Next. The activity wipes the board from here. */
       .then(function () { return handOver(dom.nextBtn); });
@@ -2066,21 +2210,21 @@
      area as well. */
   function quizSteps() {
     return [
-      { name: 'Circumference',
+      { name: 's1LblCircumference',
         marks: [dom.rim],
         lit: [dom.rim],
         draw: function () {
           return Flow.anim(Beats.drawRim(dom.rim, dom.rimTip));
         } },
-      { name: 'Center',
+      { name: 's1LblCenter',
         marks: [dom.centre],
         lit: [dom.dot],
         draw: function () {
           return Flow.anim(Beats.plantCentre(dom.centre, dom.dot, { call: false }));
         } },
-      { name: 'Radius',   part: 'radius' },
-      { name: 'Diameter', part: 'diameter' },
-      { name: 'Chord',    part: 'chord' }
+      { name: 's1LblRadius',   part: 'radius' },
+      { name: 's1LblDiameter', part: 'diameter' },
+      { name: 's1LblChord',    part: 'chord' }
     ].map(function (s) {
       if (!s.part) return s;
       var p = quiz.parts[s.part];
@@ -2113,7 +2257,8 @@
   /* The order the parts are asked for, one at a time: the centre first,
      then the lines from it and through it, then the chord, and the rim
      last. Each is lit on the circle, and its box lifted, while it waits. */
-  var ASK_ORDER = ['Center', 'Radius', 'Diameter', 'Chord', 'Circumference'];
+  var ASK_ORDER = ['s1LblCenter', 's1LblRadius', 's1LblDiameter', 's1LblChord',
+                   's1LblCircumference'];
 
   /* A name dropped on the wrong part is answered in one short line: "Not
      quite!" and what THAT name is -- enough to see why it does not fit,
@@ -2121,12 +2266,12 @@
      diameter is the one case where the name is not wrong about the line,
      only not the name asked for, and it is told so. */
   var WRONG_KEY = {
-    Center: 's1QzWrongCentre', Radius: 's1QzWrongRadius',
-    Diameter: 's1QzWrongDiameter', Chord: 's1QzWrongChord',
-    Circumference: 's1QzWrongCircum'
+    s1LblCenter: 's1QzWrongCentre', s1LblRadius: 's1QzWrongRadius',
+    s1LblDiameter: 's1QzWrongDiameter', s1LblChord: 's1QzWrongChord',
+    s1LblCircumference: 's1QzWrongCircum'
   };
   function wrongKey(target, name) {
-    if (target === 'Diameter' && name === 'Chord') return 's1QzWrongChordDia';
+    if (target === 's1LblDiameter' && name === 's1LblChord') return 's1QzWrongChordDia';
     return WRONG_KEY[name] || 'fbNotQuite';
   }
   /* How long the answer to a wrong drop stays up before the instruction
@@ -2164,7 +2309,7 @@
       var box = boxOf(name);
       /* A point has no stroke to swell, only a ring to ping, so the centre
          wears its halo as well -- the glow scene 1 named it with. */
-      var halo = name === 'Center';
+      var halo = name === 's1LblCenter';
       Beats.pulseHold(step.lit);
       if (halo) Beats.centreGlow(dom.centre);
       targetBox(box, true);
@@ -2417,6 +2562,9 @@
     if (sayBubble) sayBubble.clear();
     if (sayPrompt) sayPrompt.clear();
     speaking++;
+    awaiting = [];                /* beats waiting on a line of the old run */
+    begun = { text: null, at: 0 };
+    if (global.I18n) global.I18n.stop();
 
     /* A replay can catch the bird mid-jump, which is the one state in the
        lesson that has a second element in it. Put the hopper away before
@@ -2503,14 +2651,16 @@
 
     mascot = global.Mascot.create({ slot: dom.slotHero });
 
-    sayBubble = global.Typer.create($('bubbleType'), { box: dom.bubble });
-    sayPrompt = global.Typer.create($('promptType'));
+    sayBubble = onVoice(global.Typer.create($('bubbleType'), { box: dom.bubble }));
+    sayPrompt = onVoice(global.Typer.create($('promptType')));
     /* One typer for the aside, whichever section is speaking in it: a box
        with two typers bound to it has two owners, and the guard that stops
        an orphaned line writing over a newer one only works within one. */
-    sayAside  = global.Typer.create($('asideType'), { box: dom.bubbleAside });
+    sayAside  = onVoice(global.Typer.create($('asideType'), { box: dom.bubbleAside }));
     /* ...and the line under it, with no box: the box is the first line's. */
-    sayMore   = global.Typer.create($('asideMore'));
+    sayMore   = onVoice(global.Typer.create($('asideMore')));
+    /* Every clip fetched now, so none starts late against its words. */
+    if (global.I18n && global.I18n.voiced) global.I18n.preload(global.I18n.voiced());
 
     sections.forEach(function (s) { if (s.build) s.build(kit); });
 
@@ -2595,7 +2745,7 @@
     wipeBoard: wipeBoard, collapseHeader: collapseHeader, resetFooter: resetFooter,
     askChoice: askChoice, armQuiz: armQuiz, namePair: namePair,
     /* the speaking helpers by key, and a page that turns itself */
-    keyed: keyed, autoTurn: autoTurn, birdAway: birdAway, AUTO_TURN: AUTO_TURN,
+    keyed: keyed, hear: hear, onWord: onWord, wordAt: wordAt, autoTurn: autoTurn, birdAway: birdAway, AUTO_TURN: AUTO_TURN,
     ripple: ripple, quiet: quiet, clearInline: clearInline
   };
 

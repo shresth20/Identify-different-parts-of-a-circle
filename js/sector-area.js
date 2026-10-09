@@ -11,7 +11,8 @@
  * storyboard asks with:
  *
  *   a dropdown blank   a dashed slot in a sentence; tap it, pick a choice
- *   a tap-the-answer   four pills in the footer, as the first lesson's
+ *   a tap-the-answer   three pills, the first lesson's own, under the
+ *                      question or in the footer
  *   a tap-the-figure   a point on the rim, a region, a handle to drag
  *
  * A wrong answer is never the end of a question: the choice is struck out,
@@ -58,8 +59,8 @@
   var PEN   = 1.5;          /* s: the pen once round a circle               */
   var SWEEP = 1.1;          /* s: a sector swept out                        */
 
-  var PRAISE = ['Correct!', 'Well done!', 'That’s right!', 'Great job!'];
-  var OOPS   = ['Not quite! Try again.', 'Oops! Try once more.', 'Almost! Try again.'];
+  var PRAISE = ['fbCorrect', 'p29WellDone', 's3ThatsRight', 's3GreatJob'];
+  var OOPS   = ['s3OopsTryAgain', 's3OopsOnceMore', 's3OopsAlmost'];
 
   var dom = null;
   var mascot = null;
@@ -74,6 +75,11 @@
   function wait(ms) { return Flow.wait(ms); }
   function anim(a) { return Flow.anim(a); }
   function quiet(p) { if (p && p.catch) p.catch(function () {}); return p; }
+  /* words by key; `tr`, not T, since several scenes name a sector T */
+  function tr(key, repl) { return global.I18n ? global.I18n.t(key, repl) : key; }
+  function keyed(key, repl) { return repl ? { text: tr(key, repl), vo: key } : K.keyed(key); }
+  function lineOf(text) { return text && typeof text === 'object' ? text : { text: String(text), vo: null }; }
+  function voiceOf(line) { if (line.vo && global.I18n) quiet(global.I18n.say(line.vo)); }
   /* Answers are shown in a random order, so the right one is not always
      first; the order of the list in the code still names them. */
   function shuffled(n) {
@@ -84,8 +90,8 @@
     }
     return o;
   }
-  function praise() { return PRAISE[praised++ % PRAISE.length]; }
-  function oops() { return OOPS[(Math.random() * OOPS.length) | 0]; }
+  function praise() { return keyed(PRAISE[praised++ % PRAISE.length]); }
+  function oops() { return keyed(OOPS[(Math.random() * OOPS.length) | 0]); }
 
   function svgEl(tag, attrs, parent) {
     var e = document.createElementNS(NS, tag);
@@ -440,6 +446,7 @@
 
   var speaking = 0;
   function speak(text, mood) {
+    var said = lineOf(text);
     var mine = ++speaking;
     var line = perch ? perch.line : dom.promptLine;
     var has = line.textContent.trim().length > 0;
@@ -448,7 +455,8 @@
       if (mine !== speaking) return;
       M.set(line, { clearProps: 'opacity,transform,filter' });
       mascot.state(mood || 'talking');
-      return perch ? perch.typer(text) : sayInHeader(text);
+      voiceOf(said);
+      return perch ? perch.typer(said.text) : sayInHeader(said.text);
     }).then(function () {
       if (mine === speaking) mascot.settle();
     });
@@ -544,7 +552,17 @@
     var slot = h('div', 'sa-perch', null, row);
     var bub = h('div', 'sa-bubble',
       '<span class="type-wrap"><span class="type-ghost"></span>' +
-      '<span class="type" aria-live="polite"><span class="txt"></span></span></span>', row);
+      '<span class="type" aria-live="polite"><span class="txt"></span></span></span>' +
+      /* The tail: the hero bubble's drawing (index.html), stamped again, so
+         the box reads as the same object wherever the bird speaks -- as
+         skill 2's bubble-02 does. Placed, sized and coloured by .sa-bubble
+         (css/sector-area.css); the fill and the stroke read the bubble's
+         own --bubble-bg and --note-edge, so a verdict recolours it too. */
+      '<svg class="bubble-tail" viewBox="0 0 44 42" aria-hidden="true">' +
+      '<path d="M4 0 H42 V8 C36 20 24 30 2 42 C8 32 8 20 4 8 Z" fill="var(--bubble-bg)" />' +
+      '<path d="M42 8 C36 20 24 30 2 42 C8 32 8 20 4 8" fill="none" stroke="var(--note-edge)" ' +
+      'stroke-width="4" stroke-linecap="round" stroke-linejoin="round" vector-effect="non-scaling-stroke" />' +
+      '</svg>', row);
     var wrap = bub.querySelector('.type-wrap');
     var typer = global.Typer.create(wrap, { box: bub });
     M.set(bub, { opacity: 0 });
@@ -553,12 +571,14 @@
   /* The bird onto the perch, and its first line into the bubble as the
      bubble opens out of its beak. */
   function perchSay(P, text, mood) {
+    var line = lineOf(text);
     perch = P;
     var mine = ++speaking;
     told++;
-    var reveal = P.typer.reserve(text);
+    var reveal = P.typer.reserve(line.text);
     return mascotJumpIn(P.slot).then(function () {
       mascot.state(mood || 'talking');
+      voiceOf(line);
       P.open = true;
       quiet(anim(M.fromTo(P.bubble, { opacity: 0, scale: 0.2, transformOrigin: '0% 70%' },
         { opacity: 1, scale: 1, duration: M.dur(0.44), ease: 'back.out(1.6)' })));
@@ -580,14 +600,29 @@
      it comes up to say it. The line is reserved BEFORE the jump, so the bird
      lands where the finished line will put it. */
   function say(text, mood) {
-    if (birdOnHeader()) return speak(text, mood);
-    if (perch) return perchSay(perch, text, mood);
+    var line = lineOf(text);
+    if (birdOnHeader()) return speak(line, mood);
+    if (perch) return perchSay(perch, line, mood);
     var mine = ++speaking;
-    var reveal = sayPrompt.reserve(text);
+    var reveal = sayPrompt.reserve(line.text);
     return mascotJumpIn().then(function () {
       mascot.state(mood || 'talking');
+      voiceOf(line);
       return reveal();
     }).then(function () { if (mine === speaking) mascot.settle(); });
+  }
+
+  /* A line in the field bubble, or across the top of the board. */
+  function bubbleSay(text) {
+    var line = lineOf(text);
+    voiceOf(line);
+    return sayBubble(line.text);
+  }
+  function sayTop(text) {
+    var line = lineOf(text);
+    var reveal = sayPrompt.reserve(line.text);
+    voiceOf(line);
+    return reveal();
   }
 
   /* Feedback said as a run of short lines, each replacing the last: "Not
@@ -721,16 +756,16 @@
       .then(function () { box.setAttribute('hidden', ''); box.textContent = ''; K.choices([]); });
   }
 
-  /* Four (or two, or three) pills; resolves once the right one is pressed. */
-  /* `o.host` puts the pills on the page itself, in a grid under the
+  /* Three (or two) pills -- the first lesson's own .choice, wherever they
+     stand; resolves once the right one is pressed. */
+  /* `o.host` puts the pills on the page itself, in a row under the
      question, rather than in the footer. */
   function askChoice(labels, right, o) {
     o = o || {};
     var box = o.host ? h('div', 'sa-mcq' + (o.tiles ? ' sa-mcq--tiles' : ''), null, o.host) : dom.choices;
     box.textContent = '';
     var btns = labels.map(function (l, i) {
-      var b = h('button', 'choice' + (o.tiles ? ' sa-opt' : ''),
-        o.tiles ? '<span class="sa-opt__txt">' + l + '</span>' : l, box);
+      var b = h('button', 'choice', l, box);
       b.type = 'button';
       return b;
     });
@@ -781,7 +816,7 @@
       '<span class="dd__val"></span>' +
       '<svg class="dd__caret" viewBox="0 0 12 8" aria-hidden="true"><path d="M1.5 1.5 6 6.5 10.5 1.5"/></svg>', dd);
     face.type = 'button';
-    face.setAttribute('aria-label', 'Choose an answer');
+    face.setAttribute('aria-label', tr('s3A11yDropdown'));
     var menu = h('span', 'dd__menu', null, dd);
     menu.setAttribute('role', 'listbox');
     menu.hidden = true;
@@ -1062,7 +1097,7 @@
       P.bubble.classList.add('sa-bubble--sun');
       var slot = h('div', 'sa-qslot', null, panel);
       sc.classList.add('sa-scene--practice');
-      var given = ruleCard(sc, spec.tag || 'Remember', spec.rule ||
+      var given = ruleCard(sc, spec.tag || tr('s3TagRemember'), spec.rule ||
         ('A ' + EQ + fr('θ', '360', 'c-ang') + X + PIR2), 'sa-rule--small');
       M.set(given.el, { opacity: 0 });
 
@@ -1072,7 +1107,7 @@
          own, and stays there; the bird then asks the question itself. */
       if (spec.given) {
         dom.board.classList.add('has-given');
-        await sayPrompt.reserve(spec.given)();
+        await sayTop(spec.given);
       }
       await anim(fadeIn(P.row, { y: 0 }));
       await perchSay(P, spec.prompt);
@@ -1082,7 +1117,7 @@
         host: slot, tiles: true, voice: voice,
         onWrong: spec.onWrong ? function (i) { spec.onWrong(i, fig); } : null, stagger: 0.35,
         onShown: function () { quiet(anim(cardIn(given.el))); },
-        yes: 'That’s correct!', why: spec.why
+        yes: keyed('fbThatsCorrect'), why: spec.why
       });
       await wait(900);
 
@@ -1146,14 +1181,14 @@
       .then(function () {
         mascot.state('talking');
         Beats.bubbleArm(dom.bubble);
-        var said = sayBubble('Hey there!');
+        var said = bubbleSay(keyed('s3IntroHey'));
         Beats.bubbleIn(dom.bubble);
         return said;
       })
       .then(function () { return wait(BEAT); })
-      .then(function () { return sayBubble('Today we’ll find the area of a sector of a circle.'); })
+      .then(function () { return bubbleSay(keyed('s3IntroToday')); })
       .then(function () { return wait(BEAT); })
-      .then(function () { return sayBubble('Let’s begin with a quick warm-up!'); })
+      .then(function () { return bubbleSay(keyed('s3IntroWarmup')); })
       .then(function () { mascot.settle(); return wait(SHORT); })
       .then(handOver);
   }
@@ -1180,8 +1215,8 @@
     return anim(M.to(c, { attr: { r: 340 }, duration: M.dur(seconds || 1.1), ease: 'power2.inOut' }));
   }
 
-  /* The piece a card is about, lit and breathing; the other piece of the
-     same circle stepped back, so the lit one is what the eye lands on.
+  /* The piece a card is about, lit; the other piece of the same circle
+     stepped well back, so the lit one is what the eye lands on.
        Stepped back WITH its edge: the circle's outline is cut into the two
      arcs that bound the two pieces, and the arc along the dimmed piece
      dims with it. `lit` and `dim` are those two arcs as [from, to] angles.
@@ -1215,7 +1250,7 @@
     var cards = ['segment', 'sector', 'arc'].map(function (k) {
       var b = h('button', 'sa-card sa-card--' + k, null, sc);
       b.type = 'button';
-      b.setAttribute('aria-label', 'A circle card');
+      b.setAttribute('aria-label', tr('s3A11yCard'));
       return b;
     });
     await anim(M.fromTo(cards, { opacity: 0, y: 16, scale: 0.96 },
@@ -1292,14 +1327,10 @@
     await anim(Beats.growLine(majorArc, 1.1, 'power2.inOut'));
     await wait(SHORT);
     await spotlight(C3, minorArc, majorArc, [aa, ab], [ab, aa + 360]);
-    /* An arc is a line: the major arc is left crisp and whole, not faded,
-       so it reads as the other piece of the same boundary. */
-    majorArc.classList.remove('is-dim');
-    if (C3.dimRim) C3.dimRim.classList.remove('is-dim');
     await wait(800);
 
-    /* A look at all three before the question: each card's lit piece
-       brightens in turn. */
+    /* A look at all three before the question: each card is picked out
+       in turn. */
     var lit = [segMinor, S.region, minorArc];
     for (var q = 0; q < cards.length; q++) {
       cards[q].classList.add('is-look');
@@ -1307,8 +1338,6 @@
       await wait(900);
       cards[q].classList.remove('is-look');
     }
-    /* The brief flash overrides the steady glow while it plays; once it
-       has played, it is taken off so each lit piece goes on glowing. */
     await wait(1700);
     lit.forEach(function (e) { e.classList.remove('is-flash2'); });
     await wait(SHORT);
@@ -1331,8 +1360,11 @@
 
     /* The question, with the bird. A wrong card shakes and steps back, and
        the bird says what that card shows instead; the right one goes green. */
-    await say('Tap the card where the highlighted part is a sector.');
+    await say(keyed('s3PickAsk'));
     sc.classList.add('is-live');
+    /* pressed as the first lesson's pills are: the wall collapses under
+       the finger */
+    cards.forEach(function (c) { M.button3d(c, { edge: 5 }); });
     var right = cards[1];
     for (;;) {
       var picked = await waitPick(cards.filter(function (c) { return !c.__out; }), right);
@@ -1350,8 +1382,8 @@
       sweepGlow(dw.els);
       quiet(beat(dw.els));
       quiet(sayAll(picked === cards[0]
-        ? ['Not quite!', 'This is a segment. A segment is the region enclosed by a chord and an arc.']
-        : ['Not quite!', 'This is an arc. An arc is a part of the circle’s boundary, not a region.'], 'confused'));
+        ? [keyed('fbNotQuite'), keyed('s3PickWrongSeg')]
+        : [keyed('fbNotQuite'), keyed('s3PickWrongArc')], 'confused'));
     }
     sc.classList.remove('is-live');
     right.classList.add('is-right');
@@ -1361,13 +1393,13 @@
     burstAt(right);
     sweepGlow(DEFS[1].els);
     quiet(beat(DEFS[1].els));
-    await sayAll(['That’s correct!',
-                  'A sector is the region enclosed by two radii and the arc between them.'], 'happy');
+    await sayAll([keyed('fbThatsCorrect'),
+                  keyed('s3PickRight')], 'happy');
     await wait(SHORT);
     /* All three named, each card glowing as it is: the recall rounded off. */
     cards.forEach(function (c) { c.classList.remove('is-done', 'is-tried'); c.classList.add('is-named'); });
     sweepGlow(DEFS[0].els.concat(DEFS[2].els));
-    await say('A segment is cut by a chord, a sector by two radii, and an arc is just a part of the circle.', 'happy');
+    await say(keyed('s3PickRecap'), 'happy');
     cards.forEach(function (c) { c.classList.remove('is-named'); });
     DEFS.forEach(function (d) { d.els.forEach(function (e) { e.classList.remove('is-defining'); }); });
     /* No Next: the sector circle itself carries on into the next scene,
@@ -1420,131 +1452,49 @@
     return { x: sp.x - r.left, y: sp.y - r.top };
   }
 
-  /* Drag-and-drop of name cards onto boxes. A card can be dragged, or
-     tapped and then its box tapped (and the same by keyboard). `judge`
-     says whether a card belongs in a box; a card that does is docked in
-     it, one that does not flies home. Resolves once every box is filled. */
-  function dragToBoxes(chips, boxes, judge, auto) {
-    var picked = null;
-    var done = 0;
-    var gate = until(auto);
-
-    function boxAt(x, y) {
-      for (var i = 0; i < boxes.length; i++) {
-        var r = boxes[i].getBoundingClientRect();
-        if (!boxes[i].__full && x >= r.left - 12 && x <= r.right + 12 && y >= r.top - 12 && y <= r.bottom + 12) return boxes[i];
-      }
-      return null;
-    }
-    function hover(b) {
-      boxes.forEach(function (x) { x.classList.toggle('is-over', x === b); });
-      if (dragToBoxes.onHover) dragToBoxes.onHover(b);
-    }
-    function home(chip) {
-      chip.classList.remove('is-lifted');
-      quiet(anim(M.to(chip, { x: 0, y: 0, scale: 1, duration: M.dur(0.4), ease: 'back.out(1.4)' })));
-    }
-    function pick(chip) {
-      if (picked) picked.classList.remove('is-picked');
-      picked = chip === picked ? null : chip;
-      if (picked) picked.classList.add('is-picked');
-    }
-    function drop(chip, box) {
-      hover(null);
-      if (chip.classList.contains('is-picked')) chip.classList.remove('is-picked');
-      picked = null;
-      if (!judge(chip, box)) {
-        box.classList.add('is-wrong');
-        Beats.sfx('wrong');
-        quiet(anim(M.incorrect(box)).then(function () { box.classList.remove('is-wrong'); }));
-        home(chip);
-        return;
-      }
-      /* Into its box: the card flies to the box's middle and is set there. */
-      box.__full = true;
-      chip.__docked = true;
-      var a = chip.getBoundingClientRect(), b = box.getBoundingClientRect();
-      var dx = (b.left + b.width / 2) - (a.left + a.width / 2);
-      var dy = (b.top + b.height / 2) - (a.top + a.height / 2);
-      quiet(anim(M.to(chip, { x: '+=' + dx, y: '+=' + dy,
-                              scale: 0.9, duration: M.dur(0.32), ease: 'power2.out' })).then(function () {
-        chip.classList.add('is-docked');
-        box.classList.add('is-right');
-        box.querySelector('.sa-drop__txt').textContent = chip.dataset.label;
-        Beats.sfx('correct');
-        quiet(anim(M.correct(box)));
-        burstAt(box);
-        if (++done === boxes.length) gate.check(true);
-      }));
-    }
-
-    chips.forEach(function (chip) {
-      var start = null, moved = false;
-      chip.addEventListener('pointerdown', function (ev) {
-        if (chip.__docked) return;
-        start = { x: ev.clientX, y: ev.clientY };
-        moved = false;
-        try { chip.setPointerCapture(ev.pointerId); } catch (e) {}
-      });
-      chip.addEventListener('pointermove', function (ev) {
-        if (!start || chip.__docked) return;
-        var dx = ev.clientX - start.x, dy = ev.clientY - start.y;
-        if (!moved && Math.abs(dx) + Math.abs(dy) < 6) return;
-        if (!moved) { moved = true; chip.classList.add('is-lifted'); if (picked === chip) pick(chip); }
-        M.set(chip, { x: dx, y: dy, scale: 1.06 });
-        hover(boxAt(ev.clientX, ev.clientY));
-      });
-      function end(ev) {
-        if (!start) return;
-        var wasMove = moved;
-        start = null;
-        if (!wasMove) return;
-        var b = boxAt(ev.clientX, ev.clientY);
-        if (b) drop(chip, b); else { hover(null); home(chip); }
-      }
-      chip.addEventListener('pointerup', end);
-      chip.addEventListener('pointercancel', function () { start = null; hover(null); home(chip); });
-      chip.addEventListener('click', function () {
-        if (chip.__docked || moved) return;
-        pick(chip);
-      });
-    });
-    boxes.forEach(function (box) {
-      function take() { if (picked && !box.__full) drop(picked, box); }
-      box.addEventListener('click', take);
-      box.addEventListener('keydown', function (ev) {
-        if (ev.key === 'Enter' || ev.key === ' ') { ev.preventDefault(); take(); }
-      });
-    });
-    return gate.done;
+  /* The two boxes, of the first lesson's own make -- see buildBox in
+     pages.js: a dashed pill, the tick that lands in it, the word set
+     inside -- drawn as SVG so the one stylesheet (.q-box, style.css)
+     dresses both lessons' boxes alike, and sized in pixels to what a box
+     of that lesson measures on this board, so the two read as one object
+     at two moments. The dotted arrow is the box's tie to its region, so
+     the leader the first lesson's box carries is an empty group here. */
+  var QB_PAD = 8;              /* picture units of air round the pill, for its pulse */
+  var WRONG_HOLD = 1800;       /* ms: a wrong-drop line read before the ask returns  */
+  function nameBox(host, name, cls) {
+    var W = K.BOX_W, H = K.BOX_H, cy = H / 2;
+    var svg = svgEl('svg', { 'class': 'sa-drop ' + cls,
+      viewBox: (-QB_PAD) + ' ' + (-QB_PAD) + ' ' + (W + 2 * QB_PAD) + ' ' + (H + 2 * QB_PAD) }, host);
+    /* the unit the first lesson's figure is drawn at, on this board */
+    var st = dom.board.querySelector('.board__stage').getBoundingClientRect();
+    var unit = Math.min(st.width / K.VB_W, st.height / K.VB_H) || 1;
+    svg.style.width = r2(unit * (W + 2 * QB_PAD)) + 'px';
+    svg.style.height = r2(unit * (H + 2 * QB_PAD)) + 'px';
+    var leader = svgEl('g', {}, svg);
+    var g = svgEl('g', { 'class': 'q-box', 'data-name': name, tabindex: 0, role: 'button' }, svg);
+    var rect = svgEl('rect', { 'class': 'q-box__rect', x: 0, y: 0, width: W, height: H, rx: cy }, g);
+    var badge = svgEl('g', { 'class': 'q-badge' }, g);
+    svgEl('circle', { 'class': 'q-badge__ring', cx: 24, cy: cy, r: 10 }, badge);
+    svgEl('path', { 'class': 'q-badge__tick',
+      d: 'M18.5 ' + cy + ' L22.5 ' + (cy + 4) + ' L29.5 ' + (cy - 4) }, badge);
+    var txt = svgEl('text', { 'class': 'figure-label q-box__text', x: W / 2 + 9, y: cy + 7.5,
+      'text-anchor': 'middle' }, g);
+    var box = { name: name, g: g, rect: rect, badge: badge, text: txt, leader: leader,
+                mask: null, filled: false, el: svg };
+    K.emptyBox(box);
+    g.classList.add('is-shown');
+    return box;
   }
 
   async function sNameSectors() {
+    var MINOR = 's3LblMinorSector', MAJOR = 's3LblMajorSector';
     var old = Array.prototype.slice.call(dom.stage.children);
     var sc = h('div', 'sa-scene sa-scene--name', null, dom.stage);
-    var boxL = h('div', 'sa-drop sa-drop--l', '<span class="sa-drop__txt"></span>', sc);
+    var boxL = nameBox(sc, MINOR, 'sa-drop--l');
     var cell = h('div', 'sa-name__fig', null, sc);
-    var boxR = h('div', 'sa-drop sa-drop--r', '<span class="sa-drop__txt"></span>', sc);
-    var tray = h('div', 'sa-name__tray', null, sc);
+    var boxR = nameBox(sc, MAJOR, 'sa-drop--r');
     var ink = svgEl('svg', { 'class': 'sa-name__ink', 'aria-hidden': 'true' }, sc);
-    boxL.dataset.want = 'minor';
-    boxR.dataset.want = 'major';
-    [boxL, boxR].forEach(function (b) {
-      b.setAttribute('tabindex', 0);
-      b.setAttribute('role', 'button');
-      b.setAttribute('aria-label', 'A blank box for a part name');
-    });
-    var chips = [['minor', 'Minor sector'], ['major', 'Major sector']].map(function (n, i) {
-      var c = h('button', 'sa-chip sa-chip--' + (i ? 'b' : 'a'),
-        '<span>' + n[1] + '</span>', tray);
-      c.type = 'button';
-      c.dataset.name = n[0];
-      c.dataset.label = n[1];
-      return c;
-    });
-    /* in a random order, so the left name is not always the left box's */
-    if (Math.random() < 0.5) tray.appendChild(chips[0]);
-    M.set([boxL, boxR].concat(chips), { opacity: 0 });
+    M.set([boxL.el, boxR.el], { opacity: 0 });
     var flip = h('div', 'sa-flip', null, cell);
 
     var fig, C, S, T;
@@ -1595,35 +1545,38 @@
     var R = sc.getBoundingClientRect();
     ink.setAttribute('viewBox', '0 0 ' + r2(R.width) + ' ' + r2(R.height));
     function edge(box, side) {
-      var b = box.getBoundingClientRect();
+      var b = box.rect.getBoundingClientRect();
       return { x: (side === 'r' ? b.right + 10 : b.left - 10) - R.left, y: b.top + b.height / 2 - R.top };
     }
     var aL = dottedArrow(ink, edge(boxL, 'r'), figToScene(fig, sc, pt(C, 92, 118)), -42);
     var aR = dottedArrow(ink, edge(boxR, 'l'), figToScene(fig, sc, pt(C, 92, 300)), -42);
     await aL.draw();
     await aR.draw();
-    await anim(popIn([boxL, boxR], { from: 0.8, stagger: 0.15 }));
+    await anim(popIn([boxL.el, boxR.el], { from: 0.8, stagger: 0.15 }));
     await wait(SHORT);
-    await anim(M.fromTo(chips, { opacity: 0, y: 18 },
-      { opacity: 1, y: 0, duration: M.dur(0.45), ease: 'back.out(1.5)', stagger: M.gap(0.12) }));
-    chips.forEach(function (c) { M.button3d(c, { edge: 5 }); });
-    /* The cards are live from the moment they arrive: a learner who starts
-       dragging while the bird is still asking is not ignored. */
-    var said = say('Drag each name to the box for its sector.');
 
-    /* 2. The region a box is for lights up while a name is held over it. */
-    var REG = { minor: S.region, major: T.region };
-    dragToBoxes.onHover = function (b) {
-      S.region.classList.toggle('is-lit', !!b && b.dataset.want === 'minor');
-      T.region.classList.toggle('is-lit', !!b && b.dataset.want === 'major');
-    };
-    /* 3. A name put right: its region glows, and its central angle is shown
-          -- the size the name is about, as a number. */
+    /* The two names, in the band under the board, as the first lesson's
+       are (buildChips, pages.js): the same pills, in a random order, so
+       the left name is not always the left box's. */
+    var chips = K.buildChips(dom.tray, Math.random() < 0.5 ? [MINOR, MAJOR] : [MAJOR, MINOR]);
+    K.chips(chips);
+    await anim(Beats.trayIn(dom.tray, chips));
+    /* The names are live from the moment they arrive: a learner who starts
+       dragging while the bird is still asking is not ignored. */
+    var ASK = keyed('s3NameAsk');
+    var said = say(ASK);
+
+    /* The region a box is for lights up while a name is held over it; a
+       name put right flashes its region and shows its central angle --
+       the size the name is about, as a number. */
+    var REG = {};
+    REG[MINOR] = S.region; REG[MAJOR] = T.region;
     var a0 = S.a0, a1 = S.a1;
     var angMinor = angleMark(C, a0, a1, (a1 - a0) + '°', { r: 32 });
     var angMajor = angleMark(C, a1, a0 + 360, (360 - (a1 - a0)) + '°', { r: 46, major: true, cls: 'lbl--major', gap: 26 });
     M.set([angMinor.arc, angMinor.lbl, angMajor.arc, angMajor.lbl], { opacity: 0 });
-    var ANG = { minor: angMinor, major: angMajor };
+    var ANG = {};
+    ANG[MINOR] = angMinor; ANG[MAJOR] = angMajor;
     function confirm(name) {
       var r = REG[name];
       r.classList.remove('is-lit');
@@ -1632,39 +1585,62 @@
       quiet(wait(2700).then(function () { r.classList.remove('is-flash2'); }));
     }
 
-    var FEED = {
-      minor: { yes: ['That’s correct!', 'The smaller region is called the minor sector.'],
-               no:  'Look again! This box points to the smaller region.' },
-      major: { yes: ['That’s correct!', 'The larger region is called the major sector.'],
-               no:  'Look again! This box points to the larger region.' }
-    };
-    var placed = dragToBoxes(chips, [boxL, boxR], function (chip, box) {
-      var ok = chip.dataset.name === box.dataset.want;
-      dragToBoxes.onHover(null);
-      if (ok) confirm(box.dataset.want);
-      quiet(sayAll(FEED[box.dataset.want][ok ? 'yes' : 'no'], ok ? 'happy' : 'confused'));
-      return ok;
-    }, function () {
-      [[chips[0], boxL], [chips[1], boxR]].forEach(function (pair) {
-        pair[1].__full = true;
-        pair[0].classList.add('is-docked');
-        pair[1].classList.add('is-right');
-        pair[1].querySelector('.sa-drop__txt').textContent = pair[0].dataset.label;
-      });
+    /* Answered as the first lesson's naming page is answered (sceneQuiz,
+       pages.js): the bird stays on the header; a right drop says nothing
+       -- the green box and its tick are the answer; a wrong drop is
+       answered on the spot in one line, the name goes home, and the
+       instruction comes back up after it. The drag, the tap-then-tap and
+       the keyboard are armQuiz's, the box and chip beats are Beats'. */
+    var WRONG = {};
+    WRONG[MINOR] = 's3NameWrongMinor'; WRONG[MAJOR] = 's3NameWrongMajor';
+    var fb = { n: 0, up: false };
+    var placed = 0;
+    function sayWrong(box) {
+      var mine = ++fb.n;
+      fb.up = true;
+      return say(keyed(WRONG[box.name]), 'confused')
+        .then(function () { return wait(WRONG_HOLD); })
+        .then(function () {
+          if (mine !== fb.n) return;
+          fb.up = false;
+          return say(ASK);
+        });
+    }
+    var done = K.armQuiz({ boxes: [boxL, boxR] }, chips, {
+      group: sc,
+      onHover: function (box) {
+        S.region.classList.toggle('is-lit', !!box && box.name === MINOR);
+        T.region.classList.toggle('is-lit', !!box && box.name === MAJOR);
+      },
+      onRight: function (box) {
+        placed++;
+        confirm(box.name);
+        /* A wrong-drop line still up is answered by the right drop: the
+           instruction goes back up, unless that was the last name. */
+        if (fb.up) {
+          fb.n++;
+          fb.up = false;
+          if (placed < 2) quiet(say(ASK));
+        }
+      },
+      onWrong: function (box) { quiet(sayWrong(box)); }
     });
     await quiet(said);
-    await placed;
-    dragToBoxes.onHover = null;
+    await done;
+    fb.n++;                       /* no instruction after this */
+    S.region.classList.remove('is-lit');
+    T.region.classList.remove('is-lit');
     show([angMinor.arc, angMinor.lbl, angMajor.arc, angMajor.lbl]);
     await wait(700);
+    /* the names are spent: the band under the board is emptied */
+    K.resetFooter();
 
-    /* Both names in: the row of cards is spent, and the finished picture --
-       circle, boxes and arrows as one piece -- grows into the room they
-       leave, centred on the board. One uniform zoom, so every arrow stays
-       on its box. */
+    /* Both names in: the finished picture -- circle, boxes and arrows as
+       one piece -- grows to fill the board, centred. One uniform zoom, so
+       every arrow stays on its box. */
     var stR = dom.stage.getBoundingClientRect();
     var scR = sc.getBoundingClientRect();
-    var parts = [fig, boxL, boxR].map(function (e) { return e.getBoundingClientRect(); });
+    var parts = [fig, boxL.el, boxR.el].map(function (e) { return e.getBoundingClientRect(); });
     var box = {
       l: Math.min.apply(null, parts.map(function (r) { return r.left; })),
       t: Math.min.apply(null, parts.map(function (r) { return r.top; })),
@@ -1682,9 +1658,9 @@
     /* 5. Both at once: together, the two make the whole circle. */
     var both = [S.region, T.region];
     await Promise.all([zoom,
-      sayAll(['Great job!', 'Two radii divide a circle into a minor sector and a major sector.'], 'happy')]);
+      sayAll([keyed('s3GreatJob'), keyed('s3NameTwoRadii')], 'happy')]);
     both.forEach(function (r) { r.classList.remove('is-flash2', 'is-lit'); r.classList.add('is-flash2'); });
-    await say('Together, they make the whole circle.', 'happy');
+    await say(keyed('s3NameWhole'), 'happy');
     await wait(BEAT);
     await handOver();
   }
@@ -1729,16 +1705,18 @@
 
     mascot.state('talking');
     Beats.bubbleArm(dom.bubble);
-    var reveal = sayBubble.reserve(first);
+    var line = lineOf(first);
+    var reveal = sayBubble.reserve(line.text);
     if (key) keyWord(dom.bubble, key);
     Beats.bubbleIn(dom.bubble);
+    voiceOf(line);
     await reveal();
     mascot.settle();
     var rest = [].concat(second);
     for (var i = 0; i < rest.length; i++) {
       await wait(1400);
       mascot.state('talking');
-      await sayBubble(rest[i]);
+      await bubbleSay(rest[i]);
       mascot.settle();
     }
     await wait(SHORT);
@@ -1751,19 +1729,19 @@
   }
 
   function sTermsIntro() {
-    return fieldTalk('We have revised what a sector is.', null,
-                     'Now, let’s find the area of a sector.');
+    return fieldTalk(keyed('s3TermsRevised'), null,
+                     keyed('s3TermsNowArea'));
   }
 
   function sMajorIntro() {
-    return fieldTalk('We have learnt how to find the area of a minor sector.', null,
-                     ['But how do we find the area of a major sector?',
-                      'Let’s find out!']);
+    return fieldTalk(keyed('s3MajorLearnt'), null,
+                     [keyed('s3MajorHow'),
+                      keyed('s3FindOut')]);
   }
 
   function sApplyIntro() {
-    return fieldTalk('Yay! Now we know the formula for the area of a sector.', null,
-                     'Let’s use it to solve some problems!');
+    return fieldTalk(keyed('s3ApplyYay'), null,
+                     keyed('s3ApplySolve'));
   }
 
 
@@ -1808,7 +1786,7 @@
     C.g.insertBefore(dim, lit);
     M.set([lit, dim], { opacity: 1 });
     M.set(C.rim, { opacity: 0 });
-    var said = say('The angle between the two radii, at the centre, is called the central angle (θ) of the minor sector.');
+    var said = say(keyed('s3CentralIs'));
     function pulse(els, n) {
       return Promise.all(els.map(function (el) {
         return anim(M.fromTo(el, { scale: 1, transformOrigin: '50% 50%' },
@@ -1844,14 +1822,14 @@
        a quick step that overshoots a hair and settles -- and the minor
        sector opens with it until it is the whole circle. The angle is
        read out as it goes. */
-    await say('What happens when the central angle is 360°?');
+    await say(keyed('s3Central360Q'));
     await wait(BEAT);
-    await say('Let’s find out!');
+    await say(keyed('s3FindOut'));
     await wait(SHORT);
     A.lbl.classList.remove('lbl--big');
     A.set(a0, a1, 'θ = ' + (a1 - a0) + '°');
     await anim(popIn(A.lbl, { from: 0.7 }));
-    await say('Here, θ = ' + (a1 - a0) + '°. Let’s make it bigger.');
+    await say(keyed('s3CentralHere', { deg: a1 - a0 }));
     await wait(SHORT);
     var hand = { a: a0 };
     function place() {
@@ -1885,12 +1863,12 @@
     await anim(M.fromTo(S.region, { scale: 1, transformOrigin: '50% 50%' },
       { scale: 1.04, duration: M.dur(0.28), ease: 'power2.out', yoyo: true, repeat: 1 }));
     burstAt(F.svg);
-    await say('When θ = 360°, the two radii meet again, and the sector becomes the whole circle.', 'happy');
+    await say(keyed('s3CentralFull'), 'happy');
     await wait(SHORT);
     S.region.classList.remove('is-flash2');
     void S.region.getBoundingClientRect();
     S.region.classList.add('is-flash2');
-    await say('So, the area of this sector is the area of the whole circle.', 'happy');
+    await say(keyed('s3CentralWhole'), 'happy');
     await wait(BEAT);
     fullTurn = { sc: sc, wrap: F.wrap, svg: F.svg, C: C, S: S, A: A, at: a1 };
     await handOver();
@@ -1942,7 +1920,7 @@
     var m = pt(C, 84, at + 9);
     var rl = text(C.top, m.x, m.y, 'r', 'lbl lbl--radius lbl--big');
     await anim(popIn(rl, { from: 0.5 }));
-    var area = text(C.top, C.x, C.y + 100, 'Area = πr²', 'lbl lbl--pi lbl--big');
+    var area = text(C.top, C.x, C.y + 100, tr('s3LblAreaPiR2'), 'lbl lbl--pi lbl--big');
     M.set(area, { opacity: 0 });
     await wait(SHORT);
 
@@ -1953,10 +1931,10 @@
     await anim(fadeIn(P.row, { y: 0 }));
     /* What the circle now is, said over the circle itself; the bubble then
        asks only the question. */
-    var over = text(C.top, C.x, C.y - C.r - 22, 'This sector is the whole circle.', 'lbl s-over-lbl');
+    var over = text(C.top, C.x, C.y - C.r - 22, tr('s3AreaOver'), 'lbl s-over-lbl');
     await anim(fadeIn(over, { y: 6 }));
     await wait(SHORT);
-    var QUESTION = 'Tap the formula for its area.';
+    var QUESTION = keyed('s3AreaAsk');
     await perchSay(P, QUESTION);
     /* Every answer is spoken in the question's own bubble, by the bird on
        its perch: the feedback first, and then, after a moment to read it,
@@ -1987,15 +1965,14 @@
           return say(QUESTION);
         });
     }
-    await askChoice(['πr', 'πr²', '2πr', 'πd²'], 1, {
+    await askChoice(['πr', 'πr²', '2πr'], 1, {
       host: h('div', 'sa-qslot sa-qslot--big', null, panel),
       tiles: true,
       voice: inBubble,
-      yes: 'That’s correct!',
+      yes: keyed('fbThatsCorrect'),
       why: {
-        0: ['Not quite! Look again.', 'For area, the radius is squared: r².'],
-        2: ['Not quite! Look again.', '2πr is the circumference, not the area.'],
-        3: ['Not quite! Look again.', 'Use the radius (r), not the diameter (d).']
+        0: [keyed('s3NotQuiteLook'), keyed('s3AreaWrongR')],
+        2: [keyed('s3NotQuiteLook'), keyed('s3AreaWrong2PiR')]
       }
     });
     await wait(900);
@@ -2008,8 +1985,8 @@
     gone.forEach(function (g) { if (g.parentNode) g.parentNode.removeChild(g); });
     var res = h('div', 'sa-result sa-result--two',
       '<span class="sa-result__tick" aria-hidden="true"></span>' +
-      '<span class="sa-result__lines"><span class="sa-result__txt">Area of the circle ' + EQ + ' ' + c('pi', 'π') + c('r', 'r²') + '</span>' +
-      '<span class="sa-result__sub">' + EQ + ' area of a sector of angle&nbsp;' + c('ang', '360°') + '</span></span>', panel);
+      '<span class="sa-result__lines"><span class="sa-result__txt">' + tr('s3LblAreaOfCircle') + ' ' + EQ + ' ' + c('pi', 'π') + c('r', 'r²') + '</span>' +
+      '<span class="sa-result__sub">' + EQ + ' ' + tr('s3ResSectorAngle') + '&nbsp;' + c('ang', '360°') + '</span></span>', panel);
     panel.classList.add('sa-panel--centre');
     /* the r in the formula is the r on the figure: it pulses as the card comes */
     quiet(anim(M.fromTo(rl, { scale: 1, transformOrigin: '50% 50%' },
@@ -2219,8 +2196,8 @@
     var ONE = fr('1', '360', 'c-ang');
 
     /* ---- 1. The whole circle ---------------------------------------------- */
-    await say('A sector of angle 360° is the whole circle.');
-    var s1 = await addStep('A sector of angle 360° is the whole circle.',
+    await say(keyed('s3DeriveWhole'));
+    var s1 = await addStep(tr('s3DeriveWhole'),
       [[c('a', 'A')], [EQ], [PIR2]]);
     await writeBits(s1);
     S.region.classList.add('is-flash2');
@@ -2236,20 +2213,20 @@
     var dd0 = '';
     for (var k = 0; k < 360; k++) dd0 += segD(C, pt(C, C.r, k)) + ' ';
     svgEl('path', { 'class': 's-fine', d: dd0 }, spokes);
-    await say('We can cut the circle into 360 equal sectors of 1° each.');
-    var s2 = await addStep('The circle is made of 360 equal sectors of angle 1°.',
-      [['<span class="c-ang" data-fly>360</span>', 'n360'], [X], ['(area of a 1° sector)'], [EQ], [PIR2]]);
+    await say(keyed('s3DeriveCut'));
+    var s2 = await addStep(tr('s3DeriveMadeOf'),
+      [['<span class="c-ang" data-fly>360</span>', 'n360'], [X], [tr('s3DeriveOneDeg')], [EQ], [PIR2]]);
     await Promise.all([
       anim(Beats.secFill(clipD, function (t) { return wedgeD(C, C.r + 2, at - 360 * t, at); }, 2.2)),
       writeBits(s2)
     ]);
-    await say('Together, these 360 sectors make the whole circle.');
+    await say(keyed('s3DeriveTogether'));
     await wait(SHORT);
 
     /* ---- 3. One sector of 1° ------------------------------------------------
        The 360 is carried down to divide, and the sector closes to 1°. */
-    await say('So, one 1° sector is πr² divided by 360.');
-    var s3 = await addStep('Area of a sector of angle <span class="c-val"><span data-k="c1">1</span>°</span>',
+    await say(keyed('s3DeriveOne'));
+    var s3 = await addStep(tr('s3StepAreaAngle', { a: '<span class="c-val"><span data-k="c1">1</span>°</span>' }),
       [[c('a', 'A')], [EQ], [PIR2], ['<span class="op">÷</span>'], ['<span class="c-ang">360</span>', 'to360'],
        [EQ], ['<span class="frac c-ang"><span class="frac__n c-val"><span data-k="n1">1</span></span><span class="frac__d">360</span></span>'],
        [X], [PIR2]]);
@@ -2293,7 +2270,7 @@
       var tt = text(gl, lp.x, lp.y, '1°', 'lbl lbl--angle s-lens__lbl');
       M.set(tt, { opacity: 1 });
     });
-    await say('Let’s zoom in to see how small 1° is.');
+    await say(keyed('s3DeriveZoom'));
     await lens.show();
     await wait(2400);
     await lens.hide();
@@ -2310,7 +2287,7 @@
     var state = FlipK && !Flow.isFast() ? FlipK.getState(s3.bits) : null;
     gone.forEach(function (g) { g.style.display = 'none'; });
     if (state) await anim(FlipK.from(state, { duration: M.dur(0.45), ease: 'power2.inOut' }));
-    await say('A 10° sector is made of 10 such sectors.');
+    await say(keyed('s3DeriveTen'));
     var zeros = [s3.el.querySelector('[data-k="c1"]'), s3.el.querySelector('[data-k="n1"]')].map(function (one) {
       var z = document.createElement('span');
       z.textContent = '0';
@@ -2340,7 +2317,7 @@
       var v = pool[Math.floor(Math.random() * pool.length)];
       if (picks.indexOf(v) < 0) picks.push(v);
     }
-    await say('Let’s try a few more angles.');
+    await say(keyed('s3DeriveMore'));
     for (var pi = 0; pi < picks.length; pi++) {
       var val = picks[pi];
       await anim(M.to([c1, n1], { opacity: 0, filter: 'blur(5px)', duration: M.dur(0.25), ease: 'power2.in' }));
@@ -2354,25 +2331,25 @@
       Beats.pop();
       await wait(1100);
     }
-    await say('Only the angle on top changes. 360 and πr² stay the same.');
+    await say(keyed('s3DeriveOnlyTop'));
     await wait(SHORT);
     A.lbl.classList.remove('is-val');
 
     /* ---- 5. Any angle θ -------------------------------------------------------- */
     await anim(M.to(deg, { v: 75, duration: M.dur(1.1), ease: 'power2.inOut', onUpdate: function () { turnTo(deg.v); } }));
     A.set(at - 75, at, 'θ');
-    await say('So, what is the area of a sector of angle θ?');
-    var s5 = await addStep('Area of a sector of angle <span class="c-val">θ</span>',
+    await say(keyed('s3DeriveAskTheta'));
+    var s5 = await addStep(tr('s3StepAreaAngle', { a: '<span class="c-val">θ</span>' }),
       [[c('a', 'A')], [EQ], [DD, 'blank']]);
     await writeBits(s5);
     var D = dropdown(ddIn(s5.el), [fr('θ', '360', 'c-ang') + X + c('pi', '2πr'),
                                 fr('θ', '180', 'c-ang') + X + PIR2,
                                 fr('θ', '360', 'c-ang') + X + PIR2], 2, { up: true });
     await D.ask({
-      yes: ['That’s correct!', 'This is the formula for the area of a sector.'],
+      yes: [keyed('fbThatsCorrect'), keyed('s3DeriveRight')],
       why: {
-        0: ['Not quite!', '2πr is the circumference. For area, use πr².'],
-        1: ['Not quite!', 'A full turn is 360°, not 180°. So, divide θ by 360.']
+        0: [keyed('fbNotQuite'), keyed('s3DeriveWrong2PiR')],
+        1: [keyed('fbNotQuite'), keyed('s3DeriveWrong180')]
       }
     });
     await wait(LOOK);
@@ -2382,7 +2359,7 @@
     await anim(M.to(deck, { opacity: 0, y: -12, duration: M.dur(0.45), ease: 'power2.in' }));
     deck.parentNode.removeChild(deck);
     panel.classList.add('sa-panel--centre');
-    var rule = ruleCard(panel, 'AREA OF A SECTOR OF ANGLE θ',
+    var rule = ruleCard(panel, tr('s3RuleSectorTheta'),
       c('a', 'A') + EQ + fr('θ', '360', 'c-ang') + X + PIR2);
     rule.el.classList.add('sa-rule--hero');
     await rule.shown;
@@ -2396,14 +2373,14 @@
        The end of the moving radius becomes a handle; dragged, the sector
        follows the finger and a line of its own under the formula reads the
        angle and its fraction. The derivation is not touched. */
-    var tryLine = h('p', 'sa-try', '<span class="sa-try__tag">Try it</span>' +
+    var tryLine = h('p', 'sa-try', '<span class="sa-try__tag">' + tr('s3TryIt') + '</span>' +
       '<span class="sa-try__eq"><span class="c-val" data-k="tdeg">θ</span><span class="op">→</span>' +
       c('a', 'A') + EQ + '<span class="frac c-ang"><span class="frac__n c-val" data-k="tnum">θ</span><span class="frac__d">360</span></span>' +
       X + PIR2 + '</span>', panel);
     var tDeg = tryLine.querySelector('[data-k="tdeg"]'), tNum = tryLine.querySelector('[data-k="tnum"]');
     M.set(tryLine, { opacity: 0 });
     var hd = svgEl('g', { 'class': 's-handle', tabindex: 0, role: 'slider',
-      'aria-label': 'The end of the radius. Drag it to change the angle.',
+      'aria-label': tr('s3A11yHandle'),
       'aria-valuemin': 1, 'aria-valuemax': 359 }, C.top);
     svgEl('circle', { 'class': 's-handle__halo', cx: 0, cy: 0, r: 22 }, hd);
     svgEl('circle', { 'class': 's-handle__ring', cx: 0, cy: 0, r: 12 }, hd);
@@ -2471,12 +2448,12 @@
     A.set(at - deg.v, at, 'θ');
     hd.__live = true;
     await Promise.all([anim(fadeIn(tryLine, { y: 10 })), anim(popIn(hd))]);
-    await say('Drag the pink point to try any angle.');
+    await say(keyed('s3DeriveDrag'));
     await explored.done;
     hd.__live = false;
     hd.classList.add('is-done');
     await wait(600);
-    await say('See? The formula works for every angle.', 'happy');
+    await say(keyed('s3DeriveWorks'), 'happy');
     await wait(BEAT);
     await handOver();
   }
@@ -2489,16 +2466,15 @@
   async function sWorked() {
     var sc = await stage('work');
     var col = h('div', 'sa-wk sa-wk--align', null, sc);
-    var fig = sectorFigure(sc, { theta: 60, at: 15, r: 'r = 21 cm' });
+    var fig = sectorFigure(sc, { theta: 60, at: 15, r: tr('s3LblR21') });
 
-    /* What is given, and the formula, set out first -- as a solution in a
-       notebook is. */
+    /* The formula, set out first -- as a solution in a notebook is. What
+       is given, r and θ, is already written on the figure, so it is not
+       restated beside it: the bird points at it there instead. */
     var head = h('div', 'sa-wk__head',
-      '<p class="sa-wk__given"><b>Given:</b> <span data-k="gr">' + c('r', 'r = 21 cm') + '</span>,&nbsp;' +
-      '<span data-k="gt">' + c('ang', 'θ = 60°') + '</span></p>' +
-      '<p class="sa-wk__formula"><b>Formula:</b> ' + c('a', 'A') + EQ + fr('θ', '360', 'c-ang') + X + PIR2 + '</p>', col);
-    var given = head.querySelector('.sa-wk__given'), formula = head.querySelector('.sa-wk__formula');
-    M.set([given, formula], { opacity: 0 });
+      '<p class="sa-wk__formula"><b>' + tr('s3Formula') + '</b> ' + c('a', 'A') + EQ + fr('θ', '360', 'c-ang') + X + PIR2 + '</p>', col);
+    var formula = head.querySelector('.sa-wk__formula');
+    M.set(formula, { opacity: 0 });
     var list = h('div', 'steps', null, col);
 
     var s1 = stepRow(list, 1, c('a', 'A') + EQ + DD + X + PIR2);
@@ -2514,8 +2490,8 @@
     var s4 = bitsRow(4, [c('a', 'A'), EQ, fr('1', '6', 'c-ang'), X, c('pi', '1386')]);
     var s5 = stepRow(list, 5, c('a', 'A') + EQ + DD);
     var d1 = dropdown(ddIn(s1), [fr('60', '360', 'c-ang'), fr('360', '60', 'c-ang'), fr('60', '180', 'c-ang')], 0);
-    var d2 = dropdown(ddIn(s2), [c('r', '21²'), c('r', '21'), c('r', '2 × 21'), c('r', '42²')], 0);
-    var d5 = dropdown(ddIn(s5), ['231 cm²', '1386 cm²', '462 cm²', '693 cm²'], 0, { up: true });
+    var d2 = dropdown(ddIn(s2), [c('r', '21²'), c('r', '21'), c('r', '2 × 21')], 0);
+    var d5 = dropdown(ddIn(s5), [tr('s3Val231sq'), tr('s3Val1386sq'), tr('val462sq')], 0, { up: true });
     function pulse(el) {
       quiet(anim(M.fromTo(el, { scale: 1, transformOrigin: '50% 50%' },
         { scale: 1.35, duration: M.dur(0.28), ease: 'power2.out', yoyo: true, repeat: 1 })));
@@ -2534,9 +2510,10 @@
     await leaveHeader();
     await fig.draw();
     await wait(SHORT);
-    await say('Let’s find the area of this sector.');
+    await say(keyed('s3WkFind'));
+    /* r and θ, picked out on the figure: that is the given. */
     pulse(fig.R);
-    await anim(fadeIn(given, { y: 6 }));
+    await wait(SHORT);
     pulse(fig.A.lbl);
     await wait(LOOK);
     await anim(fadeIn(formula, { y: 6 }));
@@ -2544,48 +2521,46 @@
 
     /* 1. θ into the formula. */
     await stepIn(s1);
-    await say('Now, put θ = 60° in the formula.');
+    await say(keyed('s3WkPutTheta'));
     pulse(fig.A.lbl);
     await d1.ask({
-      yes: ['That’s correct!', 'The sector is 60/360 of the whole circle.'],
+      yes: [keyed('fbThatsCorrect'), keyed('s3WkThetaRight')],
       why: {
-        1: ['Not quite!', 'Write the central angle on top and 360 at the bottom.'],
-        2: ['Not quite!', 'A full turn is 360°, not 180°.']
+        1: [keyed('fbNotQuite'), keyed('s3WkThetaWrongFlip')],
+        2: [keyed('fbNotQuite'), keyed('s3FullTurn360')]
       }
     });
     stepDone(s1);
 
     /* 2. r into the formula, with π = 22/7 said first. */
     await stepIn(s2);
-    await say('Now, put r = 21 cm in the formula. We take π = 22/7.');
+    await say(keyed('s3WkPutR'));
     pulse(fig.R);
     await d2.ask({
-      yes: ['That’s correct!', 'r² = 21².'],
+      yes: [keyed('fbThatsCorrect'), keyed('s3WkRRight')],
       why: {
-        1: ['Not quite!', 'r² means r × r. So it is 21 × 21, or 21².'],
-        2: ['Not quite!', '2 × 21 is double the radius, not the square of the radius.'],
-        3: ['Not quite!', '42 cm is the diameter. Square the radius, which is 21 cm.']
+        1: [keyed('fbNotQuite'), keyed('s3WkRWrong21')],
+        2: [keyed('fbNotQuite'), keyed('s3WkRWrongDouble')]
       }
     });
     stepDone(s2);
 
     /* 3-4. The simplification, shown rather than only said. */
-    await say('Simplify: 60/360 = 1/6, and 22/7 × 21 × 21 = 22 × 3 × 21.');
+    await say(keyed('s3WkSimplify'));
     await writeRow(s3);
     await wait(SHORT);
-    await say('22 × 3 × 21 = 1386.');
+    await say(keyed('s3WkProduct'));
     await writeRow(s4);
     await wait(SHORT);
 
     /* 5. The answer. */
     await stepIn(s5);
-    await say('Now, find the area.');
+    await say(keyed('s3FindArea'));
     await d5.ask({
-      yes: 'That’s correct!',
+      yes: keyed('fbThatsCorrect'),
       why: {
-        1: ['Not quite!', 'That is the whole circle. Multiply by 1/6.'],
-        2: ['Not quite!', 'That is a third of the circle. 60° is 1/6 of 360°.'],
-        3: ['Not quite!', 'That is half the circle. 60° is 1/6 of 360°.']
+        1: [keyed('fbNotQuite'), keyed('s3WkWrongWhole')],
+        2: [keyed('fbNotQuite'), keyed('s3WkWrongThird')]
       }
     });
     stepDone(s5);
@@ -2594,8 +2569,8 @@
     /* What was found, said -- and set in the sector. */
     fig.S.region.classList.add('is-focus');
     var fp = pt(fig.C, 104, 45);
-    var fl = text(fig.C.top, fp.x, fp.y, '231 cm²', 'lbl lbl--area s-found-lbl');
-    await Promise.all([say('So, the area of the sector is 231 cm².', 'happy'), anim(popIn(fl, { from: 0.4 }))]);
+    var fl = text(fig.C.top, fp.x, fp.y, tr('s3Val231sq'), 'lbl lbl--area s-found-lbl');
+    await Promise.all([say(keyed('s3WkFound'), 'happy'), anim(popIn(fl, { from: 0.4 }))]);
     await wait(BEAT);
     await handOver();
   }
@@ -2608,12 +2583,12 @@
       quiet(wait(1600).then(function () { els.forEach(function (e) { e.classList.remove('is-lit'); }); }));
     }
     return practice({
-      theta: 90, r: 'r = 28 cm',
-      prompt: 'Find the area of the minor sector.',
-      options: ['616 cm²', '2464 cm²', '154 cm²'], right: 0,
+      theta: 90, r: tr('s3LblR28'),
+      prompt: keyed('s3MinorAsk'),
+      options: [tr('val616sq'), tr('s3Val2464sq'), tr('val154sq')], right: 0,
       why: {
-        1: ['Not quite!', '2464 cm² is the area of the whole circle. A 90° sector is only 90/360 of it.'],
-        2: ['Not quite!', 'The radius is 28 cm. 154 cm² comes from using 14 cm.']
+        1: [keyed('fbNotQuite'), keyed('s3P1WrongWhole')],
+        2: [keyed('fbNotQuite'), keyed('s3P1WrongR14')]
       },
       /* a wrong answer shown on the figure: the whole circle, or the radius */
       onWrong: function (i, fig) {
@@ -2626,22 +2601,22 @@
         if (i === 2) quiet(anim(M.fromTo(fig.R, { scale: 1, transformOrigin: '50% 50%' },
           { scale: 1.35, duration: M.dur(0.3), ease: 'power2.out', yoyo: true, repeat: 3 })));
       },
-      head: '<p class="sa-wk__given"><b>Given:</b> ' + c('r', 'r = 28 cm') + ',&nbsp;' + c('ang', 'θ = 90°') + '</p>' +
-            '<p class="sa-wk__formula"><b>Formula:</b> ' + c('a', 'A') + EQ + fr('θ', '360', 'c-ang') + X + PIR2 + '</p>',
+      /* the formula only: r and θ are already on the figure */
+      head: '<p class="sa-wk__formula"><b>' + tr('s3Formula') + '</b> ' + c('a', 'A') + EQ + fr('θ', '360', 'c-ang') + X + PIR2 + '</p>',
       steps: function (fig) {
         return [
           [c('a', 'A'), [[fr('90', '360', 'c-ang'), fig.A.lbl], [X], [PIR2]]],
           ['', [[fr('1', '4', 'c-ang')], [X], [fr('22', '7', 'c-pi')], [X], [c('r', '28'), fig.R], [X], [c('r', '28')]],
-           'Put π = 22/7 and r = 28 cm.'],
-          ['', [[c('pi', '22')], [X], [c('r', '28')]], '28 ÷ 7 = 4, and 1/4 × 4 = 1.'],
-          ['', [[c('ans', '616 cm²')]]]
+           keyed('s3P1PutPiR')],
+          ['', [[c('pi', '22')], [X], [c('r', '28')]], keyed('s3P1Cancel')],
+          ['', [[c('ans', tr('val616sq'))]]]
         ];
       },
       found: {
-        label: '616 cm²',
+        label: tr('val616sq'),
         at: function (fig) { return pt(fig.C, 100, 90); },
         region: function (fig) { return fig.S.region; },
-        say: 'So, the area of the minor sector is 616 cm².'
+        say: keyed('s3P1Found')
       }
     }).then(handOver);
   }
@@ -2680,7 +2655,7 @@
       g.setAttribute('transform', 'rotate(' + r2(rot) + ' ' + r2(m.x + off.x) + ' ' + r2(m.y + off.y) + ')');
       return t;
     }
-    var K1 = card('Circle I'), K2 = card('Circle II');
+    var K1 = card(tr('s3CircleI')), K2 = card(tr('s3CircleII'));
     M.set([K1.el, K2.el], { opacity: 0 });
     var C1 = circle(K1.svg, 210, 210, 150);
     var C2 = circle(K2.svg, 210, 210, 75);
@@ -2692,11 +2667,11 @@
     var A2 = angleMark(C2, 0, 120, '120°', { r: 18, gap: 18 });
     /* on the level radius, under the line: the thin 30° sector has room
        for its angle and nothing else */
-    var R1 = along(C1, 0, 'r = 12 cm', -15);
+    var R1 = along(C1, 0, tr('s3LblR12'), -15);
     /* Circle II is given by its diameter: the radius on the right carried
        on, dashed, across to the far side, and the whole line named. */
     var dia = svgEl('path', { 'class': 's-dia-dash', d: segD(pt(C2, C2.r, 180), C2) }, C2.over);
-    var R2 = text(C2.top, C2.x, C2.y + 22, 'd = 12 cm', 'lbl lbl--radius');
+    var R2 = text(C2.top, C2.x, C2.y + 22, tr('s3LblD12'), 'lbl lbl--radius');
     R2.style.fontSize = '20px';
     M.set(dia, { opacity: 0 });
 
@@ -2711,7 +2686,7 @@
     await anim(Beats.growLine(dia, 0.5));
     await anim(fadeIn([R1, R2], { y: 0, stagger: 0.1 }));
     await wait(SHORT);
-    await say('Which minor sector has the greater area?');
+    await say(keyed('s3CmpAsk'));
 
     /* The working of a card, a piece at a time, each label pulsing on the
        figure as its number is used. */
@@ -2742,27 +2717,27 @@
 
     /* A wrong pick is answered with the rule, and a reminder that Circle II
        gives its diameter. */
-    var RULE = ['Try again!', 'Use A = (θ/360) × πr² for each. For Circle II, find r from d first.'];
-    await askChoice(['Circle I', 'Circle II', 'They are equal'], 2, {
+    var RULE = [keyed('s3TryAgain'), keyed('s3CmpRule')];
+    await askChoice([tr('s3CircleI'), tr('s3CircleII'), tr('s3CmpEqual')], 2, {
       tiles: true,
-      yes: 'That’s correct! Both sectors have the same area.',
+      yes: keyed('s3CmpRight'),
       why: { 0: RULE, 1: RULE }
     });
 
     /* The working: Circle I, then Circle II. */
     await writeWork(K1, S1, [
-      [[c('a', 'A') + EQ], [fr('30', '360', 'c-ang'), A1.lbl], [X], [c('pi', 'π')], [X], [c('r', '12²'), R1], [EQ], [c('ans', '12π cm²')]]
+      [[c('a', 'A') + EQ], [fr('30', '360', 'c-ang'), A1.lbl], [X], [c('pi', 'π')], [X], [c('r', '12²'), R1], [EQ], [c('ans', tr('s3Val12PiSq'))]]
     ]);
     await wait(SHORT);
     await writeWork(K2, S2, [
-      [[c('r', 'r') + EQ], [c('r', '12 ÷ 2'), R2], [EQ], [c('r', '6 cm')]],
-      [[c('a', 'A') + EQ], [fr('120', '360', 'c-ang'), A2.lbl], [X], [c('pi', 'π')], [X], [c('r', '6²')], [EQ], [c('ans', '12π cm²')]]
+      [[c('r', 'r') + EQ], [c('r', '12 ÷ 2'), R2], [EQ], [c('r', tr('s3Lbl6cm'))]],
+      [[c('a', 'A') + EQ], [fr('120', '360', 'c-ang'), A2.lbl], [X], [c('pi', 'π')], [X], [c('r', '6²')], [EQ], [c('ans', tr('s3Val12PiSq'))]]
     ]);
     [K1.el, K2.el].forEach(function (e) { e.classList.add('is-match'); });
     Beats.sfx('correct');
     await wait(SHORT);
-    await sayAll(['Circle I has twice the radius, so its circle is 4 times bigger.',
-                  'Circle II’s angle is 4 times bigger, so the two sectors balance.'], 'happy');
+    await sayAll([keyed('s3CmpWhy1'),
+                  keyed('s3CmpWhy2')], 'happy');
     await wait(BEAT);
     await handOver();
   }
@@ -2872,7 +2847,7 @@
     var fig = majorFigure(sc, 100, { majorLabel: '?' });
     var panel = h('div', 'sa-panel sa-panel--centre', null, sc);
     var box = h('div', 'sa-workcard', null, panel);
-    var l1 = lineIn(box, 'The central angle of the minor sector is <span class="c-ang">100°</span>.');
+    var l1 = lineIn(box, tr('s3RefMinorAngle', { a: '<span class="c-ang">100°</span>' }));
     var grid = h('div', 'sa-eqgrid', null, box);
     function eqRow(left, right) {
       var r = h('div', 'sa-work__row', '<span class="sa-work__l">' + left + '</span>' +
@@ -2904,7 +2879,7 @@
     await wait(900);
     var ring = svgEl('circle', { 'class': 's-turn', cx: fig.C.x, cy: fig.C.y, r: 38 }, fig.C.marks);
     await Promise.all([
-      say('Together, the two central angles make a full turn, 360°.'),
+      say(keyed('s3RefFullTurn')),
       anim(M.fromTo(ring, { opacity: 0 }, { opacity: 1, duration: M.dur(0.4), yoyo: true, repeat: 3 }))
     ]);
     if (ring.parentNode) ring.parentNode.removeChild(ring);
@@ -2912,17 +2887,17 @@
     await wait(SHORT);
 
     /* The question, with the working on the board. */
-    await say('What is the central angle of the major sector?');
+    await say(keyed('s3RefAsk'));
     await anim(fadeIn(l1));
     await wait(SHORT);
     await anim(fadeIn(l2.__parts));
     await wait(LOOK);
     await anim(fadeIn(l3.__parts));
     await D.ask({
-      yes: ['That’s correct!', 'The central angle of the major sector is 260°.'],
+      yes: [keyed('fbThatsCorrect'), keyed('s3RefRight')],
       why: {
-        0: ['Not quite!', 'The two central angles add up to 360°. So, subtract 100° from 360°.'],
-        1: ['Not quite!', 'Check your subtraction: 360° − 100° = ?']
+        0: [keyed('fbNotQuite'), keyed('s3RefWrongAdd')],
+        1: [keyed('fbNotQuite'), keyed('s3RefWrongSub')]
       }
     });
     fig.T.region.classList.add('is-lit');
@@ -2931,11 +2906,11 @@
     await wait(SHORT);
 
     /* The term, and the rule. */
-    await say('An angle greater than 180° is called a reflex angle. So, 260° is a reflex angle.');
+    await say(keyed('s3RefReflex'));
     await wait(SHORT);
-    var rule = ruleCard(panel, 'IN GENERAL', 'Central angle of the major sector ' + EQ + ' ' +
+    var rule = ruleCard(panel, tr('s3RuleInGeneral'), tr('s3LblCentralMajor') + ' ' + EQ + ' ' +
       '<span class="c-ang">360° − θ</span>', 'sa-rule--small');
-    await Promise.all([say('In general, the central angle of the major sector = 360° − θ.', 'happy'), rule.shown]);
+    await Promise.all([say(keyed('s3RefGeneral'), 'happy'), rule.shown]);
     rule.el.classList.add('is-glow');
     fig.T.region.classList.remove('is-lit');
     await wait(BEAT);
@@ -2955,12 +2930,12 @@
     P.bubble.classList.add('sa-bubble--sun');
     var slot = h('div', 'sa-qslot', null, panel);
     /* the rule of the screen before: the major sector's own angle, 360° − θ */
-    var rule = ruleCard(panel, 'AREA OF THE MAJOR SECTOR',
+    var rule = ruleCard(panel, tr('s3RuleAreaMajor'),
       c('a', 'A') + EQ + '<span class="frac c-ang"><span class="frac__n" data-k="num">360° − θ</span>' +
       '<span class="frac__d">360</span></span>' + X + PIR2, 'sa-rule--small');
     var num = rule.el.querySelector('[data-k="num"]');
     M.set(rule.el, { opacity: 0 });
-    var Q = 'Which angle do we use in the formula for the major sector?';
+    var Q = keyed('s3MaAsk');
 
     await leaveHeader();
     await fig.draw();
@@ -2971,10 +2946,10 @@
     await askChoice(['100°', '260°', '360°'], 1, {
       host: slot, tiles: true, voice: voice, stagger: 0.35,
       onShown: function () { quiet(anim(cardIn(rule.el))); },
-      yes: 'That’s correct!',
+      yes: keyed('fbThatsCorrect'),
       why: {
-        0: ['Not quite!', '100° is the central angle of the minor sector. Use the central angle of the major sector.'],
-        2: ['Not quite!', '360° is the whole circle. Use only the major sector’s angle.']
+        0: [keyed('fbNotQuite'), keyed('s3MaWrong100')],
+        2: [keyed('fbNotQuite'), keyed('s3MaWrong360')]
       },
       onWrong: function (i) {
         var r = i === 0 ? fig.S.region : null;
@@ -3002,7 +2977,7 @@
       { scale: 1.35, duration: M.dur(0.28), ease: 'power2.out', yoyo: true, repeat: 1 })));
     rule.el.classList.add('is-glow');
     await wait(SHORT);
-    await say('So, the area of the major sector = ((360° − θ)/360) × πr². Let’s use it with real numbers.', 'happy');
+    await say(keyed('s3MaSo'), 'happy');
     await wait(BEAT);
     await handOver();
   }
@@ -3013,13 +2988,13 @@
   async function sWorkedMajor() {
     var sc = await stage('work');
     var col = h('div', 'sa-wk sa-wk--align', null, sc);
-    var fig = majorFigure(sc, 45, { minorLabel: '45°', majorLabel: '360° − θ = ?', rAlong: 'r = 14 cm' });
+    var fig = majorFigure(sc, 45, { minorLabel: '45°', majorLabel: '360° − θ = ?', rAlong: tr('s3LblR14') });
 
+    /* The formula only: r and θ are already on the figure (see sWorked). */
     var head = h('div', 'sa-wk__head',
-      '<p class="sa-wk__given"><b>Given:</b> ' + c('r', 'r = 14 cm') + ',&nbsp;' + c('ang', 'θ = 45°') + '</p>' +
-      '<p class="sa-wk__formula"><b>Formula:</b> ' + c('a', 'A') + EQ + fr('360° − θ', '360', 'c-ang') + X + PIR2 + '</p>', col);
-    var given = head.querySelector('.sa-wk__given'), formula = head.querySelector('.sa-wk__formula');
-    M.set([given, formula], { opacity: 0 });
+      '<p class="sa-wk__formula"><b>' + tr('s3Formula') + '</b> ' + c('a', 'A') + EQ + fr('360° − θ', '360', 'c-ang') + X + PIR2 + '</p>', col);
+    var formula = head.querySelector('.sa-wk__formula');
+    M.set(formula, { opacity: 0 });
     var list = h('div', 'steps', null, col);
     function bitsRow(n, parts) {
       var r = stepRow(list, n, parts.map(function (x) { return '<span class="sa-work__bit">' + x + '</span>'; }).join(''));
@@ -3032,9 +3007,9 @@
     var s3 = bitsRow(3, [c('a', 'A'), EQ, fr('7', '8', 'c-ang'), X, c('pi', '22'), X, c('r', '2'), X, c('r', '14')]);
     var s4 = bitsRow(4, [c('a', 'A'), EQ, fr('7', '8', 'c-ang'), X, c('pi', '616')]);
     var s5 = stepRow(list, 5, c('a', 'A') + EQ + DD);
-    var d1 = dropdown(ddIn(s1), ['315°', '135°', '305°', '45°'], 0);
-    var d2 = dropdown(ddIn(s2), [c('r', '14²'), c('r', '14'), c('r', '28²'), c('r', '7²')], 0);
-    var d5 = dropdown(ddIn(s5), ['539 cm²', '77 cm²', '616 cm²', '308 cm²'], 0, { up: true });
+    var d1 = dropdown(ddIn(s1), ['315°', '135°', '45°'], 0);
+    var d2 = dropdown(ddIn(s2), [c('r', '14²'), c('r', '14'), c('r', '28²')], 0);
+    var d5 = dropdown(ddIn(s5), [tr('s3Val539sq'), tr('val77sq'), tr('val616sq')], 0, { up: true });
     function pulse(el) {
       if (!el) return;
       quiet(anim(M.fromTo(el, { scale: 1, transformOrigin: '50% 50%' },
@@ -3055,9 +3030,10 @@
     await fig.draw();
     await angleIn(fig.B);
     await wait(SHORT);
-    await say('Find the area of the major sector.');
+    await say(keyed('s3FindMajor'));
+    /* r and θ, picked out on the figure: that is the given. */
     pulse(fig.R);
-    await anim(fadeIn(given, { y: 6 }));
+    await wait(SHORT);
     pulse(fig.A.lbl);
     await wait(LOOK);
     await anim(fadeIn(formula, { y: 6 }));
@@ -3065,14 +3041,13 @@
 
     /* 1. The major sector's own angle. */
     await stepIn(s1);
-    await say('First, find the central angle of the major sector.');
+    await say(keyed('s3WmFirst'));
     pulse(fig.B.lbl);
     await d1.ask({
-      yes: ['That’s correct!', 'The central angle of the major sector is 315°.'],
+      yes: [keyed('fbThatsCorrect'), keyed('s3WmRight')],
       why: {
-        1: ['Not quite!', 'A full turn is 360°, not 180°.'],
-        2: ['Not quite!', 'Check your subtraction: 360° − 45° = ?'],
-        3: ['Not quite!', '45° is the minor sector’s angle.']
+        1: [keyed('fbNotQuite'), keyed('s3FullTurn360')],
+        2: [keyed('fbNotQuite'), keyed('s3WmWrong45')]
       }
     });
     stepDone(s1);
@@ -3081,35 +3056,33 @@
 
     /* 2. r into the formula, with π = 22/7 said first. */
     await stepIn(s2);
-    await say('Now, put r = 14 cm in the formula. We take π = 22/7.');
+    await say(keyed('s3WmPutR'));
     pulse(fig.R);
     await d2.ask({
-      yes: ['That’s correct!', 'r² = 14².'],
+      yes: [keyed('fbThatsCorrect'), keyed('s3WmRRight')],
       why: {
-        1: ['Not quite!', 'r² means r × r. So it is 14 × 14, or 14².'],
-        2: ['Not quite!', '28 cm is the diameter. Square the radius, which is 14 cm.'],
-        3: ['Not quite!', '7 cm is half the radius. Square the radius, which is 14 cm.']
+        1: [keyed('fbNotQuite'), keyed('s3WmRWrong14')],
+        2: [keyed('fbNotQuite'), keyed('s3WmRWrong28')]
       }
     });
     stepDone(s2);
 
     /* 3-4. The simplification, shown. */
-    await say('Simplify: 315/360 = 7/8, and 22/7 × 14 × 14 = 22 × 2 × 14.');
+    await say(keyed('s3WmSimplify'));
     await writeRow(s3);
     await wait(SHORT);
-    await say('22 × 2 × 14 = 616.');
+    await say(keyed('s3WmProduct'));
     await writeRow(s4);
     await wait(SHORT);
 
     /* 5. The answer, found by the learner. */
     await stepIn(s5);
-    await say('Now, find the area.');
+    await say(keyed('s3FindArea'));
     await d5.ask({
-      yes: 'That’s correct!',
+      yes: keyed('fbThatsCorrect'),
       why: {
-        1: ['Not quite!', 'That is the minor sector: 1/8 of 616.'],
-        2: ['Not quite!', 'That is the whole circle. Multiply by 7/8.'],
-        3: ['Not quite!', 'That is half the circle. 315° is 7/8 of 360°.']
+        1: [keyed('fbNotQuite'), keyed('s3WmWrongMinor')],
+        2: [keyed('fbNotQuite'), keyed('s3WmWrongWhole')]
       }
     });
     stepDone(s5);
@@ -3118,8 +3091,8 @@
     /* What was found, said -- and set in the major sector. */
     fig.T.region.classList.add('is-focus');
     var fp = pt(fig.C, 92, 180);
-    var fl = text(fig.C.top, fp.x, fp.y, '539 cm²', 'lbl lbl--area s-found-lbl');
-    await Promise.all([say('So, the area of the major sector is 539 cm².', 'happy'), anim(popIn(fl, { from: 0.4 }))]);
+    var fl = text(fig.C.top, fp.x, fp.y, tr('s3Val539sq'), 'lbl lbl--area s-found-lbl');
+    await Promise.all([say(keyed('s3WmFound'), 'happy'), anim(popIn(fl, { from: 0.4 }))]);
     fig.T.region.classList.remove('is-focus');
     await wait(BEAT);
     await handOver();
@@ -3131,7 +3104,7 @@
      sector, is the major sector. */
   async function sAnotherWay() {
     var sc = await stage('split');
-    var fig = majorFigure(sc, 45, { minorLabel: '45°', majorLabel: '360° − θ = 315°', rAlong: 'r = 14 cm' });
+    var fig = majorFigure(sc, 45, { minorLabel: '45°', majorLabel: '360° − θ = 315°', rAlong: tr('s3LblR14') });
     /* Two questions from a perch, one after the other: the bird and its
        bubble above, the answers as tiles, and each answer found set on a
        card underneath, so the two build up into the working. */
@@ -3147,7 +3120,7 @@
       var voice = bubbleVoice(P, q);
       slot.textContent = '';
       await askChoice(opts, 0, { host: slot, tiles: true, voice: voice, stagger: 0.3,
-                                 yes: 'That’s correct!', why: why });
+                                 yes: keyed('fbThatsCorrect'), why: why });
       voice.stop();
       await wait(700);
       var tiles = Array.prototype.slice.call(slot.children);
@@ -3164,21 +3137,19 @@
     /* What this screen sets out to do, across the top of the board; the
        bird asks each question under it. */
     dom.board.classList.add('has-given');
-    await sayPrompt.reserve('Let’s find the area of the major sector in another way.')();
+    await sayTop(keyed('s3AwIntro'));
     await anim(fadeIn(P.row, { y: 0 }));
-    await ask('What is the area of the circle?',
-      [c('pi', '196π') + ' cm²', c('pi', '28π') + ' cm²', c('pi', '784π') + ' cm²', c('pi', '56π') + ' cm²'],
-      { 1: ['Not quite!', '28π is 2πr, the circumference. For area, use πr².'],
-        2: ['Not quite!', '784 = 28². Square the radius (14 cm), not the diameter.'],
-        3: ['Not quite!', 'Area = π × r × r = π × 14 × 14, not π × 4 × 14.'] },
-      'Area of the circle ' + EQ + ' ' + c('pi', 'π') + X + c('r', '14²') + EQ + c('pi', '196π') + ' cm²', true);
-    await ask('Now, what is the area of the minor sector?',
+    await ask(keyed('s3AwAskCircle'),
+      [tr('s3CmSq', { n: c('pi', '196π') }), tr('s3CmSq', { n: c('pi', '28π') }), tr('s3CmSq', { n: c('pi', '784π') })],
+      { 1: [keyed('fbNotQuite'), keyed('s3AwWrong28Pi')],
+        2: [keyed('fbNotQuite'), keyed('s3AwWrong784')] },
+      tr('s3LblAreaOfCircle') + ' ' + EQ + ' ' + c('pi', 'π') + X + c('r', '14²') + EQ + tr('s3CmSq', { n: c('pi', '196π') }), true);
+    await ask(keyed('s3AwAskMinor'),
       [fr('1', '8', 'c-ang') + X + c('pi', '196π'), fr('7', '8', 'c-ang') + X + c('pi', '196π'),
-       fr('1', '8', 'c-ang') + X + c('pi', '784π'), fr('7', '8', 'c-ang') + X + c('pi', '784π')],
-      { 1: ['Not quite!', '7/8 is the major sector’s share. The minor sector’s share is 45/360 = 1/8.'],
-        2: ['Not quite!', 'The area of the circle is 196π cm², not 784π cm².'],
-        3: ['Not quite!', 'Check both parts: the minor sector is 1/8 of the circle, and the circle is 196π cm².'] },
-      'Area of the minor sector ' + EQ + ' ' + fr('1', '8', 'c-ang') + X + c('pi', '196π') + ' cm²');
+       fr('1', '8', 'c-ang') + X + c('pi', '784π')],
+      { 1: [keyed('fbNotQuite'), keyed('s3AwWrong78')],
+        2: [keyed('fbNotQuite'), keyed('s3AwWrong784Pi')] },
+      tr('s3LblAreaMinor') + ' ' + EQ + ' ' + fr('1', '8', 'c-ang') + X + tr('s3CmSq', { n: c('pi', '196π') }));
     fig.S.region.classList.add('is-lit');
     await wait(BEAT);
     await handOver();
@@ -3195,15 +3166,15 @@
     old.forEach(function (o) { panel.removeChild(o); });
     fig.S.region.classList.remove('is-lit');
     /* the working on the shared grid: every = in one column */
-    await say('Area of the major sector = Area of the circle − Area of the minor sector.');
+    await say(keyed('s3MajorByDiff'));
     await writeSteps(panel, [
-      ['Major sector', [['circle'], [MINUS], ['minor sector']]],
+      [tr('s3LblMajorSector'), [[tr('s3WordCircle')], [MINUS], [tr('s3WordMinorSector')]]],
       ['', [['196π'], [MINUS], [fr('1', '8', 'c-ang')], [X], ['196π']]],
       ['', [[fr('7', '8', 'c-ang')], [X], ['196π']]],
-      ['', [[c('ans', '539 cm²')]]]
+      ['', [[c('ans', tr('s3Val539sq'))]]]
     ]);
     fig.T.region.classList.add('is-lit');
-    await say('We get the same answer: 539 cm²!', 'happy');
+    await say(keyed('s3AwSame'), 'happy');
     await wait(BEAT);
     await handOver();
   }
@@ -3213,10 +3184,10 @@
     var sc = await stage('split');
     var fig = majorFigure(sc, 70, { minorLabel: 'θ', majorLabel: '360° − θ' });
     var panel = h('div', 'sa-panel sa-panel--centre', null, sc);
-    var r1 = ruleCard(panel, 'AREA OF A MAJOR SECTOR',
+    var r1 = ruleCard(panel, tr('s3RuleAreaAMajor'),
       c('a', 'A') + EQ + fr('360 − θ', '360', 'c-ang') + X + PIR2, 'sa-rule--small');
-    var r2 = ruleCard(panel, 'OR',
-      c('a', 'A') + EQ + PIR2 + MINUS + 'area of the minor sector', 'sa-rule--small');
+    var r2 = ruleCard(panel, tr('s3RuleOr'),
+      c('a', 'A') + EQ + PIR2 + MINUS + tr('s3WordAreaMinor'), 'sa-rule--small');
     M.set([r1.el, r2.el], { opacity: 0 });
 
     /* The circle is drawn first, with nothing said, and only then talked
@@ -3225,12 +3196,12 @@
     await fig.draw();
     await angleIn(fig.B);
     await wait(SHORT);
-    await say('There are two ways to find the area of a major sector.');
+    await say(keyed('s3MrTwoWays'));
     fig.T.region.classList.add('is-lit');
-    await say('Way 1: Use its own central angle, (360° − θ).');
+    await say(keyed('s3MrWay1'));
     await anim(cardIn(r1.el));
     await wait(LOOK);
-    await say('Way 2: Subtract the area of the minor sector from the area of the circle.');
+    await say(keyed('s3MrWay2'));
     await anim(cardIn(r2.el));
     r1.el.classList.add('is-glow');
     r2.el.classList.add('is-glow');
@@ -3241,13 +3212,13 @@
   /* ---- 21-22. Practice: major sectors (slides 56-59) ------------------------------- */
   function litMajor(fig) { fig.T.region.classList.add('is-lit'); }
   function sPractice3() {
-    var RULE = ['Not quite!', 'Area of the major sector = ((360° − θ)/360) × πr².'];
+    var RULE = [keyed('fbNotQuite'), keyed('s3P3Rule')];
     return practice({
-      theta: 120, r: 'r = 21 cm', major: true, majorLabel: '?',
-      prompt: 'Find the area of the major sector.',
+      theta: 120, r: tr('s3LblR21'), major: true, majorLabel: '?',
+      prompt: keyed('s3FindMajor'),
       rule: c('a', 'A') + EQ + fr('360 − θ', '360', 'c-ang') + X + PIR2,
-      options: ['924 cm²', '462 cm²', '1386 cm²', '693 cm²'], right: 0,
-      why: { 1: RULE, 2: RULE, 3: RULE },
+      options: [tr('s3Val924sq'), tr('val462sq'), tr('s3Val1386sq')], right: 0,
+      why: { 1: RULE, 2: RULE },
       lit: function (fig) {
         litMajor(fig);
         fig.majorA.set(fig.T.a0, fig.T.a1, '240°');
@@ -3258,41 +3229,41 @@
           [c('a', 'A'), [[fr('240', '360', 'c-ang'), fig.majorA.lbl], [X], [PIR2]]],
           ['', [[fr('2', '3', 'c-ang')], [X], [fr('22', '7', 'c-pi')], [X], [c('r', '21²'), fig.R]]],
           ['', [[fr('2', '3', 'c-ang')], [X], [c('pi', '1386')]]],
-          ['', [[c('ans', '924 cm²')]]]
+          ['', [[c('ans', tr('s3Val924sq'))]]]
         ];
       },
       found: {
-        label: '924 cm²',
+        label: tr('s3Val924sq'),
         at: function (fig) { return pt(fig.C, 112, 270); },
         region: function (fig) { return fig.T.region; },
-        say: 'So, the area of the major sector is 924 cm².'
+        say: keyed('s3P3Found')
       }
     }).then(handOver);
   }
 
   function sPractice4() {
-    var RULE = ['Not quite!', 'Area of the major sector = Area of the circle − Area of the minor sector.'];
+    var RULE = [keyed('fbNotQuite'), keyed('s3MajorByDiff')];
     return practice({
-      theta: 90, r: 'r = 28 cm', major: true, majorLabel: '?',
-      given: 'The area of the circle is 2464 cm² and the area of the minor sector is 616 cm².',
-      prompt: 'Find the area of the major sector.',
-      tag: 'Remember',
-      rule: c('a', 'major') + EQ + PIR2 + MINUS + c('a', 'minor'),
-      options: ['1848 cm²', '3080 cm²', '1232 cm²', '616 cm²'], right: 0,
-      why: { 1: RULE, 2: RULE, 3: RULE },
+      theta: 90, r: tr('s3LblR28'), major: true, majorLabel: '?',
+      given: keyed('s3P4Given'),
+      prompt: keyed('s3FindMajor'),
+      tag: tr('s3TagRemember'),
+      rule: c('a', tr('s3WordMajor')) + EQ + PIR2 + MINUS + c('a', tr('s3WordMinor')),
+      options: [tr('s3Val1848sq'), tr('s3Val1232sq'), tr('val616sq')], right: 0,
+      why: { 1: RULE, 2: RULE },
       lit: litMajor,
       steps: function (fig) {
         return [
-          [c('a', 'Major sector'), [['Circle'], [MINUS], ['Minor sector']]],
+          [c('a', tr('s3LblMajorSector')), [[tr('s3WordCircleCap')], [MINUS], [tr('s3LblMinorSector')]]],
           ['', [[c('pi', '2464'), fig.C.disc], [MINUS], [c('ang', '616'), fig.S.region]]],
-          ['', [[c('ans', '1848 cm²')]]]
+          ['', [[c('ans', tr('s3Val1848sq'))]]]
         ];
       },
       found: {
-        label: '1848 cm²',
+        label: tr('s3Val1848sq'),
         at: function (fig) { return pt(fig.C, 112, 270); },
         region: function (fig) { return fig.T.region; },
-        say: 'So, the area of the major sector is 1848 cm².'
+        say: keyed('s3P4Found')
       }
     }).then(handOver);
   }
@@ -3328,7 +3299,7 @@
     while (rot <= -90) rot += 180;
     while (rot > 90) rot -= 180;
     var rg = svgEl('g', { transform: 'rotate(' + r2(rot) + ' ' + r2(mid.x + off.x) + ' ' + r2(mid.y + off.y) + ')' }, g);
-    var ribLbl = text(rg, mid.x + off.x, mid.y + off.y, '28 cm', 'lbl lbl--radius lbl--along');
+    var ribLbl = text(rg, mid.x + off.x, mid.y + off.y, tr('s3Lbl28cm'), 'lbl lbl--radius lbl--along');
     ribLbl.style.fontSize = '26px';
     aLbl.style.fontSize = '26px';
     var open = { s: 4 };
@@ -3349,11 +3320,11 @@
     P.row.classList.add('sa-speak--above');
     P.bubble.classList.add('sa-bubble--sun');
     var slot = h('div', 'sa-qslot', null, panel);
-    var given = ruleCard(sc, 'Remember', c('a', 'A') + EQ + fr('θ', '360', 'c-ang') + X + PIR2, 'sa-rule--small');
+    var given = ruleCard(sc, tr('s3TagRemember'), c('a', 'A') + EQ + fr('θ', '360', 'c-ang') + X + PIR2, 'sa-rule--small');
     M.set(given.el, { opacity: 0 });
 
     /* 1. The angle: the fan opens out to 135°, and the angle is marked. */
-    await say('A paper fan opens to an angle of 135°.');
+    await say(keyed('s3FanOpens'));
     await anim(M.to(g, { opacity: 1, duration: M.dur(0.3) }));
     Beats.pop();
     await anim(M.to(open, { s: 135, duration: M.dur(1.6), ease: 'power3.out', onUpdate: drawFan }));
@@ -3361,7 +3332,7 @@
     await wait(LOOK);
 
     /* 2. The rib: one rib picked out, and its length written along it. */
-    await say('Each rib is 28 cm long.');
+    await say(keyed('s3FanRib'));
     await anim(Beats.growLine(mRib, 0.8, 'power2.inOut'));
     await anim(fadeIn(ribLbl, { y: 0 }));
     await wait(LOOK);
@@ -3377,16 +3348,16 @@
     folds.forEach(function (f) { f.classList.add('is-flash2'); });
 
     /* The question from the perch, the answers one by one, then the rule. */
-    var Q = 'How much paper is used to make the fan?';
+    var Q = keyed('s3FanAsk');
     await anim(fadeIn(P.row, { y: 0 }));
     await perchSay(P, Q);
     var voice = bubbleVoice(P, Q);
-    var RULE = ['Not quite!', 'Area of a sector = (θ/360) × πr².'];
-    await askChoice(['924 cm²', '2464 cm²', '308 cm²', '1232 cm²'], 0, {
+    var RULE = [keyed('fbNotQuite'), keyed('s3SectorRule')];
+    await askChoice([tr('s3Val924sq'), tr('s3Val2464sq'), tr('s3Val308sq')], 0, {
       host: slot, tiles: true, voice: voice, stagger: 0.35,
       onShown: function () { quiet(anim(cardIn(given.el))); },
-      yes: 'That’s correct!',
-      why: { 1: RULE, 2: RULE, 3: RULE }
+      yes: keyed('fbThatsCorrect'),
+      why: { 1: RULE, 2: RULE }
     });
     voice.stop();
     await wait(900);
@@ -3406,7 +3377,7 @@
       [c('a', 'A'), [[fr('135', '360', 'c-ang'), aLbl], [X], [PIR2]]],
       ['', [[fr('3', '8', 'c-ang')], [X], [fr('22', '7', 'c-pi')], [X], [c('r', '28²'), ribLbl]]],
       ['', [[fr('3', '8', 'c-ang')], [X], [c('pi', '2464')]]],
-      ['', [[c('ans', '924 cm²')]]]
+      ['', [[c('ans', tr('s3Val924sq'))]]]
     ];
     var last = null;
     for (var i = 0; i < STEPS.length; i++) {
@@ -3436,9 +3407,9 @@
     await wait(600);
 
     /* What was found, said -- and set on the paper of the fan. */
-    var found = text(g, 210, 190, '924 cm²', 'lbl lbl--area s-found-lbl s-found-lbl--fan');
+    var found = text(g, 210, 190, tr('s3Val924sq'), 'lbl lbl--area s-found-lbl s-found-lbl--fan');
     await Promise.all([
-      say('So, 924 cm² of paper is used to make the fan.', 'happy'),
+      say(keyed('s3FanFound'), 'happy'),
       anim(popIn(found, { from: 0.4 }))
     ]);
     await wait(BEAT);
@@ -3472,7 +3443,7 @@
     /* the range named along the radius it measures, on the side away from
        the wedge, turned to run with the line */
     var rg = svgEl('g', { transform: 'rotate(90 ' + (C.x - 20) + ' ' + (C.y - 75) + ')' }, g);
-    var rLbl = text(rg, C.x - 20, C.y - 75, '28 km', 'lbl lbl--radius lbl--along');
+    var rLbl = text(rg, C.x - 20, C.y - 75, tr('s3Lbl28km'), 'lbl lbl--radius lbl--along');
     M.set([sea, rings[0], rings[1], cross, wedge, trail, beam, rUp, rSide, ang, dot, aLbl, rLbl], { opacity: 0 });
 
     var panel = h('div', 'sa-panel sa-panel--practice', null, sc);
@@ -3480,12 +3451,12 @@
     P.row.classList.add('sa-speak--above');
     P.bubble.classList.add('sa-bubble--sun');
     var slot = h('div', 'sa-qslot', null, panel);
-    var given = ruleCard(sc, 'Remember', c('a', 'A') + EQ + fr('θ', '360', 'c-ang') + X + PIR2, 'sa-rule--small');
+    var given = ruleCard(sc, tr('s3TagRemember'), c('a', 'A') + EQ + fr('θ', '360', 'c-ang') + X + PIR2, 'sa-rule--small');
     M.set(given.el, { opacity: 0 });
 
     /* 1. The range: the screen of the radar drawn, and its reach, 28 km,
           run out from the centre to the edge. */
-    await say('A radar can detect objects up to 28 km away.');
+    await say(keyed('s3RadarRange'));
     await anim(M.fromTo(sea, { opacity: 0, scale: 0.3, transformOrigin: '50% 50%' },
       { opacity: 1, scale: 1, duration: M.dur(0.7), ease: 'back.out(1.4)' }));
     await anim(M.to(rings.concat([cross]), { opacity: 1, duration: M.dur(0.4), stagger: M.gap(0.12) }));
@@ -3496,7 +3467,7 @@
 
     /* 2. The angle: the second radius, the 45° between them, and the wedge
           it scans. */
-    await say('It scans a sector with a central angle of 45°.');
+    await say(keyed('s3RadarScan'));
     await anim(Beats.growLine(rSide, 0.8, 'power2.inOut'));
     await anim(Beats.secFill(wedge, function (t) { return wedgeD(C, C.r, a1 - (a1 - a0) * t, a1); }, 0.8));
     await angleIn({ arc: ang, lbl: aLbl });
@@ -3518,16 +3489,16 @@
     wedge.classList.add('is-flash2');
 
     /* The question from the perch, the answers one by one, then the rule. */
-    var Q = 'What area of the sea does it cover?';
+    var Q = keyed('s3RadarAsk');
     await anim(fadeIn(P.row, { y: 0 }));
     await perchSay(P, Q);
     var voice = bubbleVoice(P, Q);
-    var RULE = ['Not quite!', 'Area of a sector = (θ/360) × πr².'];
-    await askChoice(['308 km²', '2464 km²', '616 km²', '154 km²'], 0, {
+    var RULE = [keyed('fbNotQuite'), keyed('s3SectorRule')];
+    await askChoice([tr('s3Val308km'), tr('s3Val2464km'), tr('s3Val616km')], 0, {
       host: slot, tiles: true, voice: voice, stagger: 0.35,
       onShown: function () { quiet(anim(cardIn(given.el))); },
-      yes: 'That’s correct!',
-      why: { 1: RULE, 2: RULE, 3: RULE }
+      yes: keyed('fbThatsCorrect'),
+      why: { 1: RULE, 2: RULE }
     });
     voice.stop();
     await wait(900);
@@ -3550,7 +3521,7 @@
       [c('a', 'A'), [[fr('45', '360', 'c-ang'), aLbl], [X], [PIR2]]],
       ['', [[fr('1', '8', 'c-ang')], [X], [fr('22', '7', 'c-pi')], [X], [c('r', '28²'), rLbl]]],
       ['', [[fr('1', '8', 'c-ang')], [X], [c('pi', '2464')]]],
-      ['', [[c('ans', '308 km²')]]]
+      ['', [[c('ans', tr('s3Val308km'))]]]
     ];
     var last = null;
     for (var i = 0; i < STEPS.length; i++) {
@@ -3582,11 +3553,11 @@
     /* What was found, said -- and set on the figure, in the wedge it
        measures. */
     var ap = pt(C, 108, (a0 + a1) / 2 - 7);
-    var found = text(g, ap.x, ap.y, '308 km²', 'lbl lbl--area s-found-lbl');
+    var found = text(g, ap.x, ap.y, tr('s3Val308km'), 'lbl lbl--area s-found-lbl');
     wedge.classList.remove('is-flash2');
     wedge.classList.add('is-focus');
     await Promise.all([
-      say('So, the radar covers 308 km² of the sea.', 'happy'),
+      say(keyed('s3RadarFound'), 'happy'),
       anim(popIn(found, { from: 0.4 }))
     ]);
     await wait(BEAT);
@@ -3621,8 +3592,8 @@
     C.g.insertBefore(rimMinor, C.rim.nextSibling);
     C.g.insertBefore(rimMajor, rimMinor);
     var panel = h('div', 'sa-panel sa-panel--centre', null, sc);
-    var ra = ruleCard(panel, 'AREA OF THE MINOR SECTOR', c('a', 'A') + EQ + fr('θ', '360', 'c-ang') + X + PIR2);
-    var rb = ruleCard(panel, 'AREA OF THE MAJOR SECTOR', c('a', 'A') + EQ + fr('360° − θ', '360', 'c-ang') + X + PIR2);
+    var ra = ruleCard(panel, tr('s3RuleAreaMinor'), c('a', 'A') + EQ + fr('θ', '360', 'c-ang') + X + PIR2);
+    var rb = ruleCard(panel, tr('s3RuleAreaMajor'), c('a', 'A') + EQ + fr('360° − θ', '360', 'c-ang') + X + PIR2);
     M.set([ra.el, rb.el], { opacity: 0 });
 
     function focus(onEls, offEls) {
@@ -3668,7 +3639,7 @@
     T.region.classList.remove('is-lit');
     focus(minorEls.concat(majorEls), []);
     ra.el.classList.add('is-glow');
-    await say('Great job! Now you can find the area of any sector of a circle!', 'celebrating');
+    await say(keyed('s3FinishBye'), 'celebrating');
     Beats.sfx('cheer');
     burstAt(ra.el);
     await wait(260);
@@ -3741,7 +3712,7 @@
     dom = {
       frame: d.frame, board: d.board, stage: $('saStage'),
       slotHero: d.slotHero, slotHeader: d.slotHeader, hopper: d.hopper,
-      bubble: d.bubble, promptLine: d.promptLine, choices: d.choices,
+      bubble: d.bubble, promptLine: d.promptLine, choices: d.choices, tray: d.tray,
       nextBtn: d.nextBtn, burst: $('saBurst'), gate: gate
     };
     mascot = K.mascot();

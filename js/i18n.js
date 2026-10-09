@@ -4,6 +4,8 @@
  *   T('p20Work.0')                 -> first item of an array key
  *   I18n.voice('p01Hey')           -> "assets/VO/en/p01Hey.webm?v=1"
  *   I18n.say('p01Hey')             -> plays it; resolves true/false
+ *   I18n.cues('p01Hey')            -> [ms, ...]: when each word of the line
+ *                                     is heard, from the clip's start
  *   I18n.applyStatic()             -> fills data-i18n / data-i18n-html /
  *                                     data-i18n-attr="title:key" in HTML
  * Language: ?lan=xx on the URL, else defaultLanguage. A language without
@@ -187,6 +189,23 @@ var I18n = (function () {
   function preload(keys) {
     (keys || []).forEach(function (k) { var u = voice(k); if (u) _clip(u); });
   }
+  /* every key the current language has a recording of */
+  function voiced() {
+    var p = _pack();
+    return p && p.files ? Object.keys(p.files) : [];
+  }
+  /* cues(key): when each word of the key's line is heard, in ms from the
+     start of its clip -- one entry per word as the Typer cuts the line
+     (a word with the spaces after it). null when the clip has no cues, or
+     the line no longer has that many words: its text was changed after it
+     was recorded, and a word-for-word match can no longer be trusted. */
+  function cues(key) {
+    var p = _pack();
+    var list = p && p.cues && p.cues[key];
+    if (!Array.isArray(list)) return null;
+    var words = String(t(key)).match(/\S+\s*/g) || [];
+    return words.length === list.length ? list.slice() : null;
+  }
   function stop() {
     if (_playing) { try { _playing.pause(); _playing.currentTime = 0; } catch (e) {} }
     _playing = null;
@@ -237,6 +256,7 @@ var I18n = (function () {
     load: load,
     t: t, has: has, fmt: fmt, html: html, applyStatic: applyStatic,
     hasVoice: hasVoice, voice: voice, say: say, stop: stop, preload: preload,
+    voiced: voiced, cues: cues,
     getLang: getLang, getLanguages: getLanguages, setLang: setLang
   };
 })();

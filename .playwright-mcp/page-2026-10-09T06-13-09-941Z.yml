@@ -1,0 +1,9 @@
+- generic [active] [ref=e1]:
+  - main [ref=e2]:
+    - heading "Identify Different Parts of a Circle" [level=1] [ref=e5]
+  - group "Page controls (development)" [ref=e6]:
+    - generic [ref=e7]: 1/69 · page 1
+    - combobox "Jump to a page" [ref=e8] [cursor=pointer]
+    - button "« Back" [disabled] [ref=e9]
+    - button "Skip »" [ref=e10] [cursor=pointer]
+    - button "↺ Replay" [ref=e11] [cursor=pointer]
