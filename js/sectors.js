@@ -505,7 +505,8 @@
         var done = K.namePair({
           boxes: boxes, group: dom.secBoxes, names: coin('s4p1Sector', 's4p12MajorSector'),
           ask: 'dragNames',
-          wrong: { s4p1Sector: 'secWrongMinor', s4p12MajorSector: 'secWrongMajor' }
+          wrong: { s4p1Sector: 'secWrongMinor', s4p12MajorSector: 'secWrongMajor' },
+          praise: 'praiseFantastic'
         });
         chips = K.chips();
         return done;

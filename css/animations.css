@@ -226,6 +226,33 @@
   pointer-events: none;
 }
 
+/* The light shower an activity ends on (confettiRain, animations.js): a
+   layer over the whole board, clipped to its rounded edge, that nothing can
+   be pressed through -- the pieces are on it only while they fall. */
+.confetti {
+  position: absolute;
+  inset: 0;
+  z-index: 5;
+  overflow: hidden;
+  border-radius: inherit;
+  pointer-events: none;
+}
+.confetti__bit {
+  position: absolute;
+  left: 0;
+  top: 0;
+  width: 9px;
+  height: 5px;
+  border-radius: 1.5px;
+  opacity: 0;
+}
+.confetti__bit--round { width: 6px; height: 6px; border-radius: 50%; }
+.confetti__bit--blue     { background: var(--blue-fill); }
+.confetti__bit--mint     { background: var(--mint-fill); }
+.confetti__bit--lavender { background: var(--lavender-fill); }
+.confetti__bit--coral    { background: var(--coral-fill); }
+.confetti__bit--yellow   { background: var(--yellow-fill); }
+
 /* ==========================================================================
    Reduced motion
    Words still arrive in order -- that is the reading aid, not the decoration

@@ -1117,7 +1117,8 @@
         var names = coin('s1LblMinorArc', 's1LblMajorArc');
         var done = K.namePair({
           boxes: boxes, group: dom.arcBoxes, names: names, ask: 'dragNames',
-          wrong: { s1LblMinorArc: 'arcWrongMinor', s1LblMajorArc: 'arcWrongMajor' }
+          wrong: { s1LblMinorArc: 'arcWrongMinor', s1LblMajorArc: 'arcWrongMajor' },
+          praise: 'praiseExcellent'
         });
         chips = K.chips();
         return done;
@@ -1178,6 +1179,8 @@
         return armed;
       })
       .then(function () { return Flow.anim(Beats.arcsEqual(pieces(), dots())); })
+      /* made exactly equal: praised, with confetti, before it is explained */
+      .then(function () { return K.praise('praisePerfect'); })
       .then(function () { return Flow.wait(SHORT); })
 
       /* ---- the cut on the diameter, and the angle at the centre ------------

@@ -84,7 +84,11 @@
   min-width: 4.9em;
   min-height: 1.45em;
   padding: .02em .5em .08em;
-  margin: 0 .1em;
+  /* The gap either side is the slot's own, not the sentence's spaces:
+     the slot is re-parented while it is measured (see index.html), and a
+     space that depends on where it lands is a space that goes missing
+     (user, 2026-10-09: "keep the gap between the slot and 'of'"). */
+  margin: 0 .32em;
   border: .085em dashed var(--al-slot-edge);
   border-radius: 999px;
   background: var(--board-highlight);
@@ -123,6 +127,38 @@
   line-height: 1.2;
   white-space: nowrap;
   color: var(--right-border);
+}
+
+/* ---- The pointing arrow ----------------------------------------------------
+   From the lit piece to the sentence about it: a dotted curve on a layer
+   of its own over the whole stage, drawn in the stage's pixels by
+   arclen.js, with a small open head where it meets the words. The board's
+   own ink, so it reads as a note on the board and not as a mark on the
+   circle. Glass: the layer takes no touches. */
+.al-ink {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  z-index: 1;
+  overflow: visible;
+  pointer-events: none;
+}
+.al-arrow__line {
+  fill: none;
+  stroke: var(--text-primary);
+  stroke-width: 3;
+  stroke-linecap: round;
+  stroke-dasharray: 0.5 8;
+  opacity: .85;
+}
+.al-arrow__head {
+  fill: none;
+  stroke: var(--text-primary);
+  stroke-width: 3;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+  opacity: .9;
 }
 
 /* ---- The circle -----------------------------------------------------------

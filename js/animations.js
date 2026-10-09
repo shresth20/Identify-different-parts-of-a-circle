@@ -26,6 +26,13 @@
   };
   var pool = Object.create(null);
 
+  /* How long a cue is LOUD, in ms -- the answer chimes ring at the level of
+     the voice for this long and then only tail away -- and when each was
+     last rung. A word said over the loud part is lost under it, so a line
+     that follows a chime waits this out (see ringing). */
+  var RING_MS = { correct: 600, wrong: 600 };
+  var rang = Object.create(null);
+
   function sfx(key) {
     var src = CLIPS[key];
     if (!src || !M || !M.mayPlay(key)) return;
@@ -40,7 +47,17 @@
          rejecting. That is expected, not a fault. */
       var p = a.play();
       if (p && p.catch) p.catch(function () {});
+      rang[key] = performance.now();
     } catch (e) { /* no audio device; the lesson is not about the sound */ }
+  }
+
+  /* ms until every chime still ringing has quietened: 0 when none is. */
+  function ringing() {
+    var now = performance.now(), left = 0;
+    Object.keys(RING_MS).forEach(function (k) {
+      if (rang[k]) left = Math.max(left, rang[k] + RING_MS[k] - now);
+    });
+    return left;
   }
 
   /* ---- the pop a mark makes as it lands -------------------------------
@@ -1924,6 +1941,63 @@
     return tl;
   }
 
+  /* The light shower: an activity finished. A few dozen small pieces in the
+     lesson's own fills drift down over the board from its top edge, each
+     swaying a little and turning as it falls, and fade out before they
+     reach the bottom. Light on purpose -- a pat on the back, not a party --
+     and over the board, not the screen, so the figure the learner just
+     finished stays the thing in view. Every position is drawn up before
+     the timeline starts; the pieces are moved by transform and faded, and
+     nothing else. The layer is its own, put on top of the board for the
+     length of the shower and taken out when it is over, however it ends. */
+  var RAIN_N = 30;
+  var RAIN_HUES = ['blue', 'mint', 'lavender', 'coral', 'yellow'];
+
+  function confettiRain(host) {
+    var layer = document.createElement('div');
+    layer.className = 'confetti';
+    layer.setAttribute('aria-hidden', 'true');
+    host.appendChild(layer);
+    var remove = function () { if (layer.parentNode) layer.parentNode.removeChild(layer); };
+
+    var w = layer.clientWidth, h = layer.clientHeight;
+    if (M.reducedMotion() || !w || !h) {      /* motion for its own sake */
+      remove();
+      return M.timeline();
+    }
+
+    var bits = [];
+    var plan = [];
+    for (var i = 0; i < RAIN_N; i++) {
+      var el = document.createElement('span');
+      el.className = 'confetti__bit confetti__bit--' + RAIN_HUES[i % RAIN_HUES.length] +
+                     (i % 3 === 0 ? ' confetti__bit--round' : '');
+      layer.appendChild(el);
+      bits.push(el);
+      var fall = 1.5 + Math.random() * 0.7;
+      plan.push({
+        x: (i + Math.random()) / RAIN_N * w,            /* spread across the width */
+        sway: (Math.random() - 0.5) * 70,
+        drop: h * (0.5 + Math.random() * 0.35),
+        turn: (Math.random() - 0.5) * 720,
+        delay: Math.random() * 0.4,
+        fall: fall
+      });
+    }
+
+    var tl = M.timeline({ willChange: bits, revert: remove });
+    bits.forEach(function (b, n) {
+      var p = plan[n];
+      M.set(b, { x: p.x, y: -16, rotation: p.turn / 4, opacity: 1 });
+      tl.to(b, { y: p.drop, duration: M.dur(p.fall), ease: 'power1.in' }, M.gap(p.delay))
+        .to(b, { x: p.x + p.sway, rotation: p.turn, duration: M.dur(p.fall), ease: 'sine.inOut' },
+            M.gap(p.delay))
+        .to(b, { opacity: 0, duration: M.dur(p.fall * 0.4), ease: 'power2.in' },
+            M.gap(p.delay + p.fall * 0.6));
+    });
+    return tl;
+  }
+
   /* ---- the figure's own speed -------------------------------------------
      How fast the picture is made, apart from everything around it: the
      circle drawn, its points and lines put on, its pieces swept, filled,
@@ -1957,6 +2031,7 @@
     /* 1 as written; 1.4 makes every figure beat 1.4 times as quick */
     figureSpeed: function (s) { figSpeed = s > 0 ? s : 1; },
     sfx: sfx,
+    ringing: ringing,
     pop: pop,
     boardIn: boardIn,
     boardOut: boardOut,
@@ -2058,7 +2133,8 @@
     quizFocus: quizFocus,
     quizUnfocus: quizUnfocus,
     fillOut: fillOut,
-    confetti: confetti
+    confetti: confetti,
+    confettiRain: confettiRain
   };
   FIGURE_BEATS.forEach(function (name) {
     global.Beats[name] = figure(global.Beats[name]);

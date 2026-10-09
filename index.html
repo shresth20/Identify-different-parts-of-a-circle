@@ -572,6 +572,18 @@
               <path class="figure__rim" id="cfRim"
                     d="M500 52 A158 158 0 0 1 500 368 A158 158 0 0 1 500 52" />
               <circle class="rim-tip" id="cfTip" cx="500" cy="52" r="7" />
+              <!-- A radius out of the centre to the upper right, and its
+                   name along it: the formulas asked for are written in
+                   terms of it (user, 2026-10-09). -->
+              <path class="cq-radius" id="cfRadius" d="M500 210 L621.08 108.42" />
+              <circle class="cs-centre" id="cfCentre" cx="500" cy="210" r="5" />
+              <!-- The turn is on a group of its own, so the label's pop --
+                   a transform the motion library writes -- can never undo
+                   it. -->
+              <g transform="rotate(-40 551 149)">
+                <text class="figure-label cs-deg cf-radlbl" id="cfRadLbl" x="551" y="149"
+                      text-anchor="middle" data-i18n="s2LblRadius">radius</text>
+              </g>
             </g>
 
             <!-- ---- Skill 2, section 2, page 2: the semicircle's arc length
@@ -627,7 +639,7 @@
                  centre, the vertical radius up to twelve o'clock and the
                  horizontal one out to three, the quarter between them
                  tinted in with its own piece of the rim lit, and the right
-                 angle at the centre with its "90°". Radii, angle and "90°"
+                 angle at the centre marked with its square. Radii and angle
                  share page 2's ink (--cs-ink, circum.css); the dot keeps the
                  centre's pink. The burst goes up off the lit quarter when
                  the right formula is pressed. Nothing here is a target; the
@@ -643,10 +655,10 @@
               <!-- Both radii grow out of the centre. -->
               <path class="cq-radius" id="cqRadV" d="M500 210 L500 52" />
               <path class="cq-radius" id="cqRadH" d="M500 210 L658 210" />
-              <path class="cs-angle" id="cqAngle" d="M500 168 A42 42 0 0 1 542 210" />
+              <!-- The right angle marked as one: a small square in the
+                   corner, which says 90° by itself (user, 2026-10-09). -->
+              <path class="cs-angle" id="cqAngle" d="M500 180 L530 180 L530 210" />
               <circle class="cs-centre" id="cqCentre" cx="500" cy="210" r="5" />
-              <text class="figure-label cs-deg" id="cqDeg" x="566" y="160"
-                    text-anchor="middle" data-i18n="p21Deg">90°</text>
               <g class="qz-burst" id="cqBurst" aria-hidden="true"></g>
             </g>
 

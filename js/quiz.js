@@ -1100,7 +1100,7 @@
       .then(function () { return Flow.wait(SHORT); })
       .then(function () { return header(true, false); })
       .then(function () {
-        Beats.sfx('cheer');
+        K.celebrate();
         return K.arriveSaying(keyed('s1QzFinalDone'));
       })
       .then(function () {

@@ -110,7 +110,7 @@
   max-width: calc(var(--cf-reach) - var(--cf-bird-left)
                   - var(--cf-tip-x) * var(--cf-bird-size) + var(--cf-set-back));
 
-  padding: .62em 1.05em .7em;
+  padding: .66em 1.2em .74em;
   border: var(--cf-border) solid transparent;
   border-radius: 1.45em;
   /* A rim deepening toward the foot, drawn round a white card. The fill is
@@ -232,6 +232,18 @@
    three still stand in one row across the half-stage. */
 .cf-pane.is-long .cf-opts .choice { font-size: clamp(11px, 3.3cqw, 22px); }
 
+/* A fraction stood up on a pill -- the ½ of "½ × 2π × radius", the
+   radius⁄4 of the quadrant's -- at nearly the pill's own size, so its
+   figures read as plainly as the words either side of them (user,
+   2026-10-09: "½ size can be increased", "fractions should be larger").
+   The stack is allowed to overshoot the line box (see .frac in
+   style.css), so the pill is no taller for it. */
+.cf-opts .choice .frac__n,
+.cf-opts .choice .frac__d { font-size: .92em; padding: 0 .18em; }
+.cf-opts .choice .frac__n { padding-bottom: .1em; }
+.cf-opts .choice .frac__d { padding-top: .12em; border-top-width: .1em; }
+.cf-opts .choice .frac-paren { transform: scaleY(2.05); }
+
 /* ---- The circle -----------------------------------------------------------
    Nothing on this section's circle is a target: the answer is a press on a
    pill, never a touch on the picture. */
@@ -294,6 +306,9 @@
   fill: var(--cs-ink);
   opacity: 0;
 }
+/* The circumference page's "radius", set along the radius it names: the
+   figure's own lettering, a step smaller, turned to run with the line. */
+.cf-radlbl { font-size: 24px; }
 
 /* ---- The quadrant page's marks ---------------------------------------------
    Page 2's ink again for both radii, as for its dashed diameter -- with the

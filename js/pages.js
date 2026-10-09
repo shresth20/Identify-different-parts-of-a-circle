@@ -1083,6 +1083,20 @@
   function keyed(key) {
     return { text: global.I18n ? global.I18n.t(key) : key, vo: key };
   }
+
+  /* Feedback in two sentences, said one at a time: the verdict on its own
+     ("Not quite!"), then the reason, typed over it. Each is its own key and
+     its own clip, and speak() is not done until its clip is, so the reason
+     is never begun over the end of the verdict's voice -- the words on
+     screen and the voice stay together. `still()`, if given, is asked
+     between the two: false once a newer line has taken the header, and the
+     reason is then left unsaid. A key that IS the verdict is said once. */
+  function sayFeedback(verdict, key, mood, still) {
+    return speak(keyed(verdict), mood).then(function () {
+      if (key === verdict || (still && !still())) return;
+      return speak(keyed(key), mood);
+    });
+  }
   /* How long a line takes to type, in seconds: for something acted out on
      the figure in step with it. */
   function typedFor(text) {
@@ -1184,6 +1198,28 @@
       bird ? birdVoice(key) : voiceOver(key),
       Flow.anim(aimCallout(spec, { pace: pace }))
     ]);
+  }
+
+  /* ---- an activity finished --------------------------------------------
+     The learner is told so: the cheer, and a light shower of confetti over
+     the board, left to fall while the lesson goes on. */
+  function celebrate() {
+    Beats.sfx('cheer');
+    quiet(Flow.anim(Beats.confettiRain(dom.board)));
+  }
+  /* ...and a word of praise (one of the praise* keys) said by the bird --
+     from where it stands if it is on the header, else up to say it -- as
+     the confetti comes down. The confetti goes with the right answer's
+     chime; the word waits for the chime to ring out, or it is said under
+     it and lost: the chime is as loud as the voice, and the word is
+     shorter than the chime. */
+  function praise(key) {
+    celebrate();
+    return Flow.wait(Beats.ringing())
+      .then(function () {
+        return birdOnHeader() ? speak(keyed(key), 'happy') : arriveSaying(keyed(key), 'happy');
+      })
+      .then(function () { mascot.settle(); });
   }
 
   /* Whether the bird is standing on the header now, and so can simply say
@@ -2149,7 +2185,8 @@
       })
 
       /* Right or wrong, the lesson is the same one -- so only the word in
-         front of it changes, and the closing line with it. A wrong answer
+         front of it changes, and the closing line with it. A right answer
+         is praised, under a light shower of confetti. A wrong answer
          is shaken and then the right one is lit beside it, because being
          told "no" without being shown "this one" teaches nothing. */
       .then(function (picked) {
@@ -2159,8 +2196,7 @@
           : Flow.anim(Beats.choiceWrong(choiceBtns[1])).then(function () {
               return Flow.anim(Beats.choiceRight(choiceBtns[0]));
             });
-        var said = speak(keyed(right ? 'fbThatsCorrect' : 'fbNotQuite'),
-                         right ? 'happy' : 'confused');
+        var said = right ? praise('praiseAwesome') : speak(keyed('fbNotQuite'), 'confused');
         return Promise.all([marked, said])
           .then(function () { return Flow.wait(SHORT); })
           .then(function () { return speak(keyed('s1DiaIsChord')); })
@@ -2260,8 +2296,8 @@
   var ASK_ORDER = ['s1LblCenter', 's1LblRadius', 's1LblDiameter', 's1LblChord',
                    's1LblCircumference'];
 
-  /* A name dropped on the wrong part is answered in one short line: "Not
-     quite!" and what THAT name is -- enough to see why it does not fit,
+  /* A name dropped on the wrong part is answered in two short lines: "Not
+     quite!" and then what THAT name is (see sayFeedback) -- enough to see why it does not fit,
      without handing over the one that does. A chord dropped on the
      diameter is the one case where the name is not wrong about the line,
      only not the name asked for, and it is told so. */
@@ -2290,7 +2326,8 @@
     function sayWrong(target, name) {
       var mine = ++fb.n;
       fb.up = true;
-      return speak(keyed(wrongKey(target, name)), 'confused')
+      return sayFeedback('fbNotQuite', wrongKey(target, name), 'confused',
+                         function () { return mine === fb.n; })
         .then(function () { return Flow.wait(WRONG_HOLD); })
         .then(function () {
           if (mine !== fb.n) return;
@@ -2379,7 +2416,7 @@
       /* ---- All five in ---------------------------------------------------- */
       .then(function () {
         fb.n++;
-        Beats.sfx('cheer');
+        celebrate();
         return speak(keyed('s1QzDone'), 'happy');
       })
       .then(function () {
@@ -2407,25 +2444,30 @@
      segments, sectors): two boxes already on the circle, two names to drag
      into them. The bird comes up with the instruction and STAYS on the
      header while the names are being placed -- it is not sent away and
-     brought back. A wrong drop is answered on the spot in one short line,
+     brought back. A wrong drop is answered on the spot -- "Not quite!", then
+     the reason, one at a time (sayFeedback) --
      the name goes home, and the instruction comes back up after it; there
      is no last-chance reveal -- the learner places both. A right drop says
      nothing: the green box and its tick are the answer. Once both are in,
-     the bird and its line leave (the header kept open, so the picture does
-     not move) and the page turns itself -- no Next.
+     the bird praises the learner as confetti comes down, then it and its
+     line leave (the header kept open, so the picture does not move) and
+     the page turns itself -- no Next.
        o.boxes  the two boxes, built and shown by the caller
        o.group  the group they are in, for armQuiz
        o.names  the two names, in the order they are to stand in the tray
        o.ask    the instruction's key
        o.wrong  { name: key } -- the line for that name dropped in the
-                wrong box */
+                wrong box
+       o.praise the word of praise said once both are in (a praise* key),
+                over a light shower of confetti */
   var WRONG_HOLD_PAIR = 1800;
 
   function namePair(o) {
     var fb = { n: 0 };
     function sayWrong(name) {
       var mine = ++fb.n;
-      return speak(keyed(o.wrong[name] || 'fbNotQuite'), 'confused')
+      return sayFeedback('fbNotQuite', o.wrong[name] || 'fbNotQuite', 'confused',
+                         function () { return mine === fb.n; })
         .then(function () { return Flow.wait(WRONG_HOLD_PAIR); })
         .then(function () { if (mine === fb.n) return speak(keyed(o.ask)); });
     }
@@ -2442,8 +2484,10 @@
       })
       .then(function () {
         fb.n++;                       /* no instruction after this */
-        return Flow.wait(BEAT);
+        return Flow.wait(SHORT);
       })
+      .then(function () { return o.praise ? praise(o.praise) : null; })
+      .then(function () { return Flow.wait(BEAT); })
       .then(function () { return birdAway(); })
       .then(function () { return autoTurn(AUTO_TURN); });
   }
@@ -2745,7 +2789,7 @@
     wipeBoard: wipeBoard, collapseHeader: collapseHeader, resetFooter: resetFooter,
     askChoice: askChoice, armQuiz: armQuiz, namePair: namePair,
     /* the speaking helpers by key, and a page that turns itself */
-    keyed: keyed, hear: hear, onWord: onWord, wordAt: wordAt, autoTurn: autoTurn, birdAway: birdAway, AUTO_TURN: AUTO_TURN,
+    keyed: keyed, hear: hear, onWord: onWord, celebrate: celebrate, praise: praise, wordAt: wordAt, autoTurn: autoTurn, birdAway: birdAway, AUTO_TURN: AUTO_TURN,
     ripple: ripple, quiet: quiet, clearInline: clearInline
   };
 

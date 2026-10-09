@@ -116,14 +116,14 @@
 
   /* page 2 -- the semicircle's arc length */
   function semiLines() {
-    var right = T('s2OptHalf2PiRadius'), full = T('s2Opt2PiRadius'), area = T('s2OptHalfPiRadiusSq');
+    var right = T('s2OptHalf2PiRadius'), full = T('s2Opt2PiRadius'), quarter = T('s2OptHalfPiRadius');
     var wrong = {};
     wrong[full] = nope('s2CsWrongWhole', full);
-    wrong[area] = nope('s2CsWrongArea', area);
+    wrong[quarter] = nope('s2CsWrongQuarter', quarter);
     return {
       is:      said('s2CsIs', T('s2CsIs')),
       ask:     said('s2CsAsk', tie(T('s2CsAsk'))),
-      options: [right, full, area],
+      options: [right, full, quarter],
       answer:  right,
       wrong:   wrong,
       right:   [said('fbCorrect', T('fbCorrect')),
@@ -153,13 +153,13 @@
      both written through mathtext.js. */
 
   var BEAT = K.BEAT, SHORT = K.SHORT;
-  /* Page 2 draws its circle at skill 1's pace (pages.js): the same slow
-     pen once round, the same point and line, the same holds between them,
-     so the second circle the learner watches being made is made at the
-     speed of the first. */
-  var DRAW_TIME  = K.DRAW_TIME,  DRAWN_HOLD = K.DRAWN_HOLD;
-  var DOT_TIME   = K.DOT_TIME,   DOT_HOLD   = K.DOT_HOLD;
-  var LINE_TIME  = K.LINE_TIME,  DIA_HOLD   = K.DIA_HOLD;
+  /* The circles here are drawn briskly -- the learner has watched one
+     made slowly in skill 1 -- and the marks on them follow close behind
+     (user, 2026-10-09: "increase the speed of the drawn circle"). */
+  var DRAW_TIME  = 1.4,   DRAWN_HOLD = 500;
+  var DOT_TIME   = 0.45,  DOT_HOLD   = 420;
+  var LINE_TIME  = 0.9,   DIA_HOLD   = 700;
+  var RADIUS_TIME = 0.8;   /* s: page 1's radius, out from the centre   */
   var SOFT = 0.55;         /* how much of the lower half is left to see once
                               it has gone behind its blur */
   var READ = 700;          /* ms a verdict's sentence stands, once typed,
@@ -187,6 +187,9 @@
     dom.cfDisc   = $('cfDisc');
     dom.cfRim    = $('cfRim');
     dom.cfTip    = $('cfTip');
+    dom.cfCentre = $('cfCentre');
+    dom.cfRadius = $('cfRadius');
+    dom.cfRadLbl = $('cfRadLbl');
     dom.cfPane   = $('cfPane');
     dom.slotCf   = $('slotCf');
     dom.cfBubble = $('bubbleCf');
@@ -212,7 +215,6 @@
     dom.cqRadH   = $('cqRadH');
     dom.cqAngle  = $('cqAngle');
     dom.cqCentre = $('cqCentre');
-    dom.cqDeg    = $('cqDeg');
     dom.cqBurst  = $('cqBurst');
 
     /* fit: the box closes round each line's own rows, so the question and
@@ -477,10 +479,20 @@
       /* ---- the circle: the pen round the rim, the colour poured in ------- */
       .then(function () {
         dom.cf.removeAttribute('hidden');
-        return Flow.anim(Beats.drawRim(dom.cfRim, dom.cfTip));
+        return Flow.anim(Beats.drawRim(dom.cfRim, dom.cfTip, { time: DRAW_TIME }));
       })
       .then(function () { return Flow.wait(SHORT); })
       .then(function () { return Flow.anim(Beats.fillDisc(dom.cfDisc)); })
+      .then(function () { return Flow.wait(SHORT); })
+
+      /* ---- the centre, a radius out of it, and its name: the formulas
+         about to be asked for are written in it (user, 2026-10-09) ------- */
+      .then(function () { return Flow.anim(Beats.plotDot(dom.cfCentre, DOT_TIME)); })
+      .then(function () { return Flow.wait(SHORT); })
+      .then(function () {
+        return Flow.anim(Beats.growLine(dom.cfRadius, RADIUS_TIME, 'sine.inOut'));
+      })
+      .then(function () { return Flow.anim(Beats.labelIn(dom.cfRadLbl)); })
       .then(function () { return Flow.wait(BEAT); })
 
       /* ---- and it stands aside ---------------------------------------------
@@ -755,11 +767,11 @@
       .then(function () { return Flow.anim(Beats.arcPulse([dom.cqArc])); })
       .then(function () { return Flow.wait(SHORT); })
 
-      /* ---- the right angle at the centre, and its "90°" ------------------ */
+      /* ---- the right angle at the centre: the small square, which says
+         90° on its own (user, 2026-10-09: the sign is enough) ----------- */
       .then(function () {
-        return Flow.anim(Beats.growLine(dom.cqAngle, 0.6, 'power2.inOut'));
+        return Flow.anim(Beats.growLine(dom.cqAngle, 0.5, 'power2.inOut'));
       })
-      .then(function () { return Flow.anim(Beats.labelIn(dom.cqDeg)); })
       .then(function () { return Flow.wait(BEAT); })
 
       /* ---- and the figure stands aside -------------------------------------
