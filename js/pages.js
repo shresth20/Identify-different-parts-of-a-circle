@@ -25,14 +25,14 @@
   var Flow = global.Flow;
   var Beats = global.Beats;
 
-  /* A line by key, from locales/locales.json (js/i18n.js). A key with no
+  /* A line by key, from a skill's locales sN/locales.json (js/i18n.js). A key with no
      line shows as itself, and so does plain text handed in by mistake. */
   function T(key, repl) { return global.T ? global.T(key, repl) : key; }
 
   /* ---- the script -------------------------------------------------------
      Every word the learner reads, in one place. Short sentences and plain
-     words: the audience is grade 7. Every line is read by key from
-     locales/locales.json; these are the ones later sections read here --
+     words: the audience is grade 7. Every line is read by key from the
+     skills' locales (locales sN/locales.json); these are the ones later sections read here --
      getters, because the words are loaded only after this file has run. */
   var LINES = {
     get ackRight() { return keyed('fbCorrect'); },
@@ -1150,7 +1150,7 @@
     });
   }
 
-  /* A line by key (locales/locales.json): its words, and the recording
+  /* A line by key (locales sN/locales.json): its words, and the recording
      filed under the same key, for speak and arriveSaying. */
   function keyed(key) {
     return { text: global.I18n ? global.I18n.t(key) : key, vo: key };
@@ -1401,38 +1401,8 @@
     M.set([dom.asideType, dom.asideMore], { clearProps: 'opacity,transform,filter' });
   }
 
-  /* A note of two lines beside the circle, one under the other. Both are
-     laid out at once, so the pane is its finished size from the first word
-     and the second line, said later, pushes nothing up. The pane is opened
-     if it is shut. Hands back the two reveals, for the scene to say each
-     when it is due -- see tell. */
-  function noteBeside(first, second) {
-    var shut = dom.bubbleAside.hasAttribute('hidden');
-    if (shut) Beats.bubbleArm(dom.bubbleAside);
-    var one = sayAside.reserve(first);
-    dom.asideMore.removeAttribute('hidden');
-    var two = sayMore.reserve(second);
-    if (shut) Beats.bubbleIn(dom.bubbleAside);
-    return [one, two];
-  }
 
-  /* One reserved line said, with the bird talking for as long as it takes. */
-  function tell(reveal) {
-    mascot.state('talking');
-    return reveal().then(function () { mascot.settle(); });
-  }
 
-  /* And the note taken off the pane, the way a header line leaves, so a new
-     one can be set there. The pane itself stays open. */
-  function clearBeside() {
-    var lines = [dom.asideType, dom.asideMore];
-    return Flow.anim(Beats.lineOut(lines)).then(function () {
-      sayAside.clear();
-      sayMore.clear();
-      dom.asideMore.setAttribute('hidden', '');
-      M.set(lines, { clearProps: 'opacity,transform,filter' });
-    });
-  }
 
   /* ---- the speech card ----------------------------------------------------
      The explanation said on the card the circumference built (see
@@ -1461,8 +1431,8 @@
 
   /* The card put up: the pane dressed and the bird brought in as the name
      on the circle goes -- the card is about to say it better -- then the
-     line (or the pair of lines, laid out together the way noteBeside lays
-     them, so the card is its finished size from the first word) reserved,
+     line (or the pair of lines, laid out together, so the card is its
+     finished size from the first word) reserved,
      the pill put on, and the card popped. Hands
      back the reveals, one per line, for the scene to say in its own time,
      alongside whatever it wants to run with them.

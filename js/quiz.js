@@ -49,7 +49,7 @@
   var K = Pages.kit;
 
   /* ---- the script -------------------------------------------------------
-     Every line and name is read by key from locales/locales.json; a part's
+     Every line and name is read by key from locales s1/locales.json; a part's
      name is the key of its word, read through T wherever it is shown. */
   function T(key) { return global.T ? global.T(key) : key; }
   var keyed = K.keyed;
@@ -301,11 +301,6 @@
     return card;
   }
 
-  /* Every mark of a card that is on the board once it is drawn. */
-  function cardMarks(c) {
-    var list = (c.disc ? [c.disc] : []).concat([c.rim], c.dots);
-    return c.arc ? list.concat([c.arc]) : list.concat([c.chord, c.region]);
-  }
 
   /* A name under a circle: the Start button's pill, drawn in the picture
      -- a wall, the face standing on it, and the word. What it says is

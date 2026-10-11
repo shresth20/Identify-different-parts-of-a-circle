@@ -18,11 +18,12 @@
    * motion.js owns the mute flag and the "same cue twice is one cue" gate;
    * this is just the few lines that actually make a noise.
    * ====================================================================== */
+  /* Opus in WebM, as every voice clip is (see CLIP_EXT in i18n.js) */
   var CLIPS = {
-    click:   'assets/audio/button-click.ogg',
-    correct: 'assets/audio/correct-answer.ogg',
-    wrong:   'assets/audio/incorrect-answer.ogg',
-    cheer:   'assets/audio/confetti-sound.ogg'
+    click:   'assets/audio/button-click.webm',
+    correct: 'assets/audio/correct-answer.webm',
+    wrong:   'assets/audio/incorrect-answer.webm',
+    cheer:   'assets/audio/confetti-sound.webm'
   };
   var pool = Object.create(null);
 
@@ -1569,15 +1570,6 @@
     return tl;
   }
 
-  /* A box lit as the name in it is said. Its own pulse rather than
-     M.pulse: an SVG group has to be told to scale about its own middle. */
-  function boxPulse(box) {
-    var tl = M.timeline({ revert: function () { M.set(box.g, { clearProps: 'transform' }); } });
-    tl.to(box.g, { scale: 1.06, transformOrigin: 'center center',
-                   duration: M.dur(0.18), ease: 'power2.out' })
-      .to(box.g, { scale: 1, duration: M.dur(0.4), ease: M.POP });
-    return tl;
-  }
 
   /* ======================================================================
    * Section 3 -- segments (the scenes are in segments.js)
@@ -1759,44 +1751,7 @@
     return tl;
   }
 
-  /* The wedge the learner pressed, and it was the one asked for: it is
-     drawn out of the circle along its own middle -- `away` is that {x, y}
-     -- and settles back, lit. A slice lifted out of a pie and put back:
-     the region is shown to be one PIECE, with the two radii as its edges.
-     The lit shade stays; segFocus and segUnfocus take it from there. */
-  function secRight(region, away) {
-    sfx('correct');
-    var tl = M.timeline({
-      willChange: region, willChangeValue: 'transform',
-      revert: function () { M.set(region, { clearProps: 'transform' }); }
-    });
-    tl.call(function () { region.classList.add('is-lit'); }, null, 0);
-    tl.to(region, { x: away.x, y: away.y, duration: M.dur(0.22), ease: 'power2.out' }, 0)
-      .to(region, { x: 0, y: 0, duration: M.dur(0.5), ease: M.POP }, M.gap(0.34));
-    return tl;
-  }
 
-  /* And the wrong one: it turns red (a class -- the stylesheet transitions
-     the fill) and shakes its head, as a refused box does, and holds the
-     red for a beat before it is a plain region again. */
-  function secWrong(region) {
-    sfx('wrong');
-    region.classList.add('is-wrong');
-    var tl = M.timeline({
-      willChange: region, willChangeValue: 'transform',
-      revert: function () {
-        region.classList.remove('is-wrong');
-        M.set(region, { clearProps: 'transform' });
-      }
-    });
-    var each = M.dur(0.3) / SHAKE.length;
-    SHAKE.forEach(function (x, i) {
-      tl.to(region, { x: x, duration: each,
-                      ease: i === SHAKE.length - 1 ? 'power2.out' : 'none' });
-    });
-    tl.to({}, { duration: M.dur(0.5) });
-    return tl;
-  }
 
   /* ======================================================================
    * Section 5 -- the quiz (the scenes are in quiz.js)
@@ -2110,7 +2065,6 @@
     slideArcs: slideArcs,
     snapDot: snapDot,
     arcsEqual: arcsEqual,
-    boxPulse: boxPulse,
     /* section 3 -- segments */
     areaIn: areaIn,
     areaPulse: areaPulse,
@@ -2124,8 +2078,6 @@
     /* section 4 -- sectors */
     secFill: secFill,
     secSweep: secSweep,
-    secRight: secRight,
-    secWrong: secWrong,
     /* section 5 -- the quiz */
     optsIn: optsIn,
     optRight: optRight,

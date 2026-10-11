@@ -42,7 +42,7 @@
  *  16  Flower bed: the path  a story: the smaller piece
  *
  * Every word is read by key (T('key'), js/i18n.js) from
- * locales/locales.json, and each line is voiced by the same key once a
+ * locales s4/locales.json, and each line is voiced by the same key once a
  * recording is there.
  *
  * Load order: js/pages.js -> js/arcs.js -> ... -> js/sector-area.js -> js/segarea.js

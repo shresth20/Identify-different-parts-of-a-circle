@@ -191,7 +191,6 @@
            ' A' + r0 + ' ' + r0 + ' 0 ' + big + ' 1 ' + r2(t.x) + ' ' + r2(t.y) + ' Z';
   }
   function segD(p, q) { return 'M' + r2(p.x) + ' ' + r2(p.y) + ' L' + r2(q.x) + ' ' + r2(q.y); }
-  function fmt(n) { return String(Math.round(n * 100) / 100); }
 
   /* ======================================================================
    * Motion helpers, all tracked by Motion so Skip and Replay reach them
@@ -315,18 +314,6 @@
     S.set(a0, a1);
     return S;
   }
-  /* The two sectors of a circle lit in turn -- the minor, then the major,
-     and round again -- while a question about both of them waits. A CSS
-     loop (sa-region-glow), half a period out of step between the two; the
-     returned function puts both back to rest. */
-  function glowTurns(minor, major) {
-    minor.classList.add('is-glow-a');
-    major.classList.add('is-glow-b');
-    return function () {
-      minor.classList.remove('is-glow-a');
-      major.classList.remove('is-glow-b');
-    };
-  }
 
   function radii(S, seconds) {
     return Promise.all([anim(Beats.growLine(S.ra, seconds || 0.8, 'power2.inOut')),
@@ -402,48 +389,6 @@
     return Promise.all([anim(Beats.growLine(A.arc, 0.5)), anim(fadeIn(A.lbl, { y: 4 }))]);
   }
 
-  /* A curved pointer from a word to the thing it names, with a barbed
-     head: the first lesson's callout, drawn in the board's own ink. */
-  function pointer(parent, from, to, bend) {
-    var mx = (from.x + to.x) / 2, my = (from.y + to.y) / 2;
-    var dx = to.x - from.x, dy = to.y - from.y, len = Math.sqrt(dx * dx + dy * dy) || 1;
-    var cx = mx - dy / len * (bend || 30), cy = my + dx / len * (bend || 30);
-    var line = svgEl('path', { 'class': 's-callout',
-      d: 'M' + r2(from.x) + ' ' + r2(from.y) + ' Q' + r2(cx) + ' ' + r2(cy) + ' ' + r2(to.x) + ' ' + r2(to.y) }, parent);
-    var ax = to.x - cx, ay = to.y - cy, al = Math.sqrt(ax * ax + ay * ay) || 1;
-    ax /= al; ay /= al;
-    var b = 10, w = 6;
-    var head = svgEl('path', { 'class': 's-callout',
-      d: 'M' + r2(to.x - ax * b - ay * w) + ' ' + r2(to.y - ay * b + ax * w) +
-         ' L' + r2(to.x) + ' ' + r2(to.y) +
-         ' L' + r2(to.x - ax * b + ay * w) + ' ' + r2(to.y - ay * b - ax * w) }, parent);
-    return { line: line, head: head };
-  }
-  /* Curved arrows from a line of words in the panel to the parts of the
-     picture it is about, drawn one after the other. They leave from the
-     words' left edge -- read in the picture's own units, so the arrows sit
-     exactly at the sentence wherever the layout has put it -- and each
-     bows away from the next, so two never cross. */
-  function pointTo(svg, el, targets) {
-    var r = el.getBoundingClientRect();
-    var p = svg.createSVGPoint();
-    p.x = r.left - 10;
-    p.y = r.top + r.height / 2;
-    var from = p.matrixTransform(svg.getScreenCTM().inverse());
-    var ps = targets.map(function (t, i) {
-      var lift = targets.length > 1 ? (i ? 12 : -12) : 0;
-      var P = pointer(svg, { x: from.x, y: from.y + lift }, t, i ? -46 : 46);
-      P.line.classList.add('s-callout--soft');
-      P.head.classList.add('s-callout--soft');
-      return P;
-    });
-    return ps.reduce(function (chain, P) {
-      return chain.then(function () { return pointerIn(P); });
-    }, Promise.resolve()).then(function () { return ps; });
-  }
-  function pointerIn(P) {
-    return anim(Beats.growLine(P.line, 0.6)).then(function () { return anim(fadeIn(P.head, { y: 0, d: 0.2 })); });
-  }
 
   /* ======================================================================
    * The board: header, bird, Next (ported from pages.js)
@@ -2107,15 +2052,6 @@
     return anim(tl);
   }
 
-  /* A number in the working changed where it stands: the old value melts
-     away and the new one comes up through it. */
-  function dissolveTo(el, value) {
-    return anim(M.to(el, { opacity: 0, filter: 'blur(4px)', duration: M.dur(0.3), ease: 'power2.in' }))
-      .then(function () {
-        el.textContent = value;
-        return anim(M.to(el, { opacity: 1, filter: 'blur(0px)', duration: M.dur(0.4), ease: 'power2.out' }));
-      });
-  }
 
   /* ---- the magnifying glass ---------------------------------------------
      A lens over a figure that shows one small spot of it, enlarged: a ring
@@ -2649,10 +2585,6 @@
 
   /* ---- 12-13. Practice: minor sectors (slides 35-38) -------------------------- */
   function sPractice1() {
-    function flash(els) {
-      els.forEach(function (e) { e.classList.add('is-lit'); });
-      quiet(wait(1600).then(function () { els.forEach(function (e) { e.classList.remove('is-lit'); }); }));
-    }
     return practice({
       theta: 90, r: tr('s3LblR28'),
       prompt: keyed('s3MinorAsk'),
@@ -3888,11 +3820,10 @@
     lessonOn: lessonOn, lessonOff: lessonOff,
     wait: wait, anim: anim, quiet: quiet, tr: tr, keyed: keyed, lineOf: lineOf, voiceOf: voiceOf,
     shuffled: shuffled, praise: praise, oops: oops, svgEl: svgEl, h: h, fr: fr, c: c,
-    r2: r2, pt: pt, ringD: ringD, arcD: arcD, wedgeD: wedgeD, bandD: bandD, segD: segD, fmt: fmt,
+    r2: r2, pt: pt, ringD: ringD, arcD: arcD, wedgeD: wedgeD, bandD: bandD, segD: segD,
     fadeIn: fadeIn, popIn: popIn, fadeOut: fadeOut, cardIn: cardIn, settleFig: settleFig,
     figure: figure, text: text, circle: circle, drawCircle: drawCircle, sector: sector,
     radii: radii, sweep: sweep, arcIn: arcIn, show: show, angleMark: angleMark, angleIn: angleIn,
-    pointer: pointer, pointTo: pointTo, pointerIn: pointerIn,
     clearPrompt: clearPrompt, speak: speak, mascotJumpIn: mascotJumpIn, mascotJumpOut: mascotJumpOut,
     perchIn: perchIn, perchSay: perchSay, perchOut: perchOut, say: say, bubbleSay: bubbleSay,
     sayTop: sayTop, sayAll: sayAll, voiceAlone: voiceAlone, hush: hush, leaveHeader: leaveHeader, handOver: handOver,
@@ -3901,7 +3832,7 @@
     dropdown: dropdown, stepRow: stepRow, stepIn: stepIn, stepDone: stepDone, ddIn: ddIn,
     noteCard: noteCard, ruleCard: ruleCard, lineIn: lineIn, clearStage: clearStage, stage: stage,
     bubbleVoice: bubbleVoice, writeSteps: writeSteps, fieldTalk: fieldTalk, keyWord: keyWord,
-    flyNumber: flyNumber, dissolveTo: dissolveTo, magnifier: magnifier,
+    flyNumber: flyNumber, magnifier: magnifier,
     boxLeader: boxLeader, figToScene: figToScene
   };
 })(window);

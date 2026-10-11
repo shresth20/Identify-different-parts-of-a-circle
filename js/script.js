@@ -31,6 +31,28 @@
     });
   }
 
+  /* AVIF or WebP: the pick the stylesheet makes (the --art-* tokens in
+     style.css), so what is preloaded here is what it paints. AVIF only
+     where image-set() can offer it AND this browser decodes the file. */
+  var AVIF_TEST = 'image-set(url("x.avif") type("image/avif"))';
+  var AVIF_PROBE = 'data:image/avif;base64,' +
+    'AAAAIGZ0eXBhdmlmAAAAAGF2aWZtaWYxbWlhZk1BMUIAAADrbWV0YQAAAAAAAAAhaGRscgAAAAAAAAAAcGljdAAAAAAA' +
+    'AAAAAAAAAAAAAAAOcGl0bQAAAAAAAQAAAB5pbG9jAAAAAEQAAAEAAQAAAAEAAAETAAAAFwAAAChpaW5mAAAAAAABAAAA' +
+    'GmluZmUCAAAAAAEAAGF2MDFDb2xvcgAAAABqaXBycAAAAEtpcGNvAAAAFGlzcGUAAAAAAAAAAQAAAAEAAAAQcGl4aQAA' +
+    'AAADCAgIAAAADGF2MUOBAAwAAAAAE2NvbHJuY2x4AAEADQAGgAAAABdpcG1hAAAAAAAAAAEAAQQBAoMEAAAAH21kYXQS' +
+    'AAoFGAAGBCAyDBgACiiihAAAsBKamA==';
+  function artFormat() {
+    var css = global.CSS && global.CSS.supports &&
+              global.CSS.supports('background-image', AVIF_TEST);
+    if (!css) return Promise.resolve('webp');
+    return new Promise(function (resolve) {
+      var img = new Image();
+      img.onload = function () { resolve(img.naturalWidth > 0 ? 'avif' : 'webp'); };
+      img.onerror = function () { resolve('webp'); };
+      img.src = AVIF_PROBE;
+    });
+  }
+
   function deadline(ms) {
     return new Promise(function (resolve) { setTimeout(resolve, ms); });
   }
@@ -50,9 +72,15 @@
     /* Only what the opening beats actually touch. The rest of the 82
        animations on disk are never fetched. */
     var art = [
-      imageReady('assets/image/welcome-page.png'),
-      imageReady('assets/image/board.png'),
-      imageReady('assets/image/bg.png'),
+      artFormat().then(function (ext) {
+        /* The protractor is an <image> in the picture, which has no
+           fallback of its own: index.html names the AVIF. */
+        var prot = document.getElementById('caProt');
+        if (prot && ext !== 'avif') prot.setAttribute('href', 'assets/image/protractor.webp');
+        return Promise.all(['welcome-page', 'board', 'bg'].map(function (name) {
+          return imageReady('assets/image/' + name + '.' + ext);
+        }));
+      }),
       global.Mascot.preload([
         'blinking', 'wave_start', 'waving', 'wave_stop',
         'talk_start', 'talking', 'talk_stop',
@@ -82,7 +110,7 @@
   /* The words are read in first (js/i18n.js): a scene asks for its lines
      by key, and the static ones in the markup are filled in before the
      lesson is shown. A locale that cannot be read still boots -- the keys
-     show instead, to be fixed in locales/locales.json. */
+     show instead, to be fixed in that skill's locales sN/locales.json. */
   function start() {
     if (!global.I18n) { boot(); return; }
     global.I18n.load(function () {

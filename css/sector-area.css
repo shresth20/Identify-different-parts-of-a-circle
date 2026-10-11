@@ -34,7 +34,7 @@
 
 @font-face {
   font-family: "Lilita One";
-  src: url("../assets/fonts/lilita_one/lilitaone-regular.ttf") format("truetype");
+  src: url("../assets/fonts/lilita_one/lilitaone-regular.woff2") format("woff2");
   font-weight: 400;
   font-display: swap;
 }
@@ -81,76 +81,6 @@ body.sa-lesson .board { --row-bottom: 13% !important; }
 /* The line's size and weight, and the bird's height on the header, are
    skill 1's own (.prompt__line / .prompt__mascot, style.css): one header
    for the whole game (user, 2026-10-09). */
-
-/* ---- Welcome -----------------------------------------------------------
-   index.html's welcome, in this lesson's name: the same sunset over the
-   lake, with the painted bird on the shore, and a two-line title in the
-   same make -- chunky rounded letters, white over gold, a thick indigo
-   outline lifted off the sky by a soft glow, and sparks either side of the
-   second line. The art is index.html's own with its painted title taken
-   out, so the two lessons open on the same screen. */
-:where(body.sa-lesson) .welcome.sa-welcome {
-  background:
-    url("../assets/image/welcome-page-sector.png") center / cover no-repeat,
-    linear-gradient(180deg, var(--page-bg) 0%, var(--page-bg-deep) 100%);
-}
-@media (max-aspect-ratio: 4/3) {
-  :where(body.sa-lesson) .welcome.sa-welcome {
-    background: linear-gradient(180deg, var(--page-bg) 0%, var(--page-bg-deep) 100%);
-  }
-  :where(body.sa-lesson) .welcome.sa-welcome::before {
-    background: url("../assets/image/welcome-page-sector.png") center / cover no-repeat;
-  }
-  :where(body.sa-lesson) .welcome.sa-welcome::after {
-    background: url("../assets/image/welcome-page-sector.png") center / contain no-repeat;
-  }
-}
-
-:where(body.sa-lesson) .sa-title {
-  grid-row: 1;
-  align-self: center;
-  justify-self: center;
-  margin-top: -9vh;
-  text-align: center;
-  pointer-events: none;
-}
-:where(body.sa-lesson) .sa-title__main { margin: 0; line-height: 0; }
-/* Sized as the painted title in index.html is: about two thirds of the
-   screen's width, and never taller than a third of its height. */
-:where(body.sa-lesson) .sa-title__svg {
-  display: block;
-  width: min(74vw, 128vh);
-  height: auto;
-  overflow: visible;
-  /* lifted off the sky by a soft indigo glow, and a deeper shadow below */
-  filter: drop-shadow(0 .6vh 1.2vh rgba(38, 20, 140, .45))
-          drop-shadow(0 0 2.4vh rgba(120, 100, 255, .35));
-}
-:where(body.sa-lesson) .sa-tl text {
-  font-family: var(--font-display);
-  font-weight: 800;
-  font-size: 118px;
-  letter-spacing: 1px;
-  text-anchor: middle;
-  stroke-linejoin: round;
-  stroke-linecap: round;
-}
-/* The depth: the same words in deep indigo, dropped a little, outlined as
-   thickly as the face so the two read as one raised piece. */
-:where(body.sa-lesson) .sa-tl__depth {
-  fill: #2D1C96;
-  stroke: #2D1C96;
-  stroke-width: 22px;
-}
-/* The face: its gradient, inside one thick rounded indigo outline. The
-   outline is painted first so it sits outside the letters, not over them. */
-:where(body.sa-lesson) .sa-tl__face {
-  stroke: #4A36D8;
-  stroke-width: 22px;
-  paint-order: stroke fill;
-}
-/* The gloss: a sheen over the top half of the letters. */
-:where(body.sa-lesson) .sa-tl__gloss { stroke: none; pointer-events: none; }
 
 /* ==========================================================================
    The stage: one scene at a time
@@ -215,7 +145,6 @@ body.sa-lesson .board { --row-bottom: 13% !important; }
 }
 :where(body.sa-lesson) .sa-panel--centre { align-items: center; text-align: center; padding-right: 0; }
 :where(body.sa-lesson) .sa-line { margin: 0; }
-:where(body.sa-lesson) .sa-soft { color: var(--text-secondary); font-weight: 600; }
 
 /* ==========================================================================
    The figure
@@ -232,7 +161,6 @@ body.sa-lesson .board { --row-bottom: 13% !important; }
 :where(body.sa-lesson) .s-region--minor.is-lit { fill: var(--sa-minor-lit); }
 :where(body.sa-lesson) .s-region--major.is-lit { fill: var(--sa-major-lit); }
 :where(body.sa-lesson) .s-region.is-wrong { fill: color-mix(in srgb, var(--wrong-fill) 45%, #FFFFFF); }
-:where(body.sa-lesson) .s-region.is-tap { cursor: pointer; }
 
 /* The arc that bounds a sector, laid over the rim in the region's own
    deeper ink, so "the arc" of "two radii and an arc" is a thing you see. */
@@ -255,16 +183,6 @@ body.sa-lesson .board { --row-bottom: 13% !important; }
   --pulse-times: infinite;
 }
 
-/* One degree of the circle: a hair of a wedge, in the angle's ink so it
-   is seen at all. */
-:where(body.sa-lesson) .s-sliver {
-  fill: color-mix(in srgb, var(--sa-angle) 40%, #FFFFFF);
-  stroke: var(--sa-angle);
-  stroke-width: 1.2;
-  stroke-linejoin: round;
-  opacity: 0;
-}
-
 :where(body.sa-lesson) .s-radius {
   fill: none;
   stroke: var(--part-radius);
@@ -281,9 +199,6 @@ body.sa-lesson .board { --row-bottom: 13% !important; }
 }
 :where(body.sa-lesson) .s-angle--major { stroke: var(--lavender-border); stroke-dasharray: 2 5; }
 :where(body.sa-lesson) .s-dot { fill: var(--part-point); opacity: 0; }
-:where(body.sa-lesson) .s-dot--pick { fill: var(--part-centre); }
-:where(body.sa-lesson) .s-hit { fill: transparent; cursor: pointer; outline: none; }
-:where(body.sa-lesson) .s-hit:focus-visible { stroke: var(--lavender-border); stroke-width: 2; stroke-dasharray: 3 3; }
 :where(body.sa-lesson) .sa-centre { opacity: 0; }
 
 /* Words set on the figure. In user units, so they scale with the circle. */
@@ -316,28 +231,8 @@ body.sa-lesson .board { --row-bottom: 13% !important; }
   opacity: 0;
 }
 
-/* ---- The protractor ring ------------------------------------------------ */
-:where(body.sa-lesson) .s-tick { stroke: var(--sa-tick); stroke-width: 1.3; stroke-linecap: round; opacity: 0; }
-:where(body.sa-lesson) .s-tick--ten { stroke-width: 1.8; }
-:where(body.sa-lesson) .s-tick--big { stroke: var(--text-secondary); stroke-width: 2.6; }
-:where(body.sa-lesson) .s-tick-ring { fill: none; stroke: var(--sa-tick); stroke-width: 1.3; opacity: 0; }
-:where(body.sa-lesson) .s-deg {
-  font-family: var(--font-display);
-  font-weight: 700;
-  font-size: 15px;
-  fill: var(--text-secondary);
-  opacity: 0;
-}
-:where(body.sa-lesson) .s-deg.is-hot { fill: var(--sa-angle); font-weight: 800; font-size: 19px; }
-
 /* ---- Equal wedges and the 360 fine ones ---------------------------------- */
-:where(body.sa-lesson) .s-spoke {
-  stroke: color-mix(in srgb, var(--lavender-border) 40%, #FFFFFF);
-  stroke-width: 1.4;
-  opacity: 0;
-}
 :where(body.sa-lesson) .s-fine { stroke: color-mix(in srgb, var(--part-radius) 55%, #FFFFFF); stroke-width: .7; }
-:where(body.sa-lesson) .s-fine-fill { fill: color-mix(in srgb, var(--yellow-fill) 52%, #FFFFFF); }
 
 /* ---- The drag handle ------------------------------------------------------ */
 :where(body.sa-lesson) .s-handle { cursor: grab; outline: none; }
@@ -368,11 +263,6 @@ body.sa-lesson .board { --row-bottom: 13% !important; }
 :where(body.sa-lesson) .s-sea-ring    { fill: none; stroke: color-mix(in srgb, var(--blue-border) 30%, #FFFFFF); stroke-width: 1.5; }
 :where(body.sa-lesson) .s-beam        { fill: color-mix(in srgb, var(--mint-fill) 62%, #FFFFFF); stroke: var(--mint-border); stroke-width: 2.4; stroke-linejoin: round; }
 :where(body.sa-lesson) .s-trail       { fill: var(--mint-fill); }
-
-:where(body.sa-lesson) .s-lawn        { fill: color-mix(in srgb, var(--mint-fill) 30%, #F2FFF9); stroke: var(--mint-border); stroke-width: 2.6; }
-:where(body.sa-lesson) .s-lawn-dry    { fill: color-mix(in srgb, var(--yellow-fill) 55%, #FFFBEA); }
-:where(body.sa-lesson) .s-spray       { fill: color-mix(in srgb, var(--blue-fill) 60%, #FFFFFF); stroke: var(--blue-border); stroke-width: 2.4; stroke-linejoin: round; }
-:where(body.sa-lesson) .s-drop        { fill: var(--blue-border); }
 
 /* ==========================================================================
    Formulas and fractions
@@ -573,7 +463,6 @@ body.sa-lesson .board { --row-bottom: 13% !important; }
   opacity: 0;
 }
 :where(body.sa-lesson) .sa-note b { color: var(--lavender-border); }
-:where(body.sa-lesson) .sa-note--wide { max-width: 34em; }
 :where(body.sa-lesson) .sa-note .frac { font-size: .85em; }
 
 /* The rule: a formula the lesson has built, set out on its own -- its tag
@@ -604,30 +493,6 @@ body.sa-lesson .board { --row-bottom: 13% !important; }
 @keyframes sa-rule-glow {
   0%, 100% { filter: drop-shadow(0 0 0 transparent); }
   50%      { filter: drop-shadow(0 0 .45em #9691FDB0); }
-}
-
-/* The read-out beside the drag figure: θ, r and A, each in its own ink. */
-:where(body.sa-lesson) .sa-readout {
-  display: grid;
-  grid-template-columns: auto auto;
-  gap: .25em .6em;
-  align-items: baseline;
-  justify-content: start;
-  padding: .7em 1.2em;
-  border-radius: 1em;
-  background: color-mix(in srgb, #FFFFFF 82%, transparent);
-  border: .09em solid color-mix(in srgb, var(--lavender-fill) 45%, #FFFFFF);
-  box-shadow: 0 .3em .9em var(--shadow-soft);
-  font-size: 1.12em;
-  opacity: 0;
-}
-:where(body.sa-lesson) .sa-readout dt { color: var(--text-secondary); font-weight: 700; }
-:where(body.sa-lesson) .sa-readout dd { margin: 0; font-weight: 800; min-width: 5.2em; font-variant-numeric: tabular-nums; }
-
-/* A small heading over a figure: "Circle I", "Circle II". */
-:where(body.sa-lesson) .sa-cap {
-  font-weight: 800;
-  color: var(--text-secondary);
 }
 
 /* ---- Confetti --------------------------------------------------------- */
@@ -663,25 +528,6 @@ body.sa-lesson .board { --row-bottom: 13% !important; }
 :where(body.sa-lesson) .s-callout--soft {
   stroke-width: 1.8;
   stroke-opacity: .45;
-}
-
-/* ---- The two sectors, lit in turn ---------------------------------------
-   While a question is about both pieces of a circle, each glows in its own
-   colour for half a beat and rests while the other does: the minor sector
-   on the first half of the loop, the major on the second. The glow is a
-   deeper shade of the region's own fill plus a soft halo of its edge ink. */
-:where(body.sa-lesson) .s-region.is-glow-a,
-:where(body.sa-lesson) .s-region.is-glow-b { animation: sa-region-glow 2.4s ease-in-out infinite; }
-:where(body.sa-lesson) .s-region.is-glow-b { animation-delay: -1.2s; }
-:where(body.sa-lesson) .s-region--minor { --glow-rest: var(--sa-minor); --glow-lit: var(--sa-minor-lit); --glow-ink: var(--sa-minor-edge); }
-:where(body.sa-lesson) .s-region--major { --glow-rest: var(--sa-major); --glow-lit: var(--sa-major-lit); --glow-ink: var(--sa-major-edge); }
-@keyframes sa-region-glow {
-  0%, 50%, 100% { fill: var(--glow-rest); filter: none; }
-  25%           { fill: var(--glow-lit);  filter: drop-shadow(0 0 7px var(--glow-ink)); }
-}
-@media (prefers-reduced-motion: reduce) {
-  :where(body.sa-lesson) .s-region.is-glow-a,
-  :where(body.sa-lesson) .s-region.is-glow-b { animation: none; }
 }
 
 /* Answers set on the page, under their question: the first lesson's
@@ -1049,18 +895,9 @@ body.sa-lesson .board { --row-bottom: 13% !important; }
   min-height: 0;
 }
 
-/* The bird has gone up to the header: its bubble stays as the question's
-   card, and the tail that pointed at it fades away. */
-:where(body.sa-lesson) .sa-speak.is-left .sa-bubble .bubble-tail { opacity: 0; transition: opacity .3s ease; }
-
 /* ==========================================================================
    Area for θ -- the working, line under line
    ========================================================================== */
-:where(body.sa-lesson) .sa-eqs {
-  display: flex;
-  flex-direction: column;
-  gap: .75em;
-}
 :where(body.sa-lesson) .sa-eq {
   margin: 0;
   display: flex;
@@ -1265,20 +1102,6 @@ body.sa-lesson .board { --row-bottom: 13% !important; }
   box-shadow: 0 0 0 .2em color-mix(in srgb, var(--right-fill) 40%, transparent),
               0 .5em 1.2em rgba(30, 120, 60, .14);
 }
-
-/* The colour of the sector an answer belongs to, as a small chip in front
-   of it. */
-:where(body.sa-lesson) .sa-chip-dot {
-  display: inline-block;
-  width: .7em;
-  height: .7em;
-  margin-right: .45em;
-  border-radius: 50%;
-  vertical-align: middle;
-  box-shadow: inset 0 0 0 2px rgba(255, 255, 255, .8);
-}
-:where(body.sa-lesson) .sa-chip-dot--minor { background: var(--sa-minor-lit); border: 1.5px solid var(--sa-minor-edge); }
-:where(body.sa-lesson) .sa-chip-dot--major { background: var(--sa-major-lit); border: 1.5px solid var(--sa-major-edge); }
 
 /* What has been found so far, building up under the questions. */
 :where(body.sa-lesson) .sa-found { display: flex; flex-direction: column; gap: .45em; align-items: center; }
@@ -1548,8 +1371,7 @@ body.sa-lesson .board { --row-bottom: 13% !important; }
 /* ---- type: a hierarchy of weight and size -------------------------------- */
 .sa-lesson .sa-scene { font-weight: 700; }
 /* (the header's type and bird are skill 1's own -- see the head of this file) */
-.sa-lesson .sa-dstep__cap,
-.sa-lesson .sa-soft { font-weight: 600; }
+.sa-lesson .sa-dstep__cap { font-weight: 600; }
 .sa-lesson .sa-dstep__cap { font-size: .86em; color: color-mix(in srgb, var(--text-secondary) 85%, #000); }
 .sa-lesson .c-ans,
 .sa-lesson .sa-work__row.is-answer .sa-work__r,
@@ -1679,58 +1501,6 @@ body.sa-lesson .board { --row-bottom: 13% !important; }
    The hero bubble on the field is style.css's, untouched, and the perch
    bubble in a panel is bubble-01's drawing with bubble-02's verdicts (see
    .sa-bubble above). Nothing here restyles either. */
-
-/* ---- the finish: a banner in the welcome title's own make ---------------- */
-:where(body.sa-lesson) .sa-done {
-  position: absolute;
-  left: 50%;
-  bottom: 2.2%;
-  z-index: 7;
-  display: flex;
-  align-items: center;
-  gap: .7em;
-  padding: .5em .9em .5em .6em;
-  border: 2px solid #FFFFFF;
-  border-radius: 999px;
-  background: linear-gradient(180deg, #7B68F0 0%, #4C3BC9 100%);
-  box-shadow: 0 .4em 1.2em rgba(40, 24, 140, .35), 0 0 0 .3em rgba(255, 255, 255, .35);
-  translate: -50% 0;
-  font-family: var(--font-display);
-  font-size: var(--sa-fs);
-  white-space: nowrap;
-}
-:where(body.sa-lesson) .sa-done__badge {
-  display: grid;
-  place-items: center;
-  width: 1.7em;
-  height: 1.7em;
-  border-radius: 50%;
-  background: linear-gradient(180deg, #FFE69A, #F4B63C);
-  color: #8A4B00;
-  font-size: 1.05em;
-  box-shadow: inset 0 -.1em 0 rgba(0, 0, 0, .12);
-}
-:where(body.sa-lesson) .sa-done__title {
-  font-weight: 800;
-  font-size: 1.25em;
-  color: #FFFFFF;
-  text-shadow: 0 .06em 0 #2D1C96, 0 0 .4em rgba(160, 140, 255, .6);
-}
-:where(body.sa-lesson) .sa-done__again {
-  appearance: none;
-  border: 2px solid #FFFFFF;
-  border-radius: 999px;
-  padding: .3em 1em .35em;
-  background: linear-gradient(180deg, #FFFFFF, #EDE7FF);
-  color: #3B2E9E;
-  font: inherit;
-  font-weight: 800;
-  font-size: .9em;
-  cursor: pointer;
-  box-shadow: 0 3px 0 #B5A8F2;
-}
-:where(body.sa-lesson) .sa-done__again:hover { filter: brightness(1.04); }
-:where(body.sa-lesson) .sa-done__again:focus-visible { outline: 3px solid #FFFFFF; outline-offset: 2px; }
 
 /* Figure labels: plain ink, no halo of any colour (user, 2026-10-09). */
 

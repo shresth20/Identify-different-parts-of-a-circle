@@ -280,40 +280,7 @@
     return tl;
   }
 
-  /* Leaving, and gone: the node is taken out of the document on the last
-     frame, because a thing that has left should not still be in the tree
-     catching pointer events at zero opacity. `keep: true` leaves it. */
-  function exit(el, vars) {
-    var els = toArray(el).filter(Boolean);
-    if (!els.length) return null;
-    var keep = !!(vars && vars.keep);
-    /* The removal belongs to the timeline, not to the tween: an onComplete
-       passed in by the caller would otherwise replace it, and the node would
-       stay in the tree at zero opacity, still catching pointers. */
-    var tl = timeline({
-      willChange: els, willChangeValue: 'transform, opacity',
-      onComplete: function () {
-        if (keep) return;
-        els.forEach(function (e) { if (e.parentNode) e.parentNode.removeChild(e); });
-      }
-    });
-    tl.to(els, merge({
-      opacity: 0, y: -6, scale: 0.98,
-      duration: dur(FAST), ease: IN, stagger: gap(STAGGER_UI)
-    }, vars, ['keep']));
-    return tl;
-  }
 
-  /* A press: the thing gives a little under the finger and springs back.
-     INSTANT, because anything longer is felt as lag rather than as feedback,
-     and it never blocks -- whatever the press does runs alongside it. */
-  function press(el, vars) {
-    if (!el) return null;
-    return feedback(el, function (tl) {
-      tl.to(el, merge({ scale: 0.97, duration: dur(INSTANT), ease: OUT }, vars))
-        .to(el, { scale: 1, duration: dur(INSTANT), ease: OUT });
-    });
-  }
 
   /* A 3D button -- a press that sinks rather than shrinks.
      The stylesheet draws the button standing on a side wall: a solid
@@ -403,159 +370,19 @@
     };
   }
 
-  /* A control coming live. The border shift is the element's own class; this
-     is the fade that says it is now yours to press. */
-  function enable(el, vars) {
-    var els = toArray(el).filter(Boolean);
-    if (!els.length) return null;
-    var tl = timeline({ willChange: els, willChangeValue: 'opacity' });
-    tl.fromTo(els, { opacity: 0.4 },
-      merge({ opacity: 1, duration: dur(NORMAL), ease: OUT,
-              clearProps: 'opacity' }, vars));
-    return tl;
-  }
 
-  /* The pill behind a segmented control, moving to the option just chosen.
-     SNAP, so it arrives under the finger rather than drifting there. */
-  function slideIndicator(el, x, vars) {
-    if (!el) return null;
-    var tl = timeline({ willChange: el });
-    tl.to(el, merge({ x: x, duration: dur(NORMAL), ease: SNAP }, vars));
-    return tl;
-  }
 
   /* ======================================================================
    * 3. text and numbers
    * ====================================================================== */
 
-  /* Lines of an explanation, arriving in the order they are meant to be read.
-     However this ends -- its own last frame, or a replay cutting it short --
-     the group is left plainly visible and back under its stylesheet. Killed
-     half way with the fade still inline, half the group would stay
-     part-transparent for the rest of the session. */
-  function revealLines(target, vars) {
-    /* Handed one element, its children are the lines. Handed a list, the list
-       is the lines. Handed an element with nothing in it, it is the one line. */
-    var els;
-    if (target && target.nodeType === 1) {
-      els = Array.prototype.slice.call(target.children);
-      if (!els.length) els = [target];
-    } else {
-      els = toArray(target);
-    }
-    els = els.filter(Boolean);
-    if (!els.length) return timeline();
-    var tl = timeline({
-      willChange: els, willChangeValue: 'transform, opacity',
-      revert: function () { gsap.set(els, { clearProps: 'opacity,transform' }); }
-    });
-    tl.fromTo(els,
-      startOf({ opacity: 0, y: 6, scale: 1 }, vars),
-      merge({ opacity: 1, y: 0, scale: 1, duration: dur(REVEAL), ease: OUT,
-              stagger: gap(STAGGER_STEP) }, vars));
-    return tl;
-  }
 
-  /* A number that has changed, counted to rather than swapped. `snap` is 1
-     for a whole number, 0.01 for two places. The accent tint while it runs is
-     a class the element carries, not a colour written from here. */
-  function countTo(el, value, vars) {
-    if (!el) return null;
-    var o = vars || {};
-    var snap = o.snap == null ? 1 : o.snap;
-    var places = snap < 1 ? String(snap).split('.')[1].length : 0;
-    var box = { n: parseFloat(el.textContent.replace(/[^0-9.-]/g, '')) || 0 };
-    var prefix = o.prefix || '', suffix = o.suffix || '';
-    /* the accent tint while the number is moving is a class, not a colour
-       written from here -- the stylesheet owns what the accent is */
-    el.classList.add('mo-counting');
-    var tl = timeline({ revert: function () { el.classList.remove('mo-counting'); } });
-    tl.to(box, merge({
-      n: value,
-      duration: dur(NORMAL),
-      ease: OUT,
-      onUpdate: function () {
-        el.textContent = prefix + (places ? box.n.toFixed(places)
-                                          : String(Math.round(box.n))) + suffix;
-      }
-    }, o, ['snap', 'prefix', 'suffix']));
-    return tl;
-  }
 
-  /* One step of a derivation: the old term goes while the new one comes in,
-     in the same place, and the new one is held lit for a beat so the eye
-     knows which part of the line moved. */
-  function swapTerm(oldEl, newEl, vars) {
-    var tl = timeline({ willChange: [oldEl, newEl], willChangeValue: 'opacity' });
-    if (oldEl) tl.to(oldEl, { opacity: 0, duration: dur(FAST), ease: IN }, 0);
-    if (newEl) {
-      tl.fromTo(newEl, { opacity: 0 },
-        merge({ opacity: 1, duration: dur(NORMAL), ease: OUT }, vars), dur(FAST) * 0.5);
-      tl.add(function () { newEl.classList.add('mo-changed'); });
-      tl.add(function () { newEl.classList.remove('mo-changed'); }, '+=' + dur(REVEAL));
-    }
-    return tl;
-  }
 
-  /* A soft band sweeping left to right behind a term. The band is a child
-     scaled from its left edge -- a transform, so the sweep costs nothing and
-     the text above it never moves. */
-  function highlight(el, vars) {
-    if (!el) return null;
-    var band = el.querySelector(':scope > .mo-highlight');
-    if (!band) {
-      band = document.createElement('i');
-      band.className = 'mo-highlight';
-      band.setAttribute('aria-hidden', 'true');
-      el.insertBefore(band, el.firstChild);
-    }
-    var tl = timeline({ willChange: band });
-    tl.fromTo(band, { scaleX: 0, opacity: 1 },
-      merge({ scaleX: 1, duration: dur(NORMAL), ease: OUT }, vars));
-    return tl;
-  }
 
-  /* One emphasis, once. Not a heartbeat: a thing that pulses twice reads as
-     a warning rather than as "look here". */
-  function pulse(el, vars) {
-    if (!el) return null;
-    return feedback(el, function (tl) {
-      tl.to(el, merge({ scale: 1.04, duration: dur(NORMAL) / 2, ease: INOUT }, vars))
-        .to(el, { scale: 1, duration: dur(NORMAL) / 2, ease: INOUT });
-    });
-  }
 
-  /* ======================================================================
-   * 4. shapes and diagrams (SVG)
-   * ====================================================================== */
 
-  function moveTo(el, x, y, vars) {
-    if (!el) return null;
-    var tl = timeline({ willChange: el });
-    tl.to(el, merge({ x: x, y: y, duration: dur(NORMAL), ease: OUT }, vars));
-    return tl;
-  }
 
-  function scaleTo(el, sx, sy, origin, vars) {
-    if (!el) return null;
-    var tl = timeline({ willChange: el });
-    tl.to(el, merge({
-      scaleX: sx, scaleY: sy == null ? sx : sy,
-      transformOrigin: origin || 'center center',
-      duration: dur(NORMAL), ease: OUT
-    }, vars));
-    return tl;
-  }
-
-  function rotateTo(el, deg, origin, vars) {
-    if (!el) return null;
-    var tl = timeline({ willChange: el });
-    tl.to(el, merge({
-      rotation: deg, transformOrigin: origin || 'center center',
-      duration: dur(SLOW), ease: INOUT
-    }, vars));
-    return tl;
-  }
 
   /* ---------- drawing a stroke ----------
    * The catalog asks for DrawSVG. DrawSVG is a paid GSAP Club plugin and this
@@ -596,83 +423,10 @@
     return tl;
   }
 
-  function undrawPath(el, vars) {
-    var els = toArray(el).filter(Boolean);
-    if (!els.length) return null;
-    var tl = timeline();
-    els.forEach(function (p, i) {
-      var len = pathLength(p) || 1;
-      p.style.strokeDasharray = len + ' ' + len;
-      tl.to(p, merge({
-        strokeDashoffset: len, duration: dur(FAST), ease: IN
-      }, vars), i * gap(STAGGER_UI));
-    });
-    return tl;
-  }
 
-  /* An area filling in the direction that explains it. The fill is revealed
-     by scaling the rect of its own clip path, so this is a transform and not
-     a clip-path animation -- the compositor does it, and the shape underneath
-     is never re-rasterised. */
-  function fillArea(el, direction, vars) {
-    if (!el) return null;
-    var origins = {
-      left: 'left center', right: 'right center',
-      up: 'center bottom', down: 'center top'
-    };
-    var axis = (direction === 'up' || direction === 'down') ? 'scaleY' : 'scaleX';
-    var from = {}; from[axis] = 0;
-    var toV = {}; toV[axis] = 1;
-    toV.transformOrigin = origins[direction] || origins.left;
-    toV.duration = dur(SLOW);
-    toV.ease = OUT;
-    var tl = timeline({ willChange: el });
-    tl.fromTo(el, from, merge(toV, vars));
-    return tl;
-  }
 
-  /* Items moving apart into their groups. The brackets, or whatever names the
-     groups, are drawn after -- a label over something still moving is a label
-     nobody reads. */
-  function splitInto(items, offsets, vars) {
-    var els = toArray(items).filter(Boolean);
-    if (!els.length) return null;
-    var tl = timeline({ willChange: els });
-    els.forEach(function (el, i) {
-      var off = offsets[i] || { x: 0, y: 0 };
-      tl.to(el, merge({
-        x: off.x || 0, y: off.y || 0, duration: dur(SLOW), ease: OUT
-      }, vars), i * gap(STAGGER_STEP));
-    });
-    return tl;
-  }
 
-  /* The release of a drag: the thing is caught by where it belongs. SNAP and
-     no overshoot -- a maths object that bounces past its grid point and comes
-     back is saying something untrue about where it is. */
-  function snapTo(el, x, y, vars) {
-    if (!el) return null;
-    var tl = timeline({ willChange: el });
-    tl.to(el, merge({ x: x, y: y, duration: dur(FAST), ease: SNAP }, vars));
-    return tl;
-  }
 
-  /* A construction line, still under consideration: its dashes crawl so it
-     reads as provisional. Endless on purpose -- it runs until the scene stops
-     it, or until guideLine.stop() confirms the line. */
-  function guideLine(el, vars) {
-    if (!el) return null;
-    var len = pathLength(el) || 12;
-    el.style.strokeDasharray = '6 6';
-    var tl = timeline({
-      revert: function () { el.style.strokeDasharray = ''; el.style.strokeDashoffset = ''; }
-    });
-    if (reduced) return tl;                    /* a crawling line is motion for its own sake */
-    tl.__motionEndless = true;
-    tl.fromTo(el, { strokeDashoffset: 0 },
-      merge({ strokeDashoffset: -12, duration: 2, ease: 'none', repeat: -1 }, vars));
-    return tl;
-  }
 
   /* A point going onto a diagram: the dot lands, and only then is it named.
      A label that arrives with the dot is a label the eye skips. */
@@ -689,28 +443,7 @@
     return tl;
   }
 
-  /* ======================================================================
-   * 5. panels, cross-fades and layout
-   * ====================================================================== */
 
-  function slideIn(el, side, vars) {
-    if (!el) return null;
-    var w = el.offsetWidth || 320, h = el.offsetHeight || 320;
-    var from = { left: { x: -w }, right: { x: w }, top: { y: -h }, bottom: { y: h } };
-    var tl = timeline({ willChange: el });
-    tl.fromTo(el, from[side] || from.right,
-      merge({ x: 0, y: 0, duration: dur(NORMAL), ease: OUT }, vars));
-    return tl;
-  }
-
-  function openModal(dialog, backdrop, vars) {
-    var tl = timeline({ willChange: [dialog, backdrop], willChangeValue: 'transform, opacity' });
-    if (backdrop) tl.fromTo(backdrop, { opacity: 0 },
-      { opacity: 1, duration: dur(FAST), ease: OUT }, 0);
-    if (dialog) tl.fromTo(dialog, { opacity: 0, scale: 0.96 },
-      merge({ opacity: 1, scale: 1, duration: dur(NORMAL), ease: OUT }, vars), 0);
-    return tl;
-  }
 
   /* The incoming starts before the outgoing has finished, so the eye is
      carried across rather than passed through a blank frame. */
@@ -832,15 +565,6 @@
     });
   }
 
-  /* A hint arriving under the question, and the part of the diagram it is
-     about, pulsed once so the two are tied together. */
-  function showHint(el, target, vars) {
-    var tl = timeline({ willChange: el, willChangeValue: 'transform, opacity' });
-    if (el) tl.fromTo(el, { opacity: 0, y: -6 },
-      merge({ opacity: 1, y: 0, duration: dur(NORMAL), ease: OUT }, vars), 0);
-    if (target) tl.add(function () { pulse(target); }, dur(NORMAL) * 0.5);
-    return tl;
-  }
 
   /* A bar filling. Scaled, never widened: a width is a layout on every frame
      of a bar that moves for as long as the game takes to load. The element is
@@ -857,29 +581,7 @@
     return tl;
   }
 
-  function scoreUpdate(el, value, vars) {
-    var tl = timeline();
-    tl.add(countTo(el, value, vars));
-    tl.add(function () { pulse(el); }, dur(NORMAL));
-    return tl;
-  }
 
-  /* The end of a lesson, held to one gesture: the tick draws, the summary
-     lines arrive one by one, and a slow bloom passes behind them. No
-     fireworks -- the work is the reward. */
-  function complete(screen, vars) {
-    if (!screen) return null;
-    var tick  = screen.querySelector('.mo-tick, .tick path');
-    var lines = screen.querySelector('.mo-summary');
-    var bloom = screen.querySelector('.mo-bloom');
-    var tl = timeline();
-    if (tick)  tl.add(drawPath(tick, merge({ duration: dur(REVEAL) }, vars)), 0);
-    if (bloom) tl.fromTo(bloom, { opacity: 0 },
-      { opacity: 0.15, duration: dur(SLOW), ease: INOUT }, 0)
-      .to(bloom, { opacity: 0, duration: dur(SLOW) * 2, ease: INOUT });
-    if (lines) tl.add(revealLines(lines), dur(FAST));
-    return tl;
-  }
 
   /* Waiting. Three dots, and nothing that spins. */
   function loading(el, vars) {
@@ -909,19 +611,6 @@
     return tl;
   }
 
-  /* A theme change is a set of custom properties tweened together, so the
-     text colour moves with the background and the contrast never dips in the
-     middle of the change. */
-  function setTheme(vars, opts) {
-    var o = opts || {};
-    var root = o.root || document.documentElement;
-    var tl = timeline();
-    tl.to(root, merge(merge({ duration: dur(SLOW), ease: INOUT }, vars), o.vars));
-    return tl;
-  }
-  function setAccent(color, opts) {
-    return setTheme({ '--accent': color }, opts);
-  }
 
   /* Everything but the thing being talked about, stood down. */
   function focus(el, others, vars) {
@@ -931,43 +620,12 @@
     if (el) tl.to(el, { opacity: 1, duration: dur(NORMAL), ease: OUT }, 0);
     return tl;
   }
-  function unfocus(all, vars) {
-    var tl = timeline();
-    tl.to(toArray(all), merge({ opacity: 1, duration: dur(NORMAL), ease: OUT,
-                                clearProps: 'opacity' }, vars));
-    return tl;
-  }
 
   /* ======================================================================
    * 8. interaction
    * ====================================================================== */
 
-  /* A thing picked up. It lifts off the board so the shadow under it says it
-     is in the hand, not on the surface. */
-  function liftStart(el, vars) {
-    if (!el) return null;
-    el.classList.add('mo-lifted');
-    var tl = timeline({ willChange: el });
-    tl.to(el, merge({ scale: 1.03, duration: dur(INSTANT), ease: OUT }, vars));
-    return tl;
-  }
 
-  /* And put down: caught by a target, or returned to where it started. The
-     two feel different on purpose -- SNAP is something taking it, OUT is it
-     going back of its own accord. */
-  function liftEnd(el, target, vars) {
-    if (!el) return null;
-    el.classList.remove('mo-lifted');
-    var tl = timeline({ willChange: el });
-    if (target) {
-      tl.to(el, merge({ x: target.x, y: target.y, scale: 1,
-                        duration: dur(FAST), ease: SNAP }, vars));
-    } else {
-      tl.to(el, merge({ x: 0, y: 0, scale: 1,
-                        duration: dur(NORMAL), ease: OUT }, vars));
-    }
-    return tl;
-  }
 
   /* A ring going out from where the finger landed. Fixed to the viewport and
      removed when it has gone, so nothing is left in the tree. */
@@ -987,44 +645,6 @@
     return tl;
   }
 
-  /* A slider bound at one to one. Nothing here is tweened: a value that eases
-     towards the finger is a value that is wrong for as long as it eases, and
-     on a maths diagram that is a lie about the number. */
-  function bindSlider(el, onValue, opts) {
-    if (!el) return function () {};
-    var o = opts || {};
-    var min = o.min == null ? 0 : o.min, max = o.max == null ? 1 : o.max;
-    var dragging = false;
-
-    function read(e) {
-      var r = el.getBoundingClientRect();
-      if (!r.width) return min;
-      var t = Math.max(0, Math.min(1, (e.clientX - r.left) / r.width));
-      return min + t * (max - min);
-    }
-    function down(e) {
-      dragging = true;
-      el.setPointerCapture && el.setPointerCapture(e.pointerId);
-      onValue(read(e), false);
-      e.preventDefault();
-    }
-    function move(e) { if (dragging) onValue(read(e), false); }
-    function up(e) {
-      if (!dragging) return;
-      dragging = false;
-      onValue(read(e), true);                  /* true: this one is the release */
-    }
-    el.addEventListener('pointerdown', down);
-    el.addEventListener('pointermove', move);
-    el.addEventListener('pointerup', up);
-    el.addEventListener('pointercancel', up);
-    return function unbind() {
-      el.removeEventListener('pointerdown', down);
-      el.removeEventListener('pointermove', move);
-      el.removeEventListener('pointerup', up);
-      el.removeEventListener('pointercancel', up);
-    };
-  }
 
   /* ======================================================================
    * 9. sound
@@ -1040,12 +660,6 @@
   var SOUND_GATE = 100;                        /* ms: the same cue, twice, is one cue */
 
   function isMuted() { return muted; }
-  function setMuted(on) {
-    muted = !!on;
-    try { global.localStorage.setItem(MUTE_KEY, muted ? '1' : '0'); } catch (e) { /* fine */ }
-    return muted;
-  }
-  function toggleMuted() { return setMuted(!muted); }
 
   /* True when this cue may sound: not muted, and not the same cue again
      inside a tenth of a second -- two chips docking together should chime
@@ -1074,39 +688,25 @@
     timeline: timeline, to: to, from: from, fromTo: fromTo, set: set,
     willChange: willChange,
     /* ---- 1. buttons and controls ---- */
-    enter: enter, exit: exit, press: press, button3d: button3d, enable: enable,
-    slideIndicator: slideIndicator,
-    /* ---- 2. text and numbers ---- */
-    revealLines: revealLines, countTo: countTo, swapTerm: swapTerm,
-    highlight: highlight, pulse: pulse,
+    enter: enter, button3d: button3d,
     /* ---- 3. shapes and diagrams ---- */
-    moveTo: moveTo, scaleTo: scaleTo, rotateTo: rotateTo,
-    drawPath: drawPath, undrawPath: undrawPath, fillArea: fillArea,
-    splitInto: splitInto, snapTo: snapTo, guideLine: guideLine,
-    plotPoint: plotPoint,
+    drawPath: drawPath, plotPoint: plotPoint,
     /* ---- 4. panels, cross-fades and layout ---- */
-    slideIn: slideIn, openModal: openModal, crossfade: crossfade,
-    relayout: relayout, resolve: resolve,
+    crossfade: crossfade, relayout: relayout, resolve: resolve,
     /* ---- 5. feedback ---- */
-    correct: correct, incorrect: incorrect, showHint: showHint,
-    progress: progress, scoreUpdate: scoreUpdate, complete: complete,
+    correct: correct, incorrect: incorrect, progress: progress,
     loading: loading,
     /* ---- 6. scene and background ---- */
-    transition: transition, setTheme: setTheme, setAccent: setAccent,
-    focus: focus, unfocus: unfocus,
+    transition: transition, focus: focus,
     /* ---- 7. interaction ---- */
-    liftStart: liftStart, liftEnd: liftEnd, tapRipple: tapRipple,
-    bindSlider: bindSlider,
+    tapRipple: tapRipple,
     /* ---- 8. sound ---- */
-    isMuted: isMuted, setMuted: setMuted, toggleMuted: toggleMuted,
-    mayPlay: mayPlay,
+    isMuted: isMuted, mayPlay: mayPlay,
 
     /* ---- the names the game already calls, kept pointing at the catalog's
        helpers so every existing call site keeps working ---- */
-    pressFeedback: press,
     correctPulse: correct,
     wrongShake: incorrect,
-    revealSequence: revealLines,
     flip: relayout,
     EASE_IN: IN, EASE_OUT: OUT, STAGGER: STAGGER_STEP
   });

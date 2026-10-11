@@ -48,7 +48,7 @@
   var K = Pages.kit;
 
   /* ---- the script -------------------------------------------------------
-     The first scene's lines are read by key from locales/locales.json
+     The first scene's lines are read by key from locales s1/locales.json
      (arc...), each with the recording filed under the same key. */
   function T(key) { return global.T ? global.T(key) : key; }
   function keyed(key) { return { text: T(key), vo: key }; }
@@ -341,9 +341,6 @@
   function showCallout(c) {
     return Flow.anim(Beats.callout(c.g, c.arrow, c.head, c.label));
   }
-  function hideCallout(c) {
-    return Flow.anim(Beats.calloutOut(c.g, [c.arrow, c.head, c.label]));
-  }
 
   /* The two boxes, hung off the circle where the pieces are: each to the
      side its piece is on, tied by its leader to the outer edge of the
@@ -452,11 +449,6 @@
      explanations wear -- K.cardUp, with this section's circle as the
      anchor -- so there is one card, one pill and one pulse everywhere. */
 
-  /* When a phrase of a line is heard, in ms from the line's start -- on
-     its recording's clock (K.wordAt). A mark on the circle is put on the
-     word that names it with K.onWord, which counts from the moment the
-     line really starts. */
-  function cue(text, phrase) { return K.wordAt(text, phrase); }
 
   /* The sentence on the speech card swapped for the next one: the old one
      leaves the way a header line does, and the new one is laid out in its
@@ -1355,7 +1347,6 @@
     norm: norm, norm180: norm180, clamp: clamp, coin: coin,
     P: P, arcD: arcD, place: place, reversed: reversed,
     hand: hand, handAt: handAt, rippleAt: rippleAt, HAND_D: HAND_D,
-    pickPoints: pickPoints,
-    cue: cue
+    pickPoints: pickPoints
   };
 })(window);

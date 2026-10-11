@@ -8,25 +8,25 @@
    fallback for the frame or two before the variable font has decoded. */
 @font-face {
   font-family: "Baloo 2";
-  src: url("../assets/fonts/baloo_2/baloo2-variablefont_wght.ttf") format("truetype-variations");
+  src: url("../assets/fonts/baloo_2/baloo2-variablefont_wght.woff2") format("woff2-variations");
   font-weight: 400 800;
   font-display: swap;
 }
 @font-face {
   font-family: "Poppins";
-  src: url("../assets/fonts/poppins/poppins-regular.ttf") format("truetype");
+  src: url("../assets/fonts/poppins/poppins-regular.woff2") format("woff2");
   font-weight: 400;
   font-display: swap;
 }
 @font-face {
   font-family: "Poppins";
-  src: url("../assets/fonts/poppins/poppins-semibold.ttf") format("truetype");
+  src: url("../assets/fonts/poppins/poppins-semibold.woff2") format("woff2");
   font-weight: 600;
   font-display: swap;
 }
 @font-face {
   font-family: "Poppins";
-  src: url("../assets/fonts/poppins/poppins-bold.ttf") format("truetype");
+  src: url("../assets/fonts/poppins/poppins-bold.woff2") format("woff2");
   font-weight: 700;
   font-display: swap;
 }
@@ -187,6 +187,17 @@
   --font-display: "Baloo 2", "Poppins", system-ui, sans-serif;
   --font-body: "Baloo 2", "Poppins", system-ui, sans-serif;
 
+  /* ---- artwork ------------------------------------------------------------
+     WebP here, for every browser; AVIF in the @supports below, wherever
+     image-set() can offer it (and picks the WebP itself if AVIF is not
+     decoded). A token rather than a second background declaration: one
+     that holds var() is not checked until it is used, so a browser that
+     could not read image-set() would drop the whole background instead of
+     falling back. script.js preloads the file this pick lands on. */
+  --art-page: url("../assets/image/bg.webp");
+  --art-board: url("../assets/image/board.webp");
+  --art-welcome: url("../assets/image/welcome-page.webp");
+
   /* ---- stacking ---------------------------------------------------------
      One ladder for the whole frame, so "behind the board" and "on the header"
      are the same idea expressed twice rather than two piles of magic numbers.
@@ -229,6 +240,16 @@
   --bird-beside: calc(var(--stage-full-h) * .36);
   --bubble-beside-fs: calc(var(--stage-full-w) * .5 * .053);
 }
+@supports (background-image: image-set(url("x.avif") type("image/avif"))) {
+  :root {
+    --art-page: image-set(url("../assets/image/bg.avif") type("image/avif"),
+                          url("../assets/image/bg.webp") type("image/webp"));
+    --art-board: image-set(url("../assets/image/board.avif") type("image/avif"),
+                           url("../assets/image/board.webp") type("image/webp"));
+    --art-welcome: image-set(url("../assets/image/welcome-page.avif") type("image/avif"),
+                             url("../assets/image/welcome-page.webp") type("image/webp"));
+  }
+}
 
 /* ---- Reset -------------------------------------------------------------- */
 *,
@@ -252,7 +273,7 @@ body {
   /* Artwork stretched to the full viewport, over a token gradient that carries
      the first frame and any decode failure. */
   background:
-    url("../assets/image/bg.png") center / 100% 100% no-repeat,
+    var(--art-page) center / 100% 100% no-repeat,
     linear-gradient(180deg, var(--page-bg) 0%, var(--page-bg-deep) 100%);
   background-color: var(--page-bg);
 }
@@ -289,7 +310,7 @@ body {
   /* same pairing as the body: artwork over a token gradient that carries the
      first frame and any decode failure */
   background:
-    url("../assets/image/board.png") center / 100% 100% no-repeat,
+    var(--art-board) center / 100% 100% no-repeat,
     radial-gradient(72% 58% at 50% 42%, var(--board-highlight) 0%, var(--board-bg) 70%);
   background-color: var(--board-bg);
   /* The halo the board sits in. Every layer is blurred: a spread with no blur
@@ -1348,7 +1369,7 @@ body {
      sit well inside the edges, so what cover trims is sky and grass. Over
      the token gradient for the first frame and any decode failure. */
   background:
-    url("../assets/image/welcome-page.png") center / cover no-repeat,
+    var(--art-welcome) center / cover no-repeat,
     linear-gradient(180deg, var(--page-bg) 0%, var(--page-bg-deep) 100%);
 }
 .welcome[hidden] { display: none; }
@@ -1371,12 +1392,12 @@ body {
   }
   .welcome::before {
     inset: -40px;
-    background: url("../assets/image/welcome-page.png") center / cover no-repeat;
+    background: var(--art-welcome) center / cover no-repeat;
     filter: blur(24px) brightness(.9);
   }
   .welcome::after {
     inset: 0;
-    background: url("../assets/image/welcome-page.png") center / contain no-repeat;
+    background: var(--art-welcome) center / contain no-repeat;
   }
 }
 

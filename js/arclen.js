@@ -138,7 +138,6 @@
   }
 
   function dots() { return [dom.alDotA, dom.alDotB]; }
-  function pieces() { return [dom.alMinor, dom.alMajor]; }
 
   /* Every mark that depends on the cut, rewritten from it. */
   function redraw() {

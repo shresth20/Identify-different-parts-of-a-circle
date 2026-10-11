@@ -41,7 +41,7 @@
   var K = Pages.kit;
 
   /* ---- the script -------------------------------------------------------
-     Every line is read by key from locales/locales.json (s1Seg...), each
+     Every line is read by key from locales s1/locales.json (s1Seg...), each
      with the recording filed under the same key. */
   function T(key) { return global.T ? global.T(key) : key; }
   var keyed = K.keyed;

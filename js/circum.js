@@ -57,7 +57,7 @@
  *   and the right one lights the quarter once more and puts skill 1's
  *   small burst up off it while the box turns green to say so.
  *     Its words are the first in the game read by key (T('key'), js/
- *   i18n.js) from locales/locales.json, and each line is voiced by the
+ *   i18n.js) from locales s2/locales.json, and each line is voiced by the
  *   same key (I18n.say) once a recording is there.
  *
  * Load order: js/pages.js -> ... -> js/arclen.js -> js/circum.js

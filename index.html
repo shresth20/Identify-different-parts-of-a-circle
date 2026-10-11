@@ -690,7 +690,7 @@
                   <feGaussianBlur stdDeviation="5" />
                 </filter>
               </defs>
-              <image class="cm-protractor" id="caProt" href="assets/image/protractor.png"
+              <image class="cm-protractor" id="caProt" href="assets/image/protractor.avif"
                      x="0" y="0" width="0" height="0" preserveAspectRatio="xMidYMid meet"
                      role="img" data-i18n-attr="aria-label:a11yProtractor"
                      aria-label="A protractor laid on the circle, its centre on the centre of the circle." />
@@ -1106,7 +1106,7 @@
     </div>
 
     <!-- Welcome, over everything until Start is pressed. The title and the
-         bird are painted into the artwork (welcome-page.png), so the heading
+         bird are painted into the artwork (welcome-page.avif), so the heading
          is there for screen readers only. -->
     <section class="welcome" id="welcome">
       <h1 class="welcome__title" data-i18n="uiTitle">Identify Different Parts of a Circle</h1>
@@ -1116,9 +1116,13 @@
 
   <script src="libs/gsap.min.js"></script>
   <script src="libs/Flip.min.js"></script>
-  <!-- Words by key (js/i18n.js, T('key')) from locales/locales.json; the
-       .js copy of it is read in first so file:// works too. -->
-  <script src="locales/locales.js"></script>
+  <!-- Words by key (js/i18n.js, T('key')), one locale per skill
+       (locales sN/locales.json, merged); each .js copy is read in first so
+       file:// works too. -->
+  <script src="locales s1/locales.js"></script>
+  <script src="locales s2/locales.js"></script>
+  <script src="locales s3/locales.js"></script>
+  <script src="locales s4/locales.js"></script>
   <script src="js/i18n.js"></script>
   <script src="js/motion.js"></script>
   <script src="js/flow.js"></script>

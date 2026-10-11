@@ -1,4 +1,11 @@
-/* i18n.js -- every word and clip by KEY, from locales/locales.json
+/* i18n.js -- every word and clip by KEY, from one locale per skill:
+ *   locales s1/locales.json   skill 1  (clips in assets/VO-skill 1)
+ *   locales s2/locales.json   skill 2  (clips in assets/VO-skill 2)
+ *   locales s3/locales.json   skill 3  (clips in assets/VO-skill 3)
+ *   locales s4/locales.json   skill 4  (clips in assets/VO-skill 4)
+ * All four are read and merged into one, so any skill may use any key; a
+ * key lives in exactly one file (a voiced key beside its clip's folder,
+ * a word shared by several skills in the first skill that uses it).
  *   T('p01Hey')                    -> "Hey there!"
  *   T('p04HeightIs', { h: 'h₁' })  -> "And its height is h₁."
  *   T('p20Work.0')                 -> first item of an array key
@@ -10,17 +17,21 @@
  *                                     data-i18n-attr="title:key" in HTML
  * Language: ?lan=xx on the URL, else defaultLanguage. A language without
  * recordings speaks the default language's clips. English only for now.
- * Served over http the JSON is fetched; from file:// it reads
- * locales/locales.js instead. Regenerate that after editing the JSON:
- *   (printf 'window.GAME_LOCALES='; cat locales/locales.json; echo ';') > locales/locales.js
+ * Served over http the JSON is fetched; from file:// it reads each
+ * folder's locales.js instead. Regenerate it after editing that JSON (N = 1-4):
+ *   (printf 'window.GAME_LOCALES_SN='; cat "locales sN/locales.json"; echo ';') > "locales sN/locales.js"
  */
 var I18n = (function () {
   'use strict';
 
   var PARAM     = 'lan';  /* ?lan=hi */
   var PARAM_ALT = 'lang'; /* ...and ?lang=hi */
-  var JSON_PATH = 'locales/locales.json';
-  var JS_PATH   = 'locales/locales.js';       /* generated fallback for file:// */
+  /* one locale per skill, merged in this order; each .js copy (the
+     generated fallback for file://) sets its own global */
+  var PARTS = [1, 2, 3, 4].map(function (n) {
+    var dir = 'locales%20s' + n + '/';
+    return { json: dir + 'locales.json', js: dir + 'locales.js', global: 'GAME_LOCALES_S' + n };
+  });
   var CLIP_EXT  = '.webm';                    /* Opus in WebM, see media rules */
   /* the file's own codes, and what <html lang> should say where they differ */
   var BCP47 = { od: 'or' };
@@ -61,13 +72,71 @@ var I18n = (function () {
     };
     try { xhr.send(); } catch (e) { cb(null); }
   }
-  function _readScript(path, cb) {
-    if (window.GAME_LOCALES) return cb(window.GAME_LOCALES);
+  function _readScript(part, cb) {
+    if (window[part.global]) return cb(window[part.global]);
     var s = document.createElement('script');
-    s.src = path;
-    s.onload  = function () { cb(window.GAME_LOCALES || null); };
+    s.src = part.js;
+    s.onload  = function () { cb(window[part.global] || null); };
     s.onerror = function () { cb(null); };
     (document.head || document.documentElement).appendChild(s);
+  }
+  function _warn(msg) {
+    if (typeof console !== 'undefined' && console.warn) console.warn('[i18n] ' + msg);
+  }
+  /* one skill's locale: the JSON over http, its .js copy from file:// or
+     when the JSON cannot be read */
+  function _readPart(part, local, cb) {
+    var fromScript = function () {
+      _readScript(part, function (js) {
+        if (!js) _warn('could not read ' + part.json + ' or ' + part.js + '; its keys will show');
+        cb(js);
+      });
+    };
+    if (local) return fromScript();          /* file:// cannot fetch the JSON */
+    _readJson(part.json, function (json) { return json ? cb(json) : fromScript(); });
+  }
+  /* The skills' locales as one: every language's lines, every language's
+     recordings. A clip is kept as its full url, built with its own file's
+     dir and rev, so each skill's recordings stay where its file says. */
+  function _merge(parts) {
+    var out = { voiceOver: {} };
+    parts.forEach(function (data, i) {
+      if (!data) return;
+      Object.keys(data).forEach(function (code) {
+        var val = data[code];
+        if (code === 'defaultLanguage') { if (!out.defaultLanguage) out.defaultLanguage = val; return; }
+        if (code === 'languageLabels') {
+          out.languageLabels = out.languageLabels || {};
+          Object.keys(val || {}).forEach(function (l) {
+            if (!out.languageLabels[l]) out.languageLabels[l] = val[l];
+          });
+          return;
+        }
+        if (code === 'voiceOver') {
+          Object.keys(val || {}).forEach(function (l) {
+            var src = val[l] || {};
+            var dst = out.voiceOver[l] = out.voiceOver[l] ||
+              { dir: src.dir, rev: src.rev, files: {}, cues: {}, urls: {} };
+            Object.keys(src.files || {}).forEach(function (k) {
+              if (k in dst.files) return;
+              dst.files[k] = src.files[k];
+              dst.urls[k] = (src.dir || '') + src.files[k] + (src.rev ? '?v=' + src.rev : '');
+            });
+            Object.keys(src.cues || {}).forEach(function (k) {
+              if (!(k in dst.cues)) dst.cues[k] = src.cues[k];
+            });
+          });
+          return;
+        }
+        if (!val || typeof val !== 'object') return;
+        var dict = out[code] = out[code] || {};
+        Object.keys(val).forEach(function (k) {
+          if (k in dict) return _warn('"' + k + '" is in more than one locale; ' + PARTS[i].json + ' is ignored');
+          dict[k] = val[k];
+        });
+      });
+    });
+    return out.defaultLanguage ? out : null;
   }
   function _finish(data, cb) {
     _data = data || { defaultLanguage: 'en', en: {} };
@@ -75,23 +144,17 @@ var I18n = (function () {
     try { document.documentElement.lang = BCP47[_lang] || _lang; } catch (e) {}
     if (cb) cb(_lang);
   }
-  /* Load the locale and call back with the language code. The game goes on
-     showing keys if nothing can be read -- never a blocked screen. */
+  /* Load the four locales and call back with the language code. The game
+     goes on showing keys if nothing can be read -- never a blocked screen. */
   function load(cb) {
-    var fromScript = function () {
-      _readScript(JS_PATH, function (js) {
-        if (!js && typeof console !== 'undefined' && console.warn) {
-          console.warn('[i18n] could not read ' + JSON_PATH + ' or ' + JS_PATH + '; showing keys');
-        }
-        _finish(js, cb);
-      });
-    };
     var local = false;
     try { local = window.location.protocol === 'file:'; } catch (e) {}
-    if (local) return fromScript();          /* file:// cannot fetch the JSON */
-    _readJson(JSON_PATH, function (json) {
-      if (json) return _finish(json, cb);
-      fromScript();
+    var got = new Array(PARTS.length), left = PARTS.length;
+    PARTS.forEach(function (part, i) {
+      _readPart(part, local, function (data) {
+        got[i] = data;
+        if (--left === 0) _finish(_merge(got), cb);
+      });
     });
   }
 
@@ -176,6 +239,7 @@ var I18n = (function () {
   function voice(key) {
     var p = _pack();
     if (!p || !key) return null;
+    if (p.urls && p.urls[key]) return p.urls[key];
     var file = (p.files && p.files[key]) || (key + CLIP_EXT);
     return (p.dir || '') + file + (p.rev ? '?v=' + p.rev : '');
   }

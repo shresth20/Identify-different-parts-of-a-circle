@@ -74,7 +74,7 @@
  *   Next pressed, the legend and the figure go together and the header
  *   opens again over a clean board.
  *
- * Every word is read by key (T('key'), js/i18n.js) from locales/
+ * Every word is read by key (T('key'), js/i18n.js) from locales s2/
  * locales.json, and each spoken line is voiced by the same key once a
  * recording is there.
  *
@@ -195,7 +195,7 @@
   var cut = { a: DEFAULT.a, span: DEFAULT.span, origin: DEFAULT.origin };
 
   /* ---- page 2: the protractor ---------------------------------------------
-     The image's own geometry (assets/image/protractor.png, 2000 x 1104, its
+     The image's own geometry (assets/image/protractor.avif, 2000 x 1104, its
      body transparent), so it can be laid with its centre hole on the
      circle's centre and its 0-180 line along the first radius. `r` is the
      outer arc's radius in the image's pixels; PROT_R is what that is drawn

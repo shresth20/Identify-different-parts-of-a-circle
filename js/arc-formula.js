@@ -30,7 +30,7 @@
  *                     degrees, and how far its tip travels
  *   Well done!        the two arcs and their two formulas
  *
- * Every word is read by key (I18n.t) from locales/locales.json, and each
+ * Every word is read by key (I18n.t) from locales s2/locales.json, and each
  * spoken line is voiced by the same key once a recording is there.
  *
  * Load order: ... -> js/central.js -> js/arc-formula.js -> js/sector-area.js
