@@ -588,12 +588,12 @@
               mascot.state('talking');
               var line = K.keyed(key);
               K.quiet(K.hear(line.vo));
-              if (i) return K.sayBubble(line.text);
+              if (i) return K.sayBubble(line);
               /* Ghost before live, and before the bubble is shown: the
                  bubble has to be laid out and measurable when the line
                  goes into it, or it would open at the wrong size. */
               Beats.bubbleArm(dom.bubble);
-              var said = K.sayBubble(line.text);
+              var said = K.sayBubble(line);
               Beats.bubbleIn(dom.bubble);
               return said;
             }).then(function () { mascot.settle(); });

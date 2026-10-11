@@ -187,13 +187,7 @@
   --font-display: "Baloo 2", "Poppins", system-ui, sans-serif;
   --font-body: "Baloo 2", "Poppins", system-ui, sans-serif;
 
-  /* ---- artwork ------------------------------------------------------------
-     WebP here, for every browser; AVIF in the @supports below, wherever
-     image-set() can offer it (and picks the WebP itself if AVIF is not
-     decoded). A token rather than a second background declaration: one
-     that holds var() is not checked until it is used, so a browser that
-     could not read image-set() would drop the whole background instead of
-     falling back. script.js preloads the file this pick lands on. */
+  /* ---- artwork (WebP; script.js preloads the same files) ---------------- */
   --art-page: url("../assets/image/bg.webp");
   --art-board: url("../assets/image/board.webp");
   --art-welcome: url("../assets/image/welcome-page.webp");
@@ -239,16 +233,6 @@
      own layout is measured in. */
   --bird-beside: calc(var(--stage-full-h) * .36);
   --bubble-beside-fs: calc(var(--stage-full-w) * .5 * .053);
-}
-@supports (background-image: image-set(url("x.avif") type("image/avif"))) {
-  :root {
-    --art-page: image-set(url("../assets/image/bg.avif") type("image/avif"),
-                          url("../assets/image/bg.webp") type("image/webp"));
-    --art-board: image-set(url("../assets/image/board.avif") type("image/avif"),
-                           url("../assets/image/board.webp") type("image/webp"));
-    --art-welcome: image-set(url("../assets/image/welcome-page.avif") type("image/avif"),
-                             url("../assets/image/welcome-page.webp") type("image/webp"));
-  }
 }
 
 /* ---- Reset -------------------------------------------------------------- */

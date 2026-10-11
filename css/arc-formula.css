@@ -77,6 +77,62 @@
   --focus: var(--af-arc);
 }
 
+/* The glass the blade has wiped: a clearer pane, growing behind the
+   blade as it sweeps (user, 2026-10-11) -- the one region ever filled on
+   these pages, and only because it is the story's own wet glass, not the
+   sector of the formula. And where the blade started, a thin line. */
+:where(body.sa-lesson) .af-wiped {
+  fill: color-mix(in srgb, var(--af-arc) 9%, #FFFFFF);
+  stroke: none;
+}
+:where(body.sa-lesson) .af-blade-start {
+  fill: none;
+  stroke: var(--sa-radius);
+  stroke-width: 2.4;
+  stroke-linecap: round;
+}
+
+/* ---- A perch that asks twice (steadyPerch, js/arc-formula.js) -----------------
+   The bubble stands on the floor of a room three of its lines tall, so a
+   line of any length grows it upward only: the bird and the tiles under it
+   stay where they are. The bubble is set in from the bird's left edge and
+   brought down onto it, so the tail's tip lands on the top of the head
+   (user, 2026-10-11). */
+/* The panel is laid from the top, not centred, and the bird is one size
+   for the whole page: the tiles of the two questions differ in height (a
+   stack of three, then a row), and a centred panel, or a bird giving way
+   to the taller stack, moved everything between them. The room rises into
+   the header band, which is empty while the bird is on the perch. */
+:where(body.sa-lesson) .sa-panel--practice:has(> .af-steady) {
+  justify-content: flex-start;
+  margin-top: calc(var(--stage-full-h) * -.15);
+}
+/* The bird at its full size (--bird-beside) leaves the three stacked tiles
+   less room under it: they close up a little, so the last one stays on the
+   board on a 4:3 screen too. */
+:where(body.sa-lesson) .af-steady ~ .sa-qslot .sa-mcq--tiles { gap: .55em; }
+:where(body.sa-lesson) .sa-speak.af-steady { align-self: stretch; flex: 0 0 auto; }
+:where(body.sa-lesson) .af-steady .sa-perch {
+  flex: 0 0 auto;
+  height: var(--bird-beside);
+}
+:where(body.sa-lesson) .af-bubble-room {
+  --af-bub-fs: calc(var(--bubble-beside-fs) * .88);
+  /* the tail's tip (--sb-tail-left in) over the middle of the bird */
+  --af-bub-left: calc(var(--bird-beside) * .5 - var(--af-bub-fs) * 3.4);
+  position: relative;
+  flex: 0 0 auto;
+  align-self: stretch;
+  height: calc(var(--af-bub-fs) * 5.3);
+  margin-bottom: calc(var(--bird-beside) * -.06);
+}
+:where(body.sa-lesson) .af-bubble-room > .sa-bubble {
+  position: absolute;
+  left: var(--af-bub-left);
+  bottom: 0;
+  max-width: calc(100% - var(--af-bub-left));
+}
+
 /* ---- The clock --------------------------------------------------------------- */
 :where(body.sa-lesson) .af-tick {
   fill: none;
@@ -94,6 +150,17 @@
   stroke-dasharray: 6 6;
   stroke-linecap: butt;
   opacity: .45;
+}
+
+/* ---- A bit of the working that is done with: struck through (strikeOut) -------- */
+:where(body.sa-lesson) .af-struck { position: relative; }
+:where(body.sa-lesson) .af-strike {
+  position: absolute;
+  left: 0; top: 50%;
+  height: .09em; margin-top: -.045em;
+  border-radius: .09em;
+  background: currentColor;
+  pointer-events: none;
 }
 
 /* ---- Reduced motion ---------------------------------------------------------- */

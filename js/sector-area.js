@@ -59,7 +59,9 @@
   var PEN   = 1.5;          /* s: the pen once round a circle               */
   var SWEEP = 1.1;          /* s: a sector swept out                        */
 
-  var PRAISE = ['fbCorrect', 'p29WellDone', 's3ThatsRight', 's3GreatJob'];
+  /* praiseWellDone, not p29WellDone: the same words, and the one of the two
+     that is recorded (assets/VO-skill 1) */
+  var PRAISE = ['fbCorrect', 'praiseWellDone', 's3ThatsRight', 's3GreatJob'];
   var OOPS   = ['s3OopsTryAgain', 's3OopsOnceMore', 's3OopsAlmost'];
 
   var dom = null;
@@ -425,7 +427,7 @@
       M.set(line, { clearProps: 'opacity,transform,filter' });
       mascot.state(mood || 'talking');
       var heard = quiet(voiceOf(said));
-      return Promise.all([perch ? perch.typer(said.text, timed(said)) : sayInHeader(said.text), heard]);
+      return Promise.all([perch ? perch.typer(said.text, timed(said)) : sayInHeader(said), heard]);
     }).then(function () {
       if (mine === speaking) mascot.settle();
     });
@@ -580,7 +582,7 @@
     if (birdOnHeader()) return speak(line, mood);
     if (perch) return perchSay(perch, line, mood);
     var mine = ++speaking;
-    var reveal = sayPrompt.reserve(line.text);
+    var reveal = sayPrompt.reserve(line);
     return mascotJumpIn().then(function () {
       mascot.state(mood || 'talking');
       var heard = quiet(voiceOf(line));
@@ -592,11 +594,11 @@
   function bubbleSay(text) {
     var line = lineOf(text);
     var heard = quiet(voiceOf(line));
-    return Promise.all([sayBubble(line.text), heard]);
+    return Promise.all([sayBubble(line), heard]);
   }
   function sayTop(text) {
     var line = lineOf(text);
-    var reveal = sayPrompt.reserve(line.text);
+    var reveal = sayPrompt.reserve(line);
     var heard = quiet(voiceOf(line));
     return Promise.all([reveal(), heard]);
   }
@@ -675,12 +677,47 @@
                 (ev && ev.clientY) || (r.top + r.height / 2));
   }
 
-  /* A burst of confetti from an element on the board. */
+  /* Where a page's confetti goes up when the page has a picture: ON the
+     picture, from the middle of its circle (user, 2026-10-11 -- "it has to
+     burst on the figure", not beside it). The picture the element is or
+     holds (a sector card) if it has one; else every picture showing (the
+     two circles of "Which is bigger?"). Empty on a page with none showing. */
+  var FIGS = 'svg.sa-fig, svg.sa-card__fig, svg.sa-cmp__fig';
+  function shown(el) {
+    var b = el.getBoundingClientRect();
+    if (!b.width || !b.height) return false;
+    for (var e = el; e && e !== dom.stage && e.nodeType === 1; e = e.parentNode) {
+      var cs = getComputedStyle(e);
+      if (cs.visibility === 'hidden' || +cs.opacity < 0.05) return false;
+    }
+    return true;
+  }
+  function figureMiddles(el) {
+    var own = el.matches && el.matches(FIGS) ? el : el.querySelector && el.querySelector(FIGS);
+    var figs = own ? [own] :
+      Array.prototype.slice.call(dom.stage.querySelectorAll(FIGS)).filter(shown);
+    return figs.map(function (svg) {
+      var disc = Array.prototype.filter.call(svg.querySelectorAll('.figure__disc'), shown)[0];
+      var q = (disc || svg).getBoundingClientRect();
+      return { x: q.left + q.width / 2, y: q.top + q.height / 2 };
+    });
+  }
+
+  /* A burst of confetti from an element on the board -- on the page's
+     picture when it has one. */
   function burstAt(el) {
     if (!el) return;
     var f = dom.frame.getBoundingClientRect();
+    var mids = figureMiddles(el);
+    if (mids.length) {
+      mids.forEach(function (m) {
+        quiet(anim(Beats.confetti(dom.burst, m.x - f.left, m.y - f.top)));
+      });
+      return;
+    }
     var r = el.getBoundingClientRect();
-    /* beside the element, not on it: the numbers in it stay readable */
+    /* no picture: beside the element, not on it -- the numbers in it stay
+       readable */
     var x = Math.min(r.right + 46, f.right - 40) - f.left;
     if (r.right + 46 > f.right - 40) x = Math.max(r.left - 46, f.left + 40) - f.left;
     quiet(anim(Beats.confetti(dom.burst, x, r.top + r.height / 2 - f.top)));
@@ -869,7 +906,9 @@
             if (b === face) { open(menu.hidden); return loop(); }
             if (b === good) {
               return win().then(function () {
-                burstAt(face);
+                /* q.burst: the page's own confetti in place of the
+                   burst beside the box (a page that throws it elsewhere) */
+                if (typeof q.burst === 'function') q.burst(); else burstAt(face);
                 if (q.yes !== false) return sayAll(q.yes || praise(), 'happy');
               });
             }
@@ -908,6 +947,69 @@
   }
   function stepDone(s) { s.classList.add('is-done'); }
   function ddIn(s) { return s.querySelector('[data-dd]'); }
+
+  /* A line said, and the moments in it, by its words: at[word] settles as
+     the voice reaches that word (or when the line is over, if it never
+     does), at.done when the line is. The words are listened for BEFORE the
+     line starts -- onWord only hears a line that begins after it is asked. */
+  function sayWith(line, words, mood) {
+    var at = {};
+    words.forEach(function (w) { at[w] = K.onWord(line.text, w, function () {}); });
+    var said = say(line, mood);
+    words.forEach(function (w) { at[w] = Promise.race([at[w], said]); });
+    at.done = said;
+    return at;
+  }
+
+  /* Bits of a written row worked out where they stand (user, 2026-10-11:
+     "show the simplification in the same line"). r.__bits[from .. upto)
+     slide together into their middle and are gone as `meet` settles; as
+     `to` settles the result -- one bit or several, `htmls` -- comes up on
+     that spot and settles into its place, and whatever follows in the row
+     glides to where the new width puts it rather than jumping there. */
+  async function morphBits(r, from, upto, htmls, meet, to) {
+    var bits = r.__bits.slice(from, upto);
+    var body = bits[0].parentNode;
+    var follow = [];
+    for (var n = bits[bits.length - 1].nextElementSibling; n; n = n.nextElementSibling) follow.push(n);
+    var a = bits[0].getBoundingClientRect(), b = bits[bits.length - 1].getBoundingClientRect();
+    var scale = a.width / (bits[0].offsetWidth || a.width) || 1;
+    var mid = (a.left + b.right) / 2;
+    var shifts = bits.map(function (el) {
+      var q = el.getBoundingClientRect();
+      return (mid - (q.left + q.right) / 2) / scale;
+    });
+    var outs = htmls.map(function (x) { return h('span', 'sa-work__bit', x); });
+
+    await meet;
+    var tl = M.timeline({ willChange: bits, willChangeValue: 'transform, opacity' });
+    bits.forEach(function (el, i) {
+      tl.to(el, { x: shifts[i], scale: 0.6, opacity: 0, transformOrigin: '50% 50%',
+                  duration: M.dur(0.42), ease: M.IN }, 0);
+    });
+    await anim(tl);
+
+    /* The worked-out bits leave the row and the result takes their place,
+       set off by as much as puts it over the spot where they met; what
+       follows is held where it stood. */
+    var was = follow.map(function (el) { return el.getBoundingClientRect().left; });
+    M.set(bits, { display: 'none' });
+    var ref = bits[bits.length - 1].nextSibling;
+    outs.forEach(function (o) { body.insertBefore(o, ref); });
+    var p = outs[0].getBoundingClientRect(), q = outs[outs.length - 1].getBoundingClientRect();
+    M.set(outs, { x: (mid - (p.left + q.right) / 2) / scale, scale: 0.5, opacity: 0, transformOrigin: '50% 50%' });
+    follow.forEach(function (el, i) {
+      M.set(el, { x: (was[i] - el.getBoundingClientRect().left) / scale });
+    });
+
+    await to;
+    var pop = M.timeline({ willChange: outs.concat(follow), willChangeValue: 'transform, opacity' });
+    pop.to(outs, { opacity: 1, scale: 1, duration: M.dur(0.34), ease: 'back.out(1.8)', stagger: M.gap(0.06) }, 0)
+       .to(outs, { x: 0, duration: M.dur(0.45), ease: 'power2.out' }, M.dur(0.2));
+    if (follow.length) pop.to(follow, { x: 0, duration: M.dur(0.45), ease: 'power2.out' }, M.dur(0.2));
+    await anim(pop);
+    r.__bits = r.__bits.slice(0, from).concat(outs, r.__bits.slice(upto));
+  }
 
   function noteCard(host, html, cls) {
     var n = h('div', 'sa-note' + (cls ? ' ' + cls : ''), html, host);
@@ -1049,8 +1151,11 @@
      one step a line with the equals signs in a column, each line's terms
      arriving one after another, and any number taken off the figure making
      its label there pulse as it is written. `steps` is a list of
-     [left side, [[term, figure label to pulse?], ...]]. Resolves to the
-     last line, which is the answer. */
+     [left side, [[term, figure label to pulse?], ...]]. A step may instead
+     be { merge: [from, upto], into: [term, ...] }: no new line, but the
+     terms from..upto of the line above worked out where they stand -- lifted
+     once so the eye is on them, then put together into their result
+     (morphBits). Resolves to the last line, which is the answer. */
   async function writeSteps(host, steps) {
     var work = h('div', 'sa-work', null, host);
     function pulse(el) {
@@ -1059,6 +1164,15 @@
     }
     var last = null;
     for (var i = 0; i < steps.length; i++) {
+      if (steps[i].merge) {
+        var m = steps[i].merge;
+        await anim(M.fromTo(last.__bits.slice(m[0], m[1]), { y: 0 },
+          { y: -6, duration: M.dur(0.24), ease: 'power2.out', yoyo: true, repeat: 1 }));
+        await wait(250);
+        await morphBits(last, m[0], m[1], steps[i].into, null, null);
+        await wait(500);
+        continue;
+      }
       if (steps[i][2]) await say(steps[i][2]);
       var row = h('div', 'sa-work__row', null, work);
       var l = h('span', 'sa-work__l', steps[i][0], row);
@@ -1077,6 +1191,7 @@
           { opacity: 1, y: 0, scale: 1, duration: M.dur(0.32), ease: 'back.out(1.6)' }));
         await wait(260);
       }
+      row.__bits = bits.map(function (b) { return b.el; });
       last = row;
       await wait(500);
     }
@@ -1947,9 +2062,12 @@
     P.bubble.classList.add('sa-bubble--sun');
     await anim(fadeIn(P.row, { y: 0 }));
     /* What the circle now is, said over the circle itself; the bubble then
-       asks only the question. */
+       asks only the question. Read out by the voice alone as it comes in,
+       as skill 2's "This arc is the whole circumference." is (arc-formula.js
+       sArcTap): the words are on the figure, not in a bubble. Until the
+       clip is recorded the label holds for the time the line would take. */
     var over = text(C.top, C.x, C.y - C.r - 22, tr('s3AreaOver'), 'lbl s-over-lbl');
-    await anim(fadeIn(over, { y: 6 }));
+    await voiceAlone('s3AreaOver', function () { return anim(fadeIn(over, { y: 6 })); });
     await wait(SHORT);
     var QUESTION = keyed('s3AreaAsk');
     await perchSay(P, QUESTION);
@@ -2487,31 +2605,13 @@
 
     var s1 = stepRow(list, 1, c('a', 'A') + EQ + DD + X + PIR2);
     var s2 = stepRow(list, 2, c('a', 'A') + EQ + fr('60', '360', 'c-ang') + X + fr('22', '7', 'c-pi') + X + DD);
-    /* the simplification, written a piece at a time */
-    function bitsRow(n, parts) {
-      var r = stepRow(list, n, parts.map(function (x) { return '<span class="sa-work__bit">' + x + '</span>'; }).join(''));
-      r.__bits = Array.prototype.slice.call(r.querySelectorAll('.sa-work__bit'));
-      M.set(r.__bits, { opacity: 0 });
-      return r;
-    }
-    var s3 = bitsRow(3, [c('a', 'A'), EQ, fr('1', '6', 'c-ang'), X, c('pi', '22'), X, c('r', '3'), X, c('r', '21')]);
-    var s4 = bitsRow(4, [c('a', 'A'), EQ, fr('1', '6', 'c-ang'), X, c('pi', '1386')]);
-    var s5 = stepRow(list, 5, c('a', 'A') + EQ + DD);
+    var s3 = stepRow(list, 3, c('a', 'A') + EQ + DD);
     var d1 = dropdown(ddIn(s1), [fr('60', '360', 'c-ang'), fr('360', '60', 'c-ang'), fr('60', '180', 'c-ang')], 0);
     var d2 = dropdown(ddIn(s2), [c('r', '21²'), c('r', '21'), c('r', '2 × 21')], 0);
-    var d5 = dropdown(ddIn(s5), [tr('s3Val231sq'), tr('s3Val1386sq'), tr('val462sq')], 0, { up: true });
+    var d3 = dropdown(ddIn(s3), [tr('s3Val231sq'), tr('s3Val1386sq'), tr('val462sq')], 0, { up: true });
     function pulse(el) {
       quiet(anim(M.fromTo(el, { scale: 1, transformOrigin: '50% 50%' },
         { scale: 1.35, duration: M.dur(0.28), ease: 'power2.out', yoyo: true, repeat: 1 })));
-    }
-    async function writeRow(r) {
-      await stepIn(r);
-      for (var i = 0; i < r.__bits.length; i++) {
-        await anim(M.fromTo(r.__bits[i], { opacity: 0, y: 8, scale: 0.88 },
-          { opacity: 1, y: 0, scale: 1, duration: M.dur(0.32), ease: 'back.out(1.6)' }));
-        await wait(220);
-      }
-      stepDone(r);
     }
 
     /* The figure first, with nothing said; then the problem. */
@@ -2553,25 +2653,32 @@
     });
     stepDone(s2);
 
-    /* 3-4. The simplification, written on the board as the voice reads it
-       out -- voice only, the working is the text (s3WkSimplify, s3WkProduct). */
-    await voiceAlone('s3WkSimplify', function () { return writeRow(s3); });
+    /* The simplification, worked out IN line 2 as the bird says it: 60/360
+       becomes 1/6, 22/7 × 21² becomes 22 × 3 × 21, and that product 1386.
+       Line 2's bits: A, =, 60/360, ×, 22/7, ×, [21²]. */
+    s2.__bits = Array.prototype.slice.call(s2.querySelector('.step__body').children);
+    var simp = sayWith(keyed('s3WkSimplify'), ['60/360', '22/7', '21']);
+    await morphBits(s2, 2, 3, [fr('1', '6', 'c-ang')], simp['60/360'], simp['60/360']);
+    await morphBits(s2, 4, 7, [c('pi', '22'), X, c('r', '3'), X, c('r', '21')], simp['22/7'], simp['21']);
+    await simp.done;
     await wait(SHORT);
-    await voiceAlone('s3WkProduct', function () { return writeRow(s4); });
+    var prod = sayWith(keyed('s3WkProduct'), ['=', '1386']);
+    await morphBits(s2, 4, 9, [c('pi', '1386')], prod['='], prod['1386']);
+    await prod.done;
     await wait(SHORT);
 
-    /* 5. The answer. */
-    await stepIn(s5);
+    /* 3. The answer. */
+    await stepIn(s3);
     await say(keyed('s3FindArea'));
-    await d5.ask({
+    await d3.ask({
       yes: keyed('fbThatsCorrect'),
       why: {
         1: [keyed('fbNotQuite'), keyed('s3WkWrongWhole')],
         2: [keyed('fbNotQuite'), keyed('s3WkWrongThird')]
       }
     });
-    stepDone(s5);
-    burstAt(s5);
+    stepDone(s3);
+    burstAt(s3);
 
     /* What was found, said -- and set in the sector. */
     fig.S.region.classList.add('is-focus');
@@ -3022,11 +3129,10 @@
     var s1 = stepRow(list, 1, c('ang', '360° − θ') + EQ + c('ang', '360° − 45°') + EQ + DD);
     var s2 = stepRow(list, 2, c('a', 'A') + EQ + fr('315', '360', 'c-ang') + X + fr('22', '7', 'c-pi') + X + DD);
     var s3 = bitsRow(3, [c('a', 'A'), EQ, fr('7', '8', 'c-ang'), X, c('pi', '22'), X, c('r', '2'), X, c('r', '14')]);
-    var s4 = bitsRow(4, [c('a', 'A'), EQ, fr('7', '8', 'c-ang'), X, c('pi', '616')]);
-    var s5 = stepRow(list, 5, c('a', 'A') + EQ + DD);
+    var s4 = stepRow(list, 4, c('a', 'A') + EQ + DD);
     var d1 = dropdown(ddIn(s1), ['315°', '135°', '45°'], 0);
     var d2 = dropdown(ddIn(s2), [c('r', '14²'), c('r', '14'), c('r', '28²')], 0);
-    var d5 = dropdown(ddIn(s5), [tr('s3Val539sq'), tr('val77sq'), tr('val616sq')], 0, { up: true });
+    var d4 = dropdown(ddIn(s4), [tr('s3Val539sq'), tr('val77sq'), tr('val616sq')], 0, { up: true });
     function pulse(el) {
       if (!el) return;
       quiet(anim(M.fromTo(el, { scale: 1, transformOrigin: '50% 50%' },
@@ -3084,25 +3190,28 @@
     });
     stepDone(s2);
 
-    /* 3-4. The simplification, written as the voice reads it out (voice
-       only, as on the worked minor sector). */
-    await voiceAlone('s3WmSimplify', function () { return writeRow(s3); });
+    /* 3. The simplification, written as the bird reads it out; then the
+       product worked out IN that line -- "22 × 2 × 14" into 616 as the
+       bird says "= 616" -- rather than on a line of its own. */
+    await Promise.all([say(keyed('s3WmSimplify')), writeRow(s3)]);
     await wait(SHORT);
-    await voiceAlone('s3WmProduct', function () { return writeRow(s4); });
+    var prod = sayWith(keyed('s3WmProduct'), ['=', '616']);
+    await morphBits(s3, 4, 9, [c('pi', '616')], prod['='], prod['616']);
+    await prod.done;
     await wait(SHORT);
 
-    /* 5. The answer, found by the learner. */
-    await stepIn(s5);
+    /* 4. The answer, found by the learner. */
+    await stepIn(s4);
     await say(keyed('s3FindArea'));
-    await d5.ask({
+    await d4.ask({
       yes: keyed('fbThatsCorrect'),
       why: {
         1: [keyed('fbNotQuite'), keyed('s3WmWrongMinor')],
         2: [keyed('fbNotQuite'), keyed('s3WmWrongWhole')]
       }
     });
-    stepDone(s5);
-    burstAt(s5);
+    stepDone(s4);
+    burstAt(s4);
 
     /* What was found, said -- and set in the major sector. */
     fig.T.region.classList.add('is-focus');
@@ -3244,7 +3353,7 @@
           [c('ang', '360° − θ'), [[c('ang', '360° − 120°'), fig.A.lbl], [EQ], [c('ang', '240°'), fig.majorA.lbl]]],
           [c('a', 'A'), [[fr('240', '360', 'c-ang'), fig.majorA.lbl], [X], [PIR2]]],
           ['', [[fr('2', '3', 'c-ang')], [X], [fr('22', '7', 'c-pi')], [X], [c('r', '21²'), fig.R]]],
-          ['', [[fr('2', '3', 'c-ang')], [X], [c('pi', '1386')]]],
+          { merge: [2, 5], into: [c('pi', '1386')] },
           ['', [[c('ans', tr('s3Val924sq'))]]]
         ];
       },
@@ -3384,42 +3493,13 @@
     await Promise.all([anim(fadeOut(gone)), perchOut()]);
     gone.forEach(function (x) { if (x.parentNode) x.parentNode.removeChild(x); });
     panel.className = 'sa-panel sa-panel--centre';
-    var work = h('div', 'sa-work', null, panel);
-    function pulse(el) {
-      quiet(anim(M.fromTo(el, { scale: 1, transformOrigin: '50% 50%' },
-        { scale: 1.35, duration: M.dur(0.25), ease: 'power2.out', yoyo: true, repeat: 1 })));
-    }
     var STEPS = [
       [c('a', 'A'), [[fr('135', '360', 'c-ang'), aLbl], [X], [PIR2]]],
       ['', [[fr('3', '8', 'c-ang')], [X], [fr('22', '7', 'c-pi')], [X], [c('r', '28²'), ribLbl]]],
-      ['', [[fr('3', '8', 'c-ang')], [X], [c('pi', '2464')]]],
+      { merge: [2, 5], into: [c('pi', '2464')] },
       ['', [[c('ans', tr('s3Val924sq'))]]]
     ];
-    var last = null;
-    for (var i = 0; i < STEPS.length; i++) {
-      var row = h('div', 'sa-work__row', null, work);
-      var l = h('span', 'sa-work__l', STEPS[i][0], row);
-      var eq = h('span', 'sa-work__eq', '=', row);
-      var r = h('span', 'sa-work__r', null, row);
-      var bits = STEPS[i][1].map(function (pc) {
-        var sp = h('span', 'sa-work__bit', pc[0], r);
-        M.set(sp, { opacity: 0 });
-        return { el: sp, from: pc[1] };
-      });
-      M.set([l, eq], { opacity: 0 });
-      await anim(M.fromTo([l, eq], { opacity: 0, y: 6 }, { opacity: 1, y: 0, duration: M.dur(0.3), ease: 'power2.out' }));
-      for (var j = 0; j < bits.length; j++) {
-        if (bits[j].from) pulse(bits[j].from);
-        await anim(M.fromTo(bits[j].el, { opacity: 0, y: 8, scale: 0.85 },
-          { opacity: 1, y: 0, scale: 1, duration: M.dur(0.32), ease: 'back.out(1.6)' }));
-        await wait(260);
-      }
-      last = row;
-      await wait(500);
-    }
-    last.classList.add('is-answer');
-    Beats.sfx('correct');
-    burstAt(last);
+    await writeSteps(panel, STEPS);
     await wait(600);
 
     /* What was found, said -- and set on the paper of the fan. */
@@ -3525,45 +3605,16 @@
     await Promise.all([anim(fadeOut(gone)), perchOut()]);
     gone.forEach(function (x) { if (x.parentNode) x.parentNode.removeChild(x); });
     panel.className = 'sa-panel sa-panel--centre';
-    var work = h('div', 'sa-work', null, panel);
-    /* The solution written a piece at a time: each line's terms arrive one
-       after another, and a number that comes off the figure makes its label
-       there pulse as it is written. */
-    function pulse(el) {
-      quiet(anim(M.fromTo(el, { scale: 1, transformOrigin: '50% 50%' },
-        { scale: 1.35, duration: M.dur(0.25), ease: 'power2.out', yoyo: true, repeat: 1 })));
-    }
+    /* The solution written a piece at a time (writeSteps): each line's
+       terms arrive one after another, and a number that comes off the
+       figure makes its label there pulse as it is written. */
     var STEPS = [
       [c('a', 'A'), [[fr('45', '360', 'c-ang'), aLbl], [X], [PIR2]]],
       ['', [[fr('1', '8', 'c-ang')], [X], [fr('22', '7', 'c-pi')], [X], [c('r', '28²'), rLbl]]],
-      ['', [[fr('1', '8', 'c-ang')], [X], [c('pi', '2464')]]],
+      { merge: [2, 5], into: [c('pi', '2464')] },
       ['', [[c('ans', tr('s3Val308km'))]]]
     ];
-    var last = null;
-    for (var i = 0; i < STEPS.length; i++) {
-      var row = h('div', 'sa-work__row', null, work);
-      var l = h('span', 'sa-work__l', STEPS[i][0], row);
-      var eq = h('span', 'sa-work__eq', '=', row);
-      var r = h('span', 'sa-work__r', null, row);
-      var bits = STEPS[i][1].map(function (pc) {
-        var sp = h('span', 'sa-work__bit', pc[0], r);
-        M.set(sp, { opacity: 0 });
-        return { el: sp, from: pc[1] };
-      });
-      M.set([l, eq], { opacity: 0 });
-      await anim(M.fromTo([l, eq], { opacity: 0, y: 6 }, { opacity: 1, y: 0, duration: M.dur(0.3), ease: 'power2.out' }));
-      for (var j = 0; j < bits.length; j++) {
-        if (bits[j].from) pulse(bits[j].from);
-        await anim(M.fromTo(bits[j].el, { opacity: 0, y: 8, scale: 0.85 },
-          { opacity: 1, y: 0, scale: 1, duration: M.dur(0.32), ease: 'back.out(1.6)' }));
-        await wait(260);
-      }
-      last = row;
-      await wait(500);
-    }
-    last.classList.add('is-answer');
-    Beats.sfx('correct');
-    burstAt(last);
+    await writeSteps(panel, STEPS);
     await wait(600);
 
     /* What was found, said -- and set on the figure, in the wedge it
@@ -3826,7 +3877,7 @@
     radii: radii, sweep: sweep, arcIn: arcIn, show: show, angleMark: angleMark, angleIn: angleIn,
     clearPrompt: clearPrompt, speak: speak, mascotJumpIn: mascotJumpIn, mascotJumpOut: mascotJumpOut,
     perchIn: perchIn, perchSay: perchSay, perchOut: perchOut, say: say, bubbleSay: bubbleSay,
-    sayTop: sayTop, sayAll: sayAll, voiceAlone: voiceAlone, hush: hush, leaveHeader: leaveHeader, handOver: handOver,
+    sayTop: sayTop, sayAll: sayAll, sayWith: sayWith, morphBits: morphBits, voiceAlone: voiceAlone, hush: hush, leaveHeader: leaveHeader, handOver: handOver,
     ripple: ripple, burstAt: burstAt,
     waitPick: waitPick, until: until, clearChoices: clearChoices, askChoice: askChoice,
     dropdown: dropdown, stepRow: stepRow, stepIn: stepIn, stepDone: stepDone, ddIn: ddIn,

@@ -195,7 +195,7 @@
   var cut = { a: DEFAULT.a, span: DEFAULT.span, origin: DEFAULT.origin };
 
   /* ---- page 2: the protractor ---------------------------------------------
-     The image's own geometry (assets/image/protractor.avif, 2000 x 1104, its
+     The image's own geometry (assets/image/protractor.webp, 2000 x 1104, its
      body transparent), so it can be laid with its centre hole on the
      circle's centre and its 0-180 line along the first radius. `r` is the
      outer arc's radius in the image's pixels; PROT_R is what that is drawn
@@ -513,20 +513,11 @@
         return picked;
       })
 
-      /* ---- the bird steps away, and the picture is finished without it --
-         The header stays open: the bird is back within a few seconds, and
-         closing the band and opening it again would move the circle twice
-         while the learner is meant to be watching it. */
-      .then(function () {
-        return Promise.all([
-          K.mascotJumpOut(true),
-          Flow.anim(Beats.lineOut(dom.promptLine))
-        ]);
-      })
-      .then(function () {
-        K.clearPrompt();
-        return Flow.wait(SHORT);
-      })
+      /* ---- the line comes off, and the bird STAYS on the header, watching
+         the picture finished: it does not leave the page until Next is
+         pressed. */
+      .then(function () { return K.lineAway(); })
+      .then(function () { return Flow.wait(SHORT); })
 
       /* ---- a radius to each point, in the order they were put down ------- */
       .then(function () {
@@ -547,7 +538,7 @@
 
       /* ---- named from the header, the angle lit as the words arrive ------ */
       .then(function () {
-        return K.arriveSaying(said('p22Central', T('p22Central')), 'talking', function () {
+        return K.speak(said('p22Central', T('p22Central')), 'talking', function () {
           return Flow.anim(hotAngle());
         });
       })

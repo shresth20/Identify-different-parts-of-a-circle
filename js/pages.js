@@ -813,9 +813,16 @@
      two words with a no-break space (segarea.js's L), which is the same
      line to the voice. */
   function plain(text) { return String(text).replace(/\u00a0/g, ' '); }
-  function cuesFor(text) {
+  /* cuesFor(text, key): the cues of the clip that is playing. A line that
+     comes keyed names its clip, and that clip's cues are the ones to type
+     on: several skills record the same words ("Hey there!", "Tap any two
+     points on the circle."), each take with its own pauses, and a lookup
+     by the words alone can only ever pick one of them. The words are the
+     fallback for a line said with no key. */
+  function cuesFor(text, key) {
     var I = global.I18n;
     if (!I || !I.cues) return null;
+    if (key && I.voiced().indexOf(key) >= 0) return I.cues(key, plain(text));
     if (!keyOfText) {
       keyOfText = {};
       patterns = [];
@@ -884,8 +891,12 @@
   /* A typer whose every line is laid out on its recording's clock, and
      reports the moment it starts. Same calls as the Typer's own. */
   function onVoice(say) {
+    /* `text`: the words, or a keyed line {text, vo} -- then the cues are
+       its own clip's, whatever other lines share its words */
     function reserve(text, over) {
-      var cues = over ? null : cuesFor(text);
+      var key = text && typeof text === 'object' ? text.vo : null;
+      text = text && typeof text === 'object' ? text.text : text;
+      var cues = over ? null : cuesFor(text, key);
       var reveal = say.reserve(text, over || (cues ? { at: cues } : undefined));
       return function () {
         began(text);
@@ -914,7 +925,7 @@
       M.set(dom.promptLine, { clearProps: 'opacity,transform,filter' });
       mascot.state(mood || 'talking');
       var heard = quiet(voiceOf(line));
-      var said = sayInHeader(line.text);
+      var said = sayInHeader(line);
       return Promise.all([said, heard, along ? along(line) : null]);
     }).then(function () {
       if (mine === speaking) mascot.settle();
@@ -1142,7 +1153,7 @@
   function arriveSaying(text, mood, along) {
     var line = lineOf(text);
     speaking++;
-    var reveal = sayPrompt.reserve(line.text);
+    var reveal = sayPrompt.reserve(line);
     return mascotJumpIn().then(function () {
       mascot.state(mood || 'talking');
       var heard = quiet(voiceOf(line));
@@ -2063,7 +2074,7 @@
         Beats.bubbleArm(dom.bubble);
         var hello = keyed('s1Hello');
         var heard = quiet(voiceOf(hello));
-        var said = sayBubble(hello.text);
+        var said = sayBubble(hello);
         Beats.bubbleIn(dom.bubble);
         return Promise.all([said, heard]);
       })
@@ -2075,7 +2086,7 @@
            laid out, still invisible -- wait inside it. */
         var warmup = keyed('s1Warmup');
         var heard = quiet(voiceOf(warmup));
-        return Promise.all([sayBubble(warmup.text), heard]);
+        return Promise.all([sayBubble(warmup), heard]);
       })
       .then(function () {
         mascot.settle();
@@ -2947,7 +2958,7 @@
     wipeBoard: wipeBoard, collapseHeader: collapseHeader, resetFooter: resetFooter,
     askChoice: askChoice, armQuiz: armQuiz, namePair: namePair, dragGuide: dragGuide,
     /* the speaking helpers by key, and a page that turns itself */
-    keyed: keyed, hear: hear, onWord: onWord, celebrate: celebrate, praise: praise, wordAt: wordAt, autoTurn: autoTurn, birdAway: birdAway, AUTO_TURN: AUTO_TURN,
+    keyed: keyed, hear: hear, onWord: onWord, celebrate: celebrate, praise: praise, wordAt: wordAt, autoTurn: autoTurn, birdAway: birdAway, lineAway: lineAway, AUTO_TURN: AUTO_TURN,
     ripple: ripple, quiet: quiet, clearInline: clearInline
   };
 

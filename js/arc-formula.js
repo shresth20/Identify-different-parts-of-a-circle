@@ -781,6 +781,39 @@
     }
     S.stepDone(r);
   }
+  /* Some bits of a written row -- from `from` to its end -- worked out
+     where they stand, in time with the line that says so: as `meet` is
+     heard they slide together and are gone, and as `to` is heard the
+     result comes up on that spot (SectorArea's morphBits). */
+  async function mergeBits(r, from, html, line, meet, to) {
+    var at = S.sayWith(line, [meet, to]);
+    await S.morphBits(r, from, r.__bits.length, [html], at[meet], at[to]);
+    await at.done;
+  }
+  /* The left side of every row the same width -- the widest of them -- set
+     to the right, so the first "=" of each row falls in one column. */
+  function alignEq(rows) {
+    var lefts = rows.map(function (r) { return r.querySelector('.step__body').firstElementChild; });
+    var em = parseFloat(getComputedStyle(lefts[0]).fontSize) || 16;
+    var w = Math.max.apply(null, lefts.map(function (el) { return el.offsetWidth; }));
+    lefts.forEach(function (el) { el.style.minWidth = (w / em) + 'em'; });
+  }
+  /* A bit of the working that is done with: a line drawn through it, and
+     the whole of it dimmed. */
+  function strikeOut(bit) {
+    bit.classList.add('af-struck');
+    var line = S.h('span', 'af-strike', null, bit);
+    /* corner to corner, drawn from the bottom left up to the top right */
+    var em = parseFloat(getComputedStyle(bit).fontSize) || 16;
+    var w = bit.offsetWidth / em, rise = bit.offsetHeight * 0.8 / em;
+    line.style.top = (bit.offsetHeight * 0.9 / em) + 'em';
+    line.style.width = Math.sqrt(w * w + rise * rise) + 'em';
+    M.set(line, { rotation: -Math.atan2(rise, w) * 180 / Math.PI, scaleX: 0, transformOrigin: '0% 50%' });
+    var tl = M.timeline({ willChange: [line, bit], willChangeValue: 'transform, opacity' });
+    tl.to(line, { scaleX: 1, duration: M.dur(0.35), ease: 'power2.out' }, 0)
+      .to(bit, { opacity: 0.35, duration: M.dur(0.45), ease: M.IN }, M.dur(0.2));
+    return tl;
+  }
   function formulaHead(col) {
     var head = S.h('div', 'sa-wk__head',
       '<p class="sa-wk__formula"><b>' + tr('s3Formula') + '</b> ' + RULE() + '</p>', col);
@@ -804,11 +837,10 @@
     var s1 = S.stepRow(list, 1, SS() + EQ + DD + X + TWO_PI_R());
     var s2 = S.stepRow(list, 2, SS() + EQ + fr('90', '360', 'c-ang') + X + c('pi', '2') + X + fr('22', '7', 'c-pi') + X + DD);
     var s3 = bitsRow(list, 3, [SS(), EQ, fr('1', '4', 'c-ang'), X, c('pi', '2'), X, c('pi', '22')]);
-    var s4 = bitsRow(list, 4, [SS(), EQ, fr('1', '4', 'c-ang'), X, c('pi', '44')]);
-    var s5 = S.stepRow(list, 5, SS() + EQ + DD);
+    var s4 = S.stepRow(list, 4, SS() + EQ + DD);
     var d1 = S.dropdown(S.ddIn(s1), [fr('90', '360', 'c-ang'), fr('360', '90', 'c-ang'), fr('90', '180', 'c-ang')], 0);
     var d2 = S.dropdown(S.ddIn(s2), [c('r', '7'), c('r', '14'), c('ang', '90°')], 0);
-    var d5 = S.dropdown(S.ddIn(s5), [tr('val11cm'), tr('val44cm'), tr('val22cm')], 0, { up: true });
+    var d4 = S.dropdown(S.ddIn(s4), [tr('val11cm'), tr('val44cm'), tr('val22cm')], 0, { up: true });
 
     /* The figure first, with nothing said; then the problem. */
     await S.leaveHeader();
@@ -848,26 +880,26 @@
     });
     S.stepDone(s2);
 
-    /* 3-4. The simplification, shown rather than only said. */
+    /* 3. The simplification, shown rather than only said: "2 × 22" is
+       worked out where it stands, into 44, as the bird says so. */
     await S.say(keyed('s2WkSimplify'));
     await writeRow(s3);
     await wait(SHORT);
-    await S.say(keyed('s2WkProduct'));
-    await writeRow(s4);
+    await mergeBits(s3, 4, c('pi', '44'), keyed('s2WkProduct'), '=', '44');
     await wait(SHORT);
 
     /* 5. The answer. */
-    await S.stepIn(s5);
+    await S.stepIn(s4);
     await S.say(keyed('s2FindArcLen'));
-    await d5.ask({
+    await d4.ask({
       yes: keyed('fbThatsCorrect'),
       why: {
         1: [keyed('fbNotQuite'), keyed('p29Wrong44')],
         2: [keyed('fbNotQuite'), keyed('p29Wrong22')]
       }
     });
-    S.stepDone(s5);
-    S.burstAt(s5);
+    S.stepDone(s4);
+    S.burstAt(s4);
 
     /* What was found, said -- and set on the arc. */
     fig.S.arc.classList.add('is-lit');
@@ -924,12 +956,12 @@
 
     var s1 = S.stepRow(list, 1, DD + EQ + fr('θ', '360', 'c-ang') + X + TWO_PI_R());
     var s2 = S.stepRow(list, 2, c('a', '22') + EQ + fr('θ', '360', 'c-ang') + X + c('pi', '2') + X + fr('22', '7', 'c-pi') + X + DD);
-    var s3 = bitsRow(list, 3, [c('a', '22'), EQ, fr('θ', '360', 'c-ang'), X, c('pi', '132')]);
-    var s4 = bitsRow(list, 4, [fr('θ', '360', 'c-ang'), EQ, fr('22', '132', 'c-pi'), EQ, fr('1', '6', 'c-ang')]);
-    var s5 = S.stepRow(list, 5, c('ang', 'θ') + EQ + c('ang', '360°') + X + fr('1', '6', 'c-ang') + EQ + DD);
+    var s3 = bitsRow(list, 3, [fr('θ', '360', 'c-ang'), EQ, fr('22', '132', 'c-pi'), EQ, fr('1', '6', 'c-ang')]);
+    var s4 = S.stepRow(list, 4, c('ang', 'θ') + EQ + c('ang', '360°') + X + fr('1', '6', 'c-ang') + EQ + DD);
     var d1 = S.dropdown(S.ddIn(s1), [c('a', '22 cm'), c('r', '21 cm'), c('r', '42 cm')], 0);
     var d2 = S.dropdown(S.ddIn(s2), [c('r', '21'), c('a', '22'), c('r', '42')], 0);
-    var d5 = S.dropdown(S.ddIn(s5), [tr('val60'), tr('val30'), tr('val6')], 0, { up: true });
+    var d4 = S.dropdown(S.ddIn(s4), [tr('val60'), tr('val30'), tr('val6')], 0, { up: true });
+    alignEq([s1, s2, s3, s4]);
 
     await S.leaveHeader();
     await fig.draw();
@@ -968,26 +1000,31 @@
     });
     S.stepDone(s2);
 
-    /* 3-4. The product gathered, and the equation turned round. */
-    await S.say(keyed('s2AnSimplify'));
-    await writeRow(s3);
-    await wait(SHORT);
-    await S.say(keyed('s2AnTurn'));
-    await writeRow(s4);
+    /* The product gathered where it stands: "2 × 22/7 × 21" into 132. */
+    s2.__bits = Array.prototype.slice.call(s2.querySelector('.step__body').children);
+    await mergeBits(s2, 4, c('pi', '132'), keyed('s2AnSimplify'), 'Simplify', 'Simplify');
     await wait(SHORT);
 
-    /* 5. The angle. */
-    await S.stepIn(s5);
+    /* 3. The equation turned round -- and once 1/6 is had, 22/132 is
+       struck through and dimmed, done with. */
+    await S.say(keyed('s2AnTurn'));
+    await writeRow(s3);
+    await anim(strikeOut(s3.__bits[2]));
+    await wait(SHORT);
+
+    /* 4. The angle. */
+    await S.stepIn(s4);
     await S.say(keyed('p31Solve'));
-    await d5.ask({
+    await d4.ask({
+      /* the confetti from the middle of the circle, not beside the box */
+      burst: function () { burstOn(fig.C.disc); },
       yes: keyed('fbThatsCorrect'),
       why: {
         1: [keyed('fbNotQuite'), keyed('p31Wrong30')],
         2: [keyed('fbNotQuite'), keyed('p31Wrong6')]
       }
     });
-    S.stepDone(s5);
-    S.burstAt(s5);
+    S.stepDone(s4);
 
     /* What was found, said -- and set in the angle. */
     fig.A.lbl.classList.remove('lbl--num');
@@ -1001,6 +1038,17 @@
   /* ---- a story page's second question, from the same perch ----------------------
      The tiles of the first question go, the bubble takes back its own
      colour, and the bird -- still on its perch -- asks again. */
+  /* A perch that asks more than once: the bubble set in a room of its own
+     height above the bird, standing on its floor, so that a longer or a
+     shorter line grows or shrinks the bubble upward only and the bird and
+     the tiles under it never move (user, 2026-10-11). */
+  function steadyPerch(P) {
+    var room = S.h('div', 'af-bubble-room');
+    P.row.classList.add('af-steady');
+    P.row.insertBefore(room, P.bubble);
+    room.appendChild(P.bubble);
+  }
+
   async function askAgain(P, slot, question) {
     var old = Array.prototype.slice.call(slot.children);
     if (old.length) {
@@ -1014,15 +1062,72 @@
   /* The working of a story page, written out under the figure's panel once
      the question is answered: the tiles and the bird go, and the steps are
      set a piece at a time, each number off the figure pulsing as it is
-     written. */
+     written. The figure grows into the room the formula card leaves, and
+     the block of working glides as each line joins it, rather than either
+     snapping to its new place (user, 2026-10-11). */
   async function storyWork(panel, given, steps) {
     var gone = Array.prototype.slice.call(panel.children).concat([given.el]);
     await Promise.all([anim(S.fadeOut(gone)), S.perchOut()]);
-    gone.forEach(function (x) { if (x.parentNode) x.parentNode.removeChild(x); });
-    panel.className = 'sa-panel sa-panel--centre';
+    var fig = panel.parentNode.querySelector('.sa-fig');
+    await growInto(fig, function () {
+      gone.forEach(function (x) { if (x.parentNode) x.parentNode.removeChild(x); });
+      panel.className = 'sa-panel sa-panel--centre';
+    });
+    var glide = glideWork(panel);
     var last = await S.writeSteps(panel, steps);
     await wait(600);
+    glide.stop();
     return last;
+  }
+
+  /* A FLIP by hand: the figure measured where it stands, the layout
+     changed, and the figure set back over its old place by a transform and
+     eased into the new one. One scale for both axes -- the drawing keeps
+     its shape (xMidYMid meet), so its size is the box's shorter side. */
+  function growInto(svg, change) {
+    var a = svg ? svg.getBoundingClientRect() : null;
+    change();
+    if (!a) return Promise.resolve();
+    var b = svg.getBoundingClientRect();
+    var sa = Math.min(a.width, a.height), sb = Math.min(b.width, b.height);
+    if (!sa || !sb || (Math.abs(sa - sb) < 1 && Math.abs(a.top - b.top) < 1 && Math.abs(a.left - b.left) < 1)) {
+      return Promise.resolve();
+    }
+    M.set(svg, {
+      transformOrigin: '50% 50%',
+      x: (a.left + a.width / 2) - (b.left + b.width / 2),
+      y: (a.top + a.height / 2) - (b.top + b.height / 2),
+      scale: sa / sb
+    });
+    return anim(M.to(svg, { x: 0, y: 0, scale: 1, duration: M.dur(0.7), ease: 'power2.inOut' }))
+      .then(function () { M.set(svg, { clearProps: 'transform' }); });
+  }
+
+  /* The working stays centred in its panel, so each line that joins it
+     moves the whole block. Watched as writeSteps builds it: whenever its
+     laid-out place changes, it is set back where it was and eased to the
+     new place, from wherever an earlier glide had got to. */
+  function glideWork(panel) {
+    var work = null, at = null;
+    function place() { return { x: work.offsetLeft, y: work.offsetTop }; }
+    var mo = new MutationObserver(function () {
+      if (!work) {
+        work = panel.querySelector('.sa-work');
+        if (!work) return;
+        at = place();
+        mo.observe(work, { childList: true, subtree: true, attributes: true, attributeFilter: ['class'] });
+        return;
+      }
+      var now = place(), dx = at.x - now.x, dy = at.y - now.y;
+      at = now;
+      if (!dx && !dy) return;
+      var x0 = (parseFloat(global.gsap.getProperty(work, 'x')) || 0) + dx;
+      var y0 = (parseFloat(global.gsap.getProperty(work, 'y')) || 0) + dy;
+      quiet(anim(M.fromTo(work, { x: x0, y: y0 },
+        { x: 0, y: 0, duration: M.dur(0.45), ease: 'power2.out', overwrite: 'auto' })));
+    });
+    mo.observe(panel, { childList: true });
+    return { stop: function () { mo.disconnect(); } };
   }
 
   /* ---- 8. The wiper: a blade of 42 cm sweeping 60° --------------------------------
@@ -1041,6 +1146,9 @@
     var g = S.svgEl('g', {}, F.svg);
     var glass = S.svgEl('path', { 'class': 'af-glass',
       d: 'M58 268 L92 42 Q98 14 126 14 L314 14 Q342 14 348 42 L382 268 Z' }, g);
+    /* the glass the blade has wiped, and a thin line where it started */
+    var wiped = S.svgEl('path', { 'class': 'af-wiped' }, g);
+    var start = S.svgEl('path', { 'class': 'af-blade-start', d: S.segD(C, pt(C, C.r, a1)) }, g);
     var trace = S.svgEl('path', { 'class': 'af-trace' }, g);
     var blade = S.svgEl('path', { 'class': 'af-blade' }, g);
     var tip = S.svgEl('circle', { 'class': 'af-tip', r: 6 }, g);
@@ -1059,14 +1167,16 @@
       tip.setAttribute('cx', r2(p.x));
       tip.setAttribute('cy', r2(p.y));
       trace.setAttribute('d', sw.a < a1 - 0.5 ? S.arcD(C, C.r, sw.a, a1) : 'M' + r2(p.x) + ' ' + r2(p.y));
+      wiped.setAttribute('d', S.wedgeD(C, C.r, sw.a, a1));
     }
     drawBlade();
-    M.set([glass, trace, blade, tip, ang, aLbl, bLbl], { opacity: 0 });
+    M.set([glass, wiped, start, trace, blade, tip, ang, aLbl, bLbl], { opacity: 0 });
 
     var panel = S.h('div', 'sa-panel sa-panel--practice', null, sc);
     var P = S.perchIn(panel);
     P.row.classList.add('sa-speak--above');
     P.bubble.classList.add('sa-bubble--sun');
+    steadyPerch(P);
     var slot = S.h('div', 'sa-qslot', null, panel);
     var given = S.ruleCard(sc, tr('s3TagRemember'), RULE(), 'sa-rule--small');
     M.set(given.el, { opacity: 0 });
@@ -1084,7 +1194,7 @@
     /* 2. The sweep: the blade across to the right, the tip tracing the arc,
           and the angle at the pivot. */
     await S.say(keyed('p32Blade2'));
-    M.set(trace, { opacity: 1 });
+    M.set([trace, wiped, start], { opacity: 1 });
     Beats.pop();
     await anim(M.to(sw, { a: a0, duration: M.dur(1.5), ease: 'power2.inOut', onUpdate: drawBlade }));
     await S.angleIn({ arc: ang, lbl: aLbl });
@@ -1171,7 +1281,7 @@
         d: S.segD(pt(C, C.r - (i % 3 ? 12 : 20), i * 30), pt(C, C.r - 4, i * 30)) }, ticks);
     }
     var trace = S.svgEl('path', { 'class': 'af-trace' }, g);
-    var start = S.svgEl('path', { 'class': 'af-hand-start', d: S.segD(C, pt(C, C.r - 26, START)) }, g);
+    var start = S.svgEl('path', { 'class': 'af-hand-start', d: S.segD(C, pt(C, C.r, START)) }, g);
     var ang = S.svgEl('path', { 'class': 's-angle', d: S.arcD(C, 34, END, START) }, g);
     var hand = S.svgEl('path', { 'class': 'af-hand' }, g);
     var tip = S.svgEl('circle', { 'class': 'af-tip', r: 6 }, g);
@@ -1182,8 +1292,9 @@
     var mid = pt(C, 78, END), off = pt({ x: 0, y: 0 }, 18, END + 90);
     var hLbl = S.text(g, mid.x + off.x, mid.y + off.y, tr('p34Hand'), 'lbl lbl--radius lbl--along');
     var turn = { a: START };
+    /* the hand reaches the rim: it is the radius (user, 2026-10-11) */
     function drawHand() {
-      var p = pt(C, C.r - 26, turn.a);
+      var p = pt(C, C.r, turn.a);
       hand.setAttribute('d', S.segD(C, p));
       tip.setAttribute('cx', r2(p.x));
       tip.setAttribute('cy', r2(p.y));
@@ -1197,6 +1308,7 @@
     var P = S.perchIn(panel);
     P.row.classList.add('sa-speak--above');
     P.bubble.classList.add('sa-bubble--sun');
+    steadyPerch(P);
     var slot = S.h('div', 'sa-qslot', null, panel);
     var given = S.ruleCard(sc, tr('s3TagRemember'), RULE(), 'sa-rule--small');
     M.set(given.el, { opacity: 0 });

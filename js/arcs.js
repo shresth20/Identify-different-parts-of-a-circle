@@ -885,7 +885,7 @@
         mascot.state('talking');
         Beats.bubbleArm(dom.bubble);
         var heard = voice('arcIntro');
-        var said = K.sayBubble(T('arcIntro'));
+        var said = K.sayBubble(keyed('arcIntro'));
         Beats.bubbleIn(dom.bubble);
         return Promise.all([said, heard]);
       })

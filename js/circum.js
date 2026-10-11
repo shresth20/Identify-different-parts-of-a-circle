@@ -350,7 +350,7 @@
   function speak(line) {
     if (typeof line === 'string') return sayCf(line);
     if (line.vo && global.I18n) K.quiet(global.I18n.say(line.vo));
-    return sayCf(line.text);
+    return sayCf(line);
   }
 
   /* The three formulas, one by one: the tray's own entrance with the

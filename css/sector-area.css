@@ -550,21 +550,17 @@ body.sa-lesson .board { --row-bottom: 13% !important; }
   align-items: center;
   gap: .9em;
   margin-bottom: .2em;
-  /* The row gives way before the answers under it do: when the panel is
-     too short for bubble, bird and tiles together, it is the bird that
-     steps down a size (see .sa-perch), never the tiles or the words. */
-  flex: 0 1 auto;
-  min-height: 0;
+  /* The bird never gives way to the answers under it (see .sa-perch). */
+  flex: 0 0 auto;
 }
 /* The bird: skill 1's size beside the circle (--bird-beside, style.css),
    the one size it is wherever it stands on the right -- the aside's card,
-   skill 2's pane, this perch. Stated as a height with the width following
-   (aspect-ratio), so that when the panel has not the room the flex column
-   can shorten it, and the sprite keeps its shape as it shrinks. */
+   skill 2's pane, this perch. It does not shrink when the panel is full:
+   a smaller bird on a busier page read as a different bird (user,
+   2026-10-11: skill 1's size on the right through the whole game). */
 :where(body.sa-lesson) .sa-perch {
   position: relative;
-  flex: 0 1 auto;
-  min-height: 0;
+  flex: 0 0 auto;
   height: var(--bird-beside);
   width: auto;
   aspect-ratio: 1;

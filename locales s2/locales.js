@@ -306,7 +306,7 @@ window.GAME_LOCALES_S2={
     "s2WkProduct": "2 × 22 = 44.",
     "s2FindArcLen": "Now, find the arc length.",
     "s2WkFound": "So, the arc length is 11 cm.",
-    "s2LblR7": "r = 7 cm",
+    "s2LblR7": "7 cm",
     "s2PrAskArc": "Find the length of the minor arc.",
     "s2P1PutPiR": "Substitute the value of π and radius.",
     "s2P1Cancel": "Solve further.",
