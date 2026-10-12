@@ -1594,7 +1594,6 @@
      at two moments. The dotted arrow is the box's tie to its region, so
      the leader the first lesson's box carries is an empty group here. */
   var QB_PAD = 8;              /* picture units of air round the pill, for its pulse */
-  var WRONG_HOLD = 1800;       /* ms: a wrong-drop line read before the ask returns  */
   function nameBox(host, name, cls) {
     var W = K.BOX_W, H = K.BOX_H, cy = H / 2;
     var svg = svgEl('svg', { 'class': 'sa-drop ' + cls,
@@ -1719,27 +1718,16 @@
       quiet(wait(2700).then(function () { r.classList.remove('is-flash2'); }));
     }
 
-    /* Answered as the first lesson's naming page is answered (sceneQuiz,
-       pages.js): the bird stays on the header; a right drop says nothing
-       -- the green box and its tick are the answer; a wrong drop is
-       answered on the spot in one line, the name goes home, and the
-       instruction comes back up after it. The drag, the tap-then-tap and
-       the keyboard are armQuiz's, the box and chip beats are Beats'. */
+    /* Answered as skill 1's naming pages are answered (namePair, pages.js):
+       the bird stays on the header and the instruction is said ONCE; a
+       wrong drop is answered on the spot in one line and the name goes
+       home -- the instruction is not said again; a right drop is told
+       "Correct!", but for the one that fills the last box (user,
+       2026-10-12). The drag, the tap-then-tap and the keyboard are
+       armQuiz's, the box and chip beats are Beats'. */
     var WRONG = {};
     WRONG[MINOR] = 's3NameWrongMinor'; WRONG[MAJOR] = 's3NameWrongMajor';
-    var fb = { n: 0, up: false };
     var placed = 0;
-    function sayWrong(box) {
-      var mine = ++fb.n;
-      fb.up = true;
-      return say(keyed(WRONG[box.name]), 'confused')
-        .then(function () { return wait(WRONG_HOLD); })
-        .then(function () {
-          if (mine !== fb.n) return;
-          fb.up = false;
-          return say(ASK);
-        });
-    }
     var done = K.armQuiz({ boxes: [boxL, boxR] }, chips, {
       group: sc,
       onHover: function (box) {
@@ -1749,19 +1737,12 @@
       onRight: function (box) {
         placed++;
         confirm(box.name);
-        /* A wrong-drop line still up is answered by the right drop: the
-           instruction goes back up, unless that was the last name. */
-        if (fb.up) {
-          fb.n++;
-          fb.up = false;
-          if (placed < 2) quiet(say(ASK));
-        }
+        if (placed < 2) quiet(say(keyed('fbCorrect'), 'happy'));
       },
-      onWrong: function (box) { quiet(sayWrong(box)); }
+      onWrong: function (box) { quiet(say(keyed(WRONG[box.name]), 'confused')); }
     });
     await quiet(said);
     await done;
-    fb.n++;                       /* no instruction after this */
     S.region.classList.remove('is-lit');
     T.region.classList.remove('is-lit');
     show([angMinor.arc, angMinor.lbl, angMajor.arc, angMajor.lbl]);

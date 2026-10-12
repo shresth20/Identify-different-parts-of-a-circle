@@ -255,7 +255,10 @@ body.sa-lesson .board { --row-bottom: 13% !important; }
 /* ---- The themed figures at the end --------------------------------------- */
 :where(body.sa-lesson) .s-fan-paper   { fill: color-mix(in srgb, var(--coral-fill) 40%, #FFF6EE); }
 :where(body.sa-lesson) .s-fan-fold    { fill: color-mix(in srgb, var(--coral-fill) 62%, #FFF6EE); }
-:where(body.sa-lesson) .s-fan-rib     { stroke: color-mix(in srgb, var(--yellow-border) 75%, #6B3F00); stroke-width: 2.6; stroke-linecap: round; fill: none; }
+/* The ribs drawn light and thin, so the angle's "135°" and the area read
+   clearly across them (user, 2026-10-12). Stroke opacity, so a fade on
+   the fan itself still works. */
+:where(body.sa-lesson) .s-fan-rib     { stroke: color-mix(in srgb, var(--yellow-border) 75%, #6B3F00); stroke-width: 2; stroke-opacity: .35; stroke-linecap: round; fill: none; }
 :where(body.sa-lesson) .s-fan-edge    { fill: none; stroke: var(--coral-border); stroke-width: 4; stroke-linecap: round; }
 :where(body.sa-lesson) .s-fan-pin     { fill: var(--coral-border); stroke: #FFFFFF; stroke-width: 2.5; }
 
