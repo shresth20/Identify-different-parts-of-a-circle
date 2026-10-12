@@ -1234,8 +1234,11 @@ body {
      The tail's TIP is put on the bird's head, and the box is then set back
      from that point by wherever the tip falls inside it.
 
-     Where the tip goes: 74% across the sprite cell and 21% down it. The
-     across is measured off the reference game; the down was too, at 31.2%,
+     Where the tip goes: 66% across the sprite cell and 21% down it -- on
+     the head's outline just above its right eyebrow, the one spot every
+     bubble on every screen lands on (user, 2026-10-12; it was 74%, off
+     the reference game, which sat on the shoulder). The down was measured
+     off the reference too, at 31.2%,
      but there the box's lower corner sat over the top of this bird's head,
      so the tip is lifted to just above the head's outline. The slot here
      IS the sprite cell -- square, with the bird filling it -- so both can
@@ -1252,8 +1255,11 @@ body {
      This is what the old `left: 50% - tail`, `bottom: 88%` could not do: it
      centred the tail over the cell and left the tip hanging above the head
      rather than on it. Measured, the tip was landing at 49% / 15%. */
-  --bub-tip-x: 74%;
-  --bub-tip-y: 75%;                   /* 21% down the cell, from its foot */
+  --bub-tip-x: 66%;
+  /* 79% from the foot: measured, the tip lands 21% down the cell, level
+     with every other bubble's (the 4px/8px terms below are fixed lengths
+     on a tail drawn in em, so the stated figure reads a few % high) */
+  --bub-tip-y: 79%;
   left:   calc(var(--bub-tip-x) - 4px - .815em);
   /* The signs here are the other way round from the reference's own copy of
      this line, and deliberately: the tail's tip is .725em BELOW the box's

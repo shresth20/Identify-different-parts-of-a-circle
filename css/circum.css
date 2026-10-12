@@ -91,17 +91,17 @@
   --bubble-bg: var(--cf-face);
   --note-edge: var(--cf-rim-low);
 
-  /* Placed by the tail's tip, as every bubble is: just over the bird's
-     head, a little clear of its crest, 62% across the cell and 15% down
-     it. The box is set back from that point by where the tip falls inside
+  /* Placed by the tail's tip, as every bubble is: on the head's outline
+     just above its right eyebrow, 66% across the cell and 21% down it --
+     the spot every bubble lands on (user, 2026-10-12). The box is set back from that point by where the tip falls inside
      it -- across, the rim, the tail's offset and the 2/44 of its width that
      the tip sits in from its left edge; down, the tail's height (42/44 of
      its width) less the 8/44 it is lifted into the rim (see .bubble-tail
      below). */
-  --cf-tip-x: .62;
+  --cf-tip-x: .66;
   --cf-set-back: calc(var(--cf-border) + var(--cf-tail-left) + var(--cf-tail-w) * 2 / 44);
   --bub-tip-x: calc(var(--cf-tip-x) * 100%);
-  --bub-tip-y: 85%;
+  --bub-tip-y: 79%;
   left: calc(var(--bub-tip-x) - var(--cf-set-back));
   bottom: calc(var(--bub-tip-y) + var(--cf-tail-w) * 34 / 44);
   /* As wide as the pane allows: from the box's own left edge -- the bird's

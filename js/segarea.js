@@ -93,6 +93,7 @@
   var round2 = K.round2, el = K.el;
   var LABEL_DY = 9;                         /* a label's baseline, below the point it is centred on */
   var ANGLE_R = 42, THETA_R = 64;           /* the angle's arc, and where "θ" sits */
+  var THETA_HALF = 12;                      /* "θ" (27px): half its height, about its centre */
   var ARC_W = 7;                            /* --sa-arc-weight (segarea.css)  */
   var CLIP_OPEN = 400;                      /* a clip circle wide open; mirrors animations.js */
 
@@ -882,8 +883,14 @@
     dom.scArcMajor.setAttribute('d', MAIN.arc(b, 360 - cut.span));
     dom.scSeg.setAttribute('d', MAIN.seg(a, cut.span));
     dom.scMajor.setAttribute('d', MAIN.arc(b, 360 - cut.span) + ' Z');
-    dom.scAngle.setAttribute('d', MAIN.arc(a, cut.span, ANGLE_R));
-    var th = MAIN.pt(a + cut.span / 2, THETA_R);
+    /* θ between the angle's arc and the chord: a wide cut brings the
+       chord in toward the centre, and the two come in with it rather than
+       θ sitting on the chord (user, 2026-10-12). */
+    var reach = RR * Math.cos(cut.span / 2 * Math.PI / 180);
+    var angR = Math.max(10, Math.min(ANGLE_R, reach - 2 * THETA_HALF - 16));
+    var thR = Math.max(angR + THETA_HALF + 3, Math.min(THETA_R, reach - THETA_HALF - 10));
+    dom.scAngle.setAttribute('d', MAIN.arc(a, cut.span, angR));
+    var th = MAIN.pt(a + cut.span / 2, thR);
     dom.scTheta.setAttribute('x', th.x);
     dom.scTheta.setAttribute('y', round2(th.y + LABEL_DY));
     var mid = MAIN.chordMid(a, cut.span);
@@ -1797,7 +1804,9 @@
   async function foundOn(fig, found) {
     if (!found) return;
     var fp = found.at(fig);
-    var fl = SA.text(fig.C.top, fp.x, fp.y, found.label, 'lbl lbl--area s-found-lbl');
+    var host = fig.C.top;
+    if (fp.rot) host = svgEl('g', { transform: 'rotate(' + round2(fp.rot) + ' ' + fp.x + ' ' + fp.y + ')' }, host);
+    var fl = SA.text(host, fp.x, fp.y, found.label, 'lbl lbl--area s-found-lbl');
     if (found.region) found.region(fig).classList.add('is-focus');
     await Promise.all([SA.say(found.say, 'happy'), Flow.anim(SA.popIn(fl, { from: 0.4 }))]);
   }
@@ -2003,7 +2012,20 @@
   var RULE_MAJOR = function () { return word('s4WordMajorSegment') + EQ + word('s4WordMajorSector') + PLUS + word('s4WordTriangle'); };
 
   /* ---- where what was found is set on each figure --------------------------- */
-  function atMinor(fig) { return fig.geo.pt(fig.a0 + fig.th / 2, 126); }
+  /* What was found on a minor segment: inside it, halfway between chord
+     and arc and turned to run along the chord -- the segment is too thin at
+     its middle for a level label, which sat across the chord (user,
+     2026-10-12). `rot` is read by foundOn. */
+  function atMinor(fig) {
+    var mid = fig.a0 + fig.th / 2;
+    /* a little past halfway: the digits' ink sits low of their centre */
+    var p = fig.geo.pt(mid, FIG.r * (1 + Math.cos(fig.th / 2 * Math.PI / 180)) / 2 + 3);
+    var rot = 90 - mid;
+    while (rot <= -90) rot += 180;
+    while (rot > 90) rot -= 180;
+    p.rot = rot;
+    return p;
+  }
   function atMajor(fig) { return fig.geo.pt(fig.a0 + fig.th / 2 + 180, 62); }
 
   /* ======================================================================

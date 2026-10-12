@@ -96,13 +96,14 @@
 }
 :where(body.sa-lesson) .af-bubble-room {
   --af-bub-fs: calc(var(--bubble-beside-fs) * .88);
-  /* the tail's tip (--sb-tail-left in) over the middle of the bird */
-  --af-bub-left: calc(var(--bird-beside) * .5 - var(--af-bub-fs) * 3.4);
+  /* level with the bird, as every perch's card is: the tail (--sb-tail-left)
+     brings its tip down on the head above the right eyebrow, and the bird
+     is drawn up under it (.sa-speak--above > .sa-perch, sector-area.css) */
+  --af-bub-left: 0px;
   position: relative;
   flex: 0 0 auto;
   align-self: stretch;
   height: calc(var(--af-bub-fs) * 5.3);
-  margin-bottom: calc(var(--bird-beside) * -.06);
 }
 :where(body.sa-lesson) .af-bubble-room > .sa-bubble {
   position: absolute;

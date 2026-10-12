@@ -598,13 +598,14 @@ body.sa-lesson .board { --row-bottom: 13% !important; }
   --sb-shade:    #7d88f040;            /* the shade drawn in at either side */
   --sb-border:   .075em;
   --sb-tail-w:   1.4em;
-  /* The tail where skill 1's card carries it: well along the foot, clear
-     of the big corner, so that with the card's left edge level with the
-     bird's the tip comes down about 45% across the head (see
-     .sa-speak--above). The card is never narrower than the stretch of foot
+  /* The tail placed by its tip: with the card's left edge level with the
+     bird's, the tip comes down 66% across the bird, on the head's outline
+     above its right eyebrow -- where every bubble lands (user,
+     2026-10-12; see .sa-speak--above). The tip sits 2/44 of the tail's
+     width in from its left edge, inside the card's border. The card is never narrower than the stretch of foot
      the tail needs -- its offset, its width and the corner's radius -- so
      a short line ("Yes!") still has the tail on a straight edge. */
-  --sb-tail-left: 3.4em;
+  --sb-tail-left: calc(var(--bird-beside) * .66 - var(--sb-border) - var(--sb-tail-w) * 2 / 44);
   min-width: calc(var(--sb-tail-left) + var(--sb-tail-w) + 1.45em);
   /* read by the tail's fill and stroke (index.html's drawing) */
   --bubble-bg: var(--sb-face);
@@ -869,17 +870,20 @@ body.sa-lesson .board { --row-bottom: 13% !important; }
    nothing of their own here. */
 
 /* The perch with its bubble ABOVE the bird: the words rise out of its beak.
-   The bubble stands clear of the bird, set in from its left edge so its
-   tail, on the bubble's underside (--sb-tail-left, .sa-bubble above),
-   comes down onto the head where skill 1's card lands its own: the tip
-   about 45% across the cell and a tenth of the way down it. The card's
-   left edge is level with the bird's, as skill 1's is, so the panel's
-   whole width is the line's. The gap is the tail's height less that
-   tenth, so the tip rests on the bird rather than hanging over it. */
+   The card's left edge is level with the bird's, as skill 1's is, so the
+   panel's whole width is the line's, and its tail (--sb-tail-left,
+   .sa-bubble above) comes down onto the head where every bubble lands:
+   66% across the bird and 21% down it. The bird is drawn up under the
+   card by the tail's drop (1.4em of the card's type, 34/44 of it below
+   the foot) less that 21%, so the tip rests on the head rather than
+   hanging over it (user, 2026-10-12). */
 :where(body.sa-lesson) .sa-speak.sa-speak--above {
   flex-direction: column-reverse;
   align-items: flex-start;
-  gap: .35em;
+  gap: 0;
+}
+:where(body.sa-lesson) .sa-speak--above > .sa-perch {
+  margin-top: calc(var(--bubble-beside-fs) * .88 * 1.4 * 34 / 44 - var(--bird-beside) * .21);
 }
 :where(body.sa-lesson) .sa-speak--above .sa-bubble { max-width: 100%; }
 /* A panel with a perch in it fills its row, so that a page too short for
@@ -992,7 +996,7 @@ body.sa-lesson .board { --row-bottom: 13% !important; }
    bird, the tiles and the formula all fit the panel's height -- even with
    the bird's longest line, a sentence and a half, in the bubble. */
 :where(body.sa-lesson) .sa-panel--practice { gap: .5em; }
-:where(body.sa-lesson) .sa-panel--practice .sa-speak--above { gap: .35em; }
+:where(body.sa-lesson) .sa-panel--practice .sa-speak--above { gap: 0; }
 :where(body.sa-lesson) .sa-panel--practice .sa-rule { padding: .2em 1.1em .25em; gap: .15em; font-size: .86em; }
 
 /* ---- The magnifying glass ------------------------------------------------ */
@@ -1477,6 +1481,13 @@ body.sa-lesson .board { --row-bottom: 13% !important; }
   border-radius: 1.1em;
   font-size: 1.05em;
 }
+/* A sentence the card has the width for, kept on one line (user,
+   2026-10-12: "The central angle of the minor sector is 100°."). */
+.sa-lesson .sa-line--one { white-space: nowrap; }
+/* The answers under a perch take the panel's whole width, not only what
+   the pills ask for: three that fit side by side stay on one row (user,
+   2026-10-12, Practice 1 -- the slot was a few px short and wrapped). */
+.sa-lesson .sa-panel--practice > .sa-qslot { align-self: stretch; }
 .sa-lesson .board.has-given .prompt__line { border-radius: .9em; }
 
 /* ---- the dropdown: a clear "your turn" ------------------------------------ */

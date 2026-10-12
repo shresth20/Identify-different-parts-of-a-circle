@@ -300,8 +300,12 @@
   --message-shade: #7d88f040;        /* the shade drawn in at either side */
   --message-border: .075em;
   --note-edge: var(--message-rim-low);
-  left: -7cqw;
-  bottom: calc(100% + 1.6cqh);
+  /* Its left edge level with the bird's, as every perch's card is (user,
+     2026-10-12: a little to the right of where it stood, 7cqw out). */
+  left: 0;
+  /* Set by the tail's tip, 21% down the bird (36cqh): the tip sits
+     1.4em * 34/44 under the card's foot (see the tail below). */
+  bottom: calc(100% - 36cqh * .21 + 1.4em * 34 / 44);
   /* Sized by its own sentence: a short rule gets a snug card, a long
      definition the full measure, and the card always lies WIDE -- a line
      first, a box second. max-content, not fit-content: the card hangs off
@@ -311,8 +315,9 @@
      what breaks it. Never narrower than the stretch of foot the tail sits
      on -- its left offset plus its width plus the corner's radius. */
   width: max-content;
-  min-width: calc(1cqw + 18cqh + 2.2em);
-  max-width: 88cqw;
+  min-width: calc(36cqh * .66 + 1.5em);
+  /* its right edge where it always reached: 93cqw of the aside */
+  max-width: 81cqw;
   /* Snug round the words (user, 2026-10-09), the corner stepping down with
      the padding so a one-row card keeps a straight foot for the tail. */
   padding: .5em .8em .58em;
@@ -355,10 +360,13 @@
    with no break. 8 units of a 1.4em tail is .2545em. */
 .aside--message .bubble-tail {
   display: block;
-  left: calc(1cqw + 18cqh - .7em);
+  /* Leaning the way every other bubble's tail leans, its tip 2/44 in from
+     its left edge, on the head's outline above the right eyebrow: 66%
+     across the bird, where every bubble lands (user, 2026-10-12). The
+     card's left edge is the bird's; the tail is placed inside its border. */
+  left: calc(36cqh * .66 - var(--message-border) - 1.4em * 2 / 44);
   top: calc(100% + var(--message-border) - .2545em);
   width: 1.4em;
-  transform: scaleX(-1);
 }
 /* As thick as the card's border, in the tail's own units (44 across 1.4em),
    and scaled with it, so the rim keeps one weight through the pop-in. */

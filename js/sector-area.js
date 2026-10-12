@@ -1319,7 +1319,9 @@
      chord), a sector (cut by two radii), an arc (cut by two points). Only
      then does the bird ask which card shows a sector -- so the learner meets
      the word beside the two things it is not. */
-  var SLOW_PEN = 1.6;          /* s: each card's circle, in slow motion       */
+  var SLOW_PEN = 1.6;          /* s: a circle drawn in slow motion             */
+  var CARD_PEN = 0.8;          /* s: each card's circle here -- twice as quick
+                                  (user, 2026-10-12)                            */
   var clipN = 0;
 
   /* A region coloured in from a point outward -- the chord's middle, for a
@@ -1392,7 +1394,7 @@
     });
     var mid = { x: (pa.x + pb.x) / 2, y: (pa.y + pb.y) / 2 };
 
-    await anim(Beats.drawRim(C1.rim, C1.tip, { time: SLOW_PEN }));
+    await anim(Beats.drawRim(C1.rim, C1.tip, { time: CARD_PEN }));
     await anim(Beats.fillDisc(C1.disc));
     await wait(SHORT);
     await anim(popIn(chordDots, { stagger: 0.18 }));
@@ -1414,7 +1416,7 @@
       return svgEl('circle', { 'class': 's-dot', cx: r2(p.x), cy: r2(p.y), r: 5.5 }, C2.top);
     });
 
-    await anim(Beats.drawRim(C2.rim, C2.tip, { time: SLOW_PEN }));
+    await anim(Beats.drawRim(C2.rim, C2.tip, { time: CARD_PEN }));
     await anim(Beats.fillDisc(C2.disc));
     await anim(Beats.plotDot(C2.dot, 0.35));
     await wait(SHORT);
@@ -1439,7 +1441,7 @@
       return svgEl('circle', { 'class': 's-dot', cx: r2(p.x), cy: r2(p.y), r: 6 }, C3.top);
     });
 
-    await anim(Beats.drawRim(C3.rim, C3.tip, { time: SLOW_PEN }));
+    await anim(Beats.drawRim(C3.rim, C3.tip, { time: CARD_PEN }));
     await wait(SHORT);
     await anim(popIn(arcDots, { stagger: 0.2 }));
     await wait(SHORT);
@@ -2964,7 +2966,7 @@
     var fig = majorFigure(sc, 100, { majorLabel: '?' });
     var panel = h('div', 'sa-panel sa-panel--centre', null, sc);
     var box = h('div', 'sa-workcard', null, panel);
-    var l1 = lineIn(box, tr('s3RefMinorAngle', { a: '<span class="c-ang">100°</span>' }));
+    var l1 = lineIn(box, tr('s3RefMinorAngle', { a: '<span class="c-ang">100°</span>' }), 'sa-line--one');
     var grid = h('div', 'sa-eqgrid', null, box);
     function eqRow(left, right) {
       var r = h('div', 'sa-work__row', '<span class="sa-work__l">' + left + '</span>' +
@@ -3270,6 +3272,11 @@
        bird asks each question under it. */
     dom.board.classList.add('has-given');
     await sayTop(keyed('s3AwIntro'));
+    /* ...and gone once it has been said: left up, it sat over the bubble
+       the questions are asked in (user, 2026-10-12). */
+    await anim(Beats.lineOut(dom.promptLine));
+    clearPrompt();
+    dom.board.classList.remove('has-given');
     await anim(fadeIn(P.row, { y: 0 }));
     await ask(keyed('s3AwAskCircle'),
       [tr('s3CmSq', { n: c('pi', '196π') }), tr('s3CmSq', { n: c('pi', '28π') }), tr('s3CmSq', { n: c('pi', '784π') })],
