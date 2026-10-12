@@ -134,7 +134,11 @@
    sector-area.css, opened to #alAsk), set in the sentence in place of the
    slot. Its answered ink is the sector lesson's, defined here as well. */
 #alAsk { --sa-answer: color-mix(in srgb, var(--right-border) 78%, #0B5A1E); }
-.al-dd { display: inline-flex; vertical-align: middle; }
+/* Live: the pane round it is glass (pointer-events: none, above), so the
+   dropdown -- its face and the menu that drops from it -- has to take
+   presses back, as the slot it stands in for did. Once answered, the
+   dropdown disables its own face. */
+.al-dd { display: inline-flex; vertical-align: middle; pointer-events: auto; }
 /* at the size the slot set its word, so "major arc" keeps the sentence on
    one line */
 .al-dd .dd { font-size: .82em; }
