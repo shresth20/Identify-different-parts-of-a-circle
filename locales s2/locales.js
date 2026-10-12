@@ -6,7 +6,7 @@ window.GAME_LOCALES_S2={
   "voiceOver": {
     "en": {
       "dir": "assets/",
-      "rev": "2",
+      "rev": "3",
       "files": {
         "s2IntroHey": "VO-skill 2/En/s2IntroHey.webm",
         "s2IntroWarmup": "VO-skill 2/En/s2IntroWarmup.webm",
@@ -176,7 +176,7 @@ window.GAME_LOCALES_S2={
         "p35Right2": [40, 180, 440, 960, 1880, 2380, 2920, 3600],
         "p35Wrong44": [60, 560, 1340, 1600, 1960, 2220, 3160, 3400, 3830, 4050],
         "p35Wrong88": [30, 650, 980, 1620, 1720, 2020, 2600, 3340, 3660, 4080, 4550, 5380, 5850, 6770, 6910, 7180, 7580, 8420, 8650],
-        "s2AlArcIs": [70, 420, 910, 1420, 1780, 1940, 2290],
+        "s2AlArcIs": [70, 420, 910, 1420, 1780, 1905],
         "s2AlMajorIs": [100, 420, 780, 1140, 1400, 1620, 1920, 2330, 2480, 2640],
         "s2AlMinorNo": [60, 180, 570, 960, 1180, 1360, 1740, 2200, 2340, 2510],
         "s2AlSectorNo": [300, 540, 800, 1180, 1380, 1660, 2040, 2360, 2880, 3260, 3480],
@@ -390,7 +390,7 @@ window.GAME_LOCALES_S2={
     "s2AlSectorNo": "A sector is the region between two radii and an arc.",
     "s2AlSegmentNo": "A segment is the region between a chord and an arc.",
     "s2AlMinorNo": "The minor arc is the shorter arc of the circle.",
-    "s2AlArcIs": "The highlighted curve is the minor arc.",
+    "s2AlArcIs": "The highlighted curve is the arc.",
     "s2OptMinorArc": "Minor arc",
     "s2OptMajorArc": "Major arc",
     "s2OptSegment": "Segment",

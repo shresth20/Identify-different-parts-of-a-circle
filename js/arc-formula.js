@@ -24,8 +24,6 @@
  *   Worked example    r = 7 cm, θ = 90°: s = 11 cm, a line at a time
  *   Practice          r = 21 cm, θ = 120°: 44 cm
  *   Find the angle    s = 22 cm, r = 21 cm: θ = 60°, the formula turned round
- *   Wiper             a blade of 42 cm through 60°: what the formula needs,
- *                     and how far the tip travels
  *   Clock             a hand of 14 cm for 45 minutes: through how many
  *                     degrees, and how far its tip travels
  *   Well done!        the two arcs and their two formulas
@@ -443,6 +441,49 @@
     var A = S.angleMark(C, at - 360, at, 'θ = 360°', { r: 38, gap: 22 });
     S.show([A.arc, A.lbl]);
     var deg = { v: 360 };
+
+    /* "θ = 200°" is wider than the gap the mark leaves it, and across a
+       radius it cannot be read (user, 2026-10-12): while its box crosses
+       either radius, it is stepped out along the middle of the angle --
+       never past the rim. */
+    function crosses(b, p, q) {
+      /* does the segment p-q pass through the box b (Liang-Barsky)? */
+      var t0 = 0, t1 = 1, dx = q.x - p.x, dy = q.y - p.y;
+      var e = [[-dx, p.x - b.x], [dx, b.x + b.width - p.x], [-dy, p.y - b.y], [dy, b.y + b.height - p.y]];
+      for (var i = 0; i < 4; i++) {
+        var pp = e[i][0], qq = e[i][1];
+        if (pp === 0) { if (qq < 0) return false; continue; }
+        var t = qq / pp;
+        if (pp < 0) { if (t > t1) return false; if (t > t0) t0 = t; }
+        else { if (t < t0) return false; if (t < t1) t1 = t; }
+      }
+      return true;
+    }
+    function clearOfRadii(b0, b1) {
+      if (b1 - b0 >= 300) return;                 /* set below the ring: clear */
+      var ends = [pt(C, C.r, b0), pt(C, C.r, b1)];
+      var x0 = +A.lbl.getAttribute('x'), y0 = +A.lbl.getAttribute('y');
+      var dir = pt({ x: 0, y: 0 }, 1, (b0 + b1) / 2);
+      for (var k = 0; k < 30; k++) {
+        var b;
+        try { b = A.lbl.getBBox(); } catch (e) { return; }
+        if (!b.width) return;
+        var box = { x: b.x - 5, y: b.y - 3, width: b.width + 10, height: b.height + 6 };
+        /* ...and off the angle's own arc: no part of it nearer the centre */
+        var nearX = Math.max(box.x - C.x, 0, C.x - (box.x + box.width));
+        var nearY = Math.max(box.y - C.y, 0, C.y - (box.y + box.height));
+        var onArc = Math.hypot(nearX, nearY) < A.r + 4;
+        if (!onArc && !crosses(box, C, ends[0]) && !crosses(box, C, ends[1])) return;
+        /* one more step would put a corner of the words past the rim: stop */
+        var nx = b.x + dir.x * 4, ny = b.y + dir.y * 4, far = 0;
+        [[nx, ny], [nx + b.width, ny], [nx, ny + b.height], [nx + b.width, ny + b.height]]
+          .forEach(function (c) { far = Math.max(far, Math.hypot(c[0] - C.x, c[1] - C.y)); });
+        if (far > C.r - 6) return;
+        x0 += dir.x * 4; y0 += dir.y * 4;
+        A.lbl.setAttribute('x', r2(x0));
+        A.lbl.setAttribute('y', r2(y0));
+      }
+    }
     function turnTo(v) {
       deg.v = v;
       Sec.set(at - v, at);
@@ -454,6 +495,7 @@
         A.lbl.setAttribute('text-anchor', 'start');
       } else {
         A.lbl.setAttribute('text-anchor', 'middle');
+        clearOfRadii(at - v, at);
       }
     }
 
@@ -1130,136 +1172,7 @@
     return { stop: function () { mo.disconnect(); } };
   }
 
-  /* ---- 8. The wiper: a blade of 42 cm sweeping 60° --------------------------------
-     The windshield drawn, the blade grown out of its pivot and swept
-     across, its tip tracing the arc; what the formula needs, then how far
-     the tip travels. */
-  async function sWiper() {
-    var X = S.X;
-    var sc = await S.stage('split');
-    sc.classList.add('sa-scene--practice');
-    sc.style.gridTemplateColumns = 'minmax(0, 1.3fr) minmax(0, 1fr)';
-    var F = S.figure(sc, '0 0 440 300');
-    F.svg.classList.add('af-fig');
-    var C = { x: 220, y: 268, r: 190 };
-    var a0 = 60, a1 = 120;                 /* the sweep: from upper left to upper right */
-    var g = S.svgEl('g', {}, F.svg);
-    var glass = S.svgEl('path', { 'class': 'af-glass',
-      d: 'M58 268 L92 42 Q98 14 126 14 L314 14 Q342 14 348 42 L382 268 Z' }, g);
-    /* the glass the blade has wiped, and a thin line where it started */
-    var wiped = S.svgEl('path', { 'class': 'af-wiped' }, g);
-    var start = S.svgEl('path', { 'class': 'af-blade-start', d: S.segD(C, pt(C, C.r, a1)) }, g);
-    var trace = S.svgEl('path', { 'class': 'af-trace' }, g);
-    var blade = S.svgEl('path', { 'class': 'af-blade' }, g);
-    var tip = S.svgEl('circle', { 'class': 'af-tip', r: 6 }, g);
-    var ang = S.svgEl('path', { 'class': 's-angle', d: S.arcD(C, 36, a0, a1) }, g);
-    S.svgEl('circle', { 'class': 'af-pivot', cx: C.x, cy: C.y, r: 7 }, g);
-    var lp = pt(C, 60, 90);
-    var aLbl = S.text(g, lp.x, lp.y, tr('val60'), 'lbl lbl--angle');
-    /* the blade's length written along it, at rest on the right */
-    var mid = pt(C, 112, a0), off = pt({ x: 0, y: 0 }, 18, a0 - 90);
-    var rg = S.svgEl('g', { transform: 'rotate(' + r2(-a0) + ' ' + r2(mid.x + off.x) + ' ' + r2(mid.y + off.y) + ')' }, g);
-    var bLbl = S.text(rg, mid.x + off.x, mid.y + off.y, tr('val42cm'), 'lbl lbl--radius lbl--along');
-    var sw = { a: a1 };
-    function drawBlade() {
-      var p = pt(C, C.r, sw.a);
-      blade.setAttribute('d', S.segD(C, p));
-      tip.setAttribute('cx', r2(p.x));
-      tip.setAttribute('cy', r2(p.y));
-      trace.setAttribute('d', sw.a < a1 - 0.5 ? S.arcD(C, C.r, sw.a, a1) : 'M' + r2(p.x) + ' ' + r2(p.y));
-      wiped.setAttribute('d', S.wedgeD(C, C.r, sw.a, a1));
-    }
-    drawBlade();
-    M.set([glass, wiped, start, trace, blade, tip, ang, aLbl, bLbl], { opacity: 0 });
-
-    var panel = S.h('div', 'sa-panel sa-panel--practice', null, sc);
-    var P = S.perchIn(panel);
-    P.row.classList.add('sa-speak--above');
-    P.bubble.classList.add('sa-bubble--sun');
-    steadyPerch(P);
-    var slot = S.h('div', 'sa-qslot', null, panel);
-    var given = S.ruleCard(sc, tr('s3TagRemember'), RULE(), 'sa-rule--small');
-    M.set(given.el, { opacity: 0 });
-
-    /* 1. The blade: the windshield, the blade grown out of its pivot, and
-          its length written along it. */
-    await S.say(keyed('p32Blade1'));
-    await anim(M.fromTo(glass, { opacity: 0, scale: 0.92, transformOrigin: '50% 100%' },
-      { opacity: 1, scale: 1, duration: M.dur(0.6), ease: 'back.out(1.3)' }));
-    M.set([blade, tip], { opacity: 1 });
-    await anim(Beats.growLine(blade, 0.8, 'power2.inOut'));
-    await anim(S.fadeIn(bLbl, { y: 0 }));
-    await wait(LOOK);
-
-    /* 2. The sweep: the blade across to the right, the tip tracing the arc,
-          and the angle at the pivot. */
-    await S.say(keyed('p32Blade2'));
-    M.set([trace, wiped, start], { opacity: 1 });
-    Beats.pop();
-    await anim(M.to(sw, { a: a0, duration: M.dur(1.5), ease: 'power2.inOut', onUpdate: drawBlade }));
-    await S.angleIn({ arc: ang, lbl: aLbl });
-    await wait(LOOK);
-
-    /* 3. What the formula needs, then how far the tip goes: both from the
-          perch. */
-    await S.hush();                /* the bird stays: it hops to the perch next */
-    trace.classList.add('is-flash2');
-    var Q1 = keyed('p32Ask');
-    await anim(S.fadeIn(P.row, { y: 0 }));
-    await S.perchSay(P, Q1);
-    var voice1 = S.bubbleVoice(P, Q1);
-    await S.askChoice([tr('p32OptRadiusAngle'), tr('p32OptChordAngle'), tr('p32OptDiameterArea')], 0, {
-      host: slot, tiles: true, voice: voice1, stagger: 0.35,
-      onShown: function () { quiet(anim(S.cardIn(given.el))); },
-      yes: [keyed('fbThatsCorrect'), keyed('p32Right1'), keyed('p32Right2')],
-      why: {
-        1: [keyed('fbNotQuite'), keyed('p32WrongChord')],
-        2: [keyed('fbNotQuite'), keyed('p32WrongDiameter')]
-      }
-    });
-    voice1.stop();
-    pulse(bLbl);
-    await wait(500);
-    pulse(aLbl);
-    await wait(900);
-
-    trace.classList.remove('is-flash2');
-    void trace.getBoundingClientRect();
-    trace.classList.add('is-flash2');
-    var Q2 = keyed('s2WiperAsk');
-    await askAgain(P, slot, Q2);
-    var voice2 = S.bubbleVoice(P, Q2);
-    var RULE_NO = [keyed('fbNotQuite'), keyed('s2ArcRule')];
-    await S.askChoice([tr('val44cm'), tr('val42cm'), tr('val48cm')], 0, {
-      host: slot, tiles: true, voice: voice2, stagger: 0.35,
-      yes: keyed('fbThatsCorrect'),
-      why: {
-        1: [keyed('fbNotQuite'), keyed('p33Wrong42')],
-        2: [keyed('fbNotQuite'), keyed('p33Wrong48')]
-      }
-    });
-    voice2.stop();
-    await wait(900);
-
-    /* Answered: the working, a piece at a time. */
-    await storyWork(panel, given, [
-      [SS(), [[fr('60', '360', 'c-ang'), aLbl], [X], [TWO_PI_R()]]],
-      ['', [[fr('1', '6', 'c-ang')], [X], [c('pi', '2')], [X], [fr('22', '7', 'c-pi')], [X], [c('r', '42'), bLbl]]],
-      ['', [[fr('1', '6', 'c-ang')], [X], [c('pi', '264')]]],
-      ['', [[c('ans', tr('val44cm'))]]]
-    ]);
-
-    /* What was found, said -- and set on the arc the tip traced. */
-    var fp = pt(C, C.r + 24, 90);
-    var found = S.text(g, fp.x, fp.y, tr('val44cm'), 'lbl lbl--area s-found-lbl af-arc-lbl');
-    trace.classList.remove('is-flash2');
-    trace.classList.add('is-lit');
-    await Promise.all([S.say(keyed('p33Right2'), 'happy'), anim(S.popIn(found, { from: 0.4 }))]);
-    await wait(BEAT);
-    await S.handOver();
-  }
-
-  /* ---- 9. The clock: a hand of 14 cm for 45 minutes ---------------------------------
+  /* ---- 8. The clock: a hand of 14 cm for 45 minutes ---------------------------------
      A clock face drawn, the minute hand grown out to twelve and turned
      three-quarters of the way round, the rim it passes lit behind its
      tip; through how many degrees, then how far the tip travels. */
@@ -1288,8 +1201,11 @@
     S.svgEl('circle', { 'class': 'centre__dot', cx: C.x, cy: C.y, r: 6.5 }, g);
     var lp = pt(C, 60, 315);
     var aLbl = S.text(g, lp.x, lp.y, tr('val270'), 'lbl lbl--angle');
-    /* the hand's length along it, where it comes to rest */
-    var mid = pt(C, 78, END), off = pt({ x: 0, y: 0 }, 18, END + 90);
+    /* the hand's length along it, where it comes to rest: ABOVE it, in the
+       quarter it swept last -- no angle mark there, only the dashed start --
+       and in from the rim; under it the words ran into the hand, the rim
+       and the 270° mark (user, 2026-10-12) */
+    var mid = pt(C, 74, END), off = pt({ x: 0, y: 0 }, 22, END - 90);
     var hLbl = S.text(g, mid.x + off.x, mid.y + off.y, tr('p34Hand'), 'lbl lbl--radius lbl--along');
     var turn = { a: START };
     /* the hand reaches the rim: it is the radius (user, 2026-10-11) */
@@ -1505,7 +1421,6 @@
       { name: 'Worked example',    play: own(sWorked) },
       { name: 'Practice',          play: own(sPractice) },
       { name: 'Find the angle',    play: own(sAngle) },
-      { name: 'Wiper',             play: own(sWiper) },
       { name: 'Clock',             play: own(sClock) },
       { name: 'Well done!',        play: own(sFinish) }
     ],

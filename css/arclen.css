@@ -129,6 +129,40 @@
   color: var(--right-border);
 }
 
+/* ---- The blank as a dropdown ------------------------------------------------
+   The game's own dropdown (SectorArea.dropdown; its look is in
+   sector-area.css, opened to #alAsk), set in the sentence in place of the
+   slot. Its answered ink is the sector lesson's, defined here as well. */
+#alAsk { --sa-answer: color-mix(in srgb, var(--right-border) 78%, #0B5A1E); }
+.al-dd { display: inline-flex; vertical-align: middle; }
+/* at the size the slot set its word, so "major arc" keeps the sentence on
+   one line */
+.al-dd .dd { font-size: .82em; }
+
+/* The hand that shows the blank is to be tapped: the lesson's pointing hand
+   (Arcs.HAND_D), faint, over the dropdown's face; laid over the board in
+   the viewport's own units, never a target. Its taps are Beats.nudgeTap's. */
+.al-nudge {
+  position: fixed;
+  left: 0;
+  top: 0;
+  width: 100vw;          /* the viewport, in its own pixels: an svg of no */
+  height: 100vh;         /* size is not painted at all                    */
+  overflow: visible;
+  z-index: var(--z-next);
+  pointer-events: none;
+  opacity: .5;
+}
+.al-nudge__hand { opacity: 0; }
+.al-nudge__hand path {
+  fill: #fff;
+  stroke: var(--text-secondary);
+  stroke-width: 2.2;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+.al-nudge__ring { fill: none; stroke: var(--lavender-border); stroke-width: 2.5; }
+
 /* ---- The circle -----------------------------------------------------------
    Nothing on skill 2's circle is a target: the name goes to the slot,
    never onto the picture. */

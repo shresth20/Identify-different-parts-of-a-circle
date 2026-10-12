@@ -525,12 +525,16 @@
       var mine = ++idle;
       Flow.wait(NUDGE_AFTER).then(function () {
         if (!live || mine !== idle || ghostOn || press || nudge) return;
-        var spot = picked.length ? picked[0] + NUDGE_NEXT : NUDGE_FIRST;
-        c.nudges.removeAttribute('hidden');
-        nudge = Beats.nudgeTap(hand,
-          function (scale) { handAt(hand, spot, 2, scale); },
-          function (k, alpha) { rippleAt(hand, k, alpha); });
+        showHand();
       }, function () { /* the scene was retired: nothing to show */ });
+    }
+    function showHand() {
+      if (!live || nudge) return;
+      var spot = picked.length ? picked[0] + NUDGE_NEXT : NUDGE_FIRST;
+      c.nudges.removeAttribute('hidden');
+      nudge = Beats.nudgeTap(hand,
+        function (scale) { handAt(hand, spot, 2, scale); },
+        function (k, alpha) { rippleAt(hand, k, alpha); });
     }
     function restHand() {
       idle++;
@@ -626,9 +630,13 @@
       Beats.plotDot(pt.dot);
       restHand();
       if (picked.length < 2) {
-        /* the ghost, if it is out, steps clear of the point just placed;
-           if it is not, the hand is given its couple of seconds again */
-        if (ghostOn) showGhost(allowed(ghostAt)); else armHand();
+        /* the ghost, if it is out, steps clear of the point just placed,
+           and the hand shows at once where the second may go -- without
+           the usual wait, and even with a mouse resting on the rim (user,
+           2026-10-12: the second point had no guidance). It goes, as
+           ever, when the learner next reaches for the rim. */
+        if (ghostOn) showGhost(allowed(ghostAt));
+        showHand();
         return;
       }
       hideGhost();

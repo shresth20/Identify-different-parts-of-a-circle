@@ -62,7 +62,9 @@
   /* praiseWellDone, not p29WellDone: the same words, and the one of the two
      that is recorded (assets/VO-skill 1) */
   var PRAISE = ['fbCorrect', 'praiseWellDone', 's3ThatsRight', 's3GreatJob'];
-  var OOPS   = ['s3OopsTryAgain', 's3OopsOnceMore', 's3OopsAlmost'];
+  /* no "Try again" / "Almost!" (user, 2026-10-12): the pool is "Not quite!"
+     and "Oops! Try once more." */
+  var OOPS   = ['s3OopsTryAgain', 's3OopsOnceMore'];
 
   var dom = null;
   var mascot = null;
@@ -926,8 +928,13 @@
                 val.innerHTML = '';
               });
             }));
-            var why = q.why && q.why[items.indexOf(b)];
-            quiet(sayAll(why || q.no || oops(), 'confused'));
+            /* q.onWrong(i): the page answers the wrong pick itself (the
+               options' index i), as a page with its own bird lines does */
+            if (q.onWrong) q.onWrong(items.indexOf(b));
+            else {
+              var why = q.why && q.why[items.indexOf(b)];
+              quiet(sayAll(why || q.no || oops(), 'confused'));
+            }
             return loop();
           });
         }
@@ -2827,7 +2834,7 @@
 
     /* A wrong pick is answered with the rule, and a reminder that Circle II
        gives its diameter. */
-    var RULE = [keyed('s3TryAgain'), keyed('s3CmpRule')];
+    var RULE = [keyed('fbNotQuite'), keyed('s3CmpRule')];
     await askChoice([tr('s3CircleI'), tr('s3CircleII'), tr('s3CmpEqual')], 2, {
       tiles: true,
       yes: keyed('s3CmpRight'),

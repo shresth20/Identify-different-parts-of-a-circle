@@ -51,14 +51,7 @@
   stroke-linecap: round;
 }
 
-/* ---- The windshield ---------------------------------------------------------- */
-:where(body.sa-lesson) .af-glass {
-  fill: color-mix(in srgb, var(--blue-fill) 26%, #F6FBFF);
-  stroke: var(--blue-border);
-  stroke-width: 3;
-  stroke-linejoin: round;
-}
-:where(body.sa-lesson) .af-blade,
+/* ---- The clock's hand -------------------------------------------------------- */
 :where(body.sa-lesson) .af-hand {
   fill: none;
   stroke: var(--sa-radius);
@@ -75,21 +68,6 @@
   stroke-width: 6.5;
   stroke-linecap: round;
   --focus: var(--af-arc);
-}
-
-/* The glass the blade has wiped: a clearer pane, growing behind the
-   blade as it sweeps (user, 2026-10-11) -- the one region ever filled on
-   these pages, and only because it is the story's own wet glass, not the
-   sector of the formula. And where the blade started, a thin line. */
-:where(body.sa-lesson) .af-wiped {
-  fill: color-mix(in srgb, var(--af-arc) 9%, #FFFFFF);
-  stroke: none;
-}
-:where(body.sa-lesson) .af-blade-start {
-  fill: none;
-  stroke: var(--sa-radius);
-  stroke-width: 2.4;
-  stroke-linecap: round;
 }
 
 /* ---- A perch that asks twice (steadyPerch, js/arc-formula.js) -----------------

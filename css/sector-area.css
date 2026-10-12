@@ -330,15 +330,15 @@ body.sa-lesson .board { --row-bottom: 13% !important; }
    drop out under it. Waiting, it breathes, so the eye finds it; answered,
    it is a solid green box with a tick, as the first lesson's name boxes are.
    ========================================================================== */
-:where(body.sa-lesson) .dd {
+:where(body.sa-lesson, #alAsk) .dd {
   position: relative;
   display: inline-flex;
   vertical-align: middle;
   margin: 0 .2em;
   z-index: 3;
 }
-:where(body.sa-lesson) .dd.is-open { z-index: 6; }
-:where(body.sa-lesson) .dd__face {
+:where(body.sa-lesson, #alAsk) .dd.is-open { z-index: 6; }
+:where(body.sa-lesson, #alAsk) .dd__face {
   appearance: none;
   display: inline-flex;
   align-items: center;
@@ -355,24 +355,24 @@ body.sa-lesson .board { --row-bottom: 13% !important; }
   cursor: pointer;
   transition: border-color .25s ease, background .25s ease, box-shadow .25s ease;
 }
-:where(body.sa-lesson) .dd__face:focus-visible { outline: 3px solid color-mix(in srgb, var(--lavender-fill) 70%, transparent); outline-offset: 2px; }
-:where(body.sa-lesson) .dd__val { min-width: 2.2em; text-align: center; }
-:where(body.sa-lesson) .dd__caret {
+:where(body.sa-lesson, #alAsk) .dd__face:focus-visible { outline: 3px solid color-mix(in srgb, var(--lavender-fill) 70%, transparent); outline-offset: 2px; }
+:where(body.sa-lesson, #alAsk) .dd__val { min-width: 2.2em; text-align: center; }
+:where(body.sa-lesson, #alAsk) .dd__caret {
   width: .7em;
   height: .7em;
   flex: 0 0 auto;
   transition: transform .25s ease;
 }
-:where(body.sa-lesson) .dd__caret path { fill: none; stroke: var(--lavender-border); stroke-width: 2.4; stroke-linecap: round; stroke-linejoin: round; }
-:where(body.sa-lesson) .dd.is-open .dd__caret { transform: rotate(180deg); }
-:where(body.sa-lesson) .dd.is-asking .dd__face { animation: dd-call 1.8s ease-in-out infinite; }
+:where(body.sa-lesson, #alAsk) .dd__caret path { fill: none; stroke: var(--lavender-border); stroke-width: 2.4; stroke-linecap: round; stroke-linejoin: round; }
+:where(body.sa-lesson, #alAsk) .dd.is-open .dd__caret { transform: rotate(180deg); }
+:where(body.sa-lesson, #alAsk) .dd.is-asking .dd__face { animation: dd-call 1.8s ease-in-out infinite; }
 @keyframes dd-call {
   0%, 100% { box-shadow: 0 0 0 0 color-mix(in srgb, var(--lavender-fill) 0%, transparent); }
   50%      { box-shadow: 0 0 0 .28em color-mix(in srgb, var(--lavender-fill) 45%, transparent); }
 }
-:where(body.sa-lesson) .dd.is-open .dd__face { animation: none; background: color-mix(in srgb, var(--lavender-fill) 14%, #FFFFFF); }
+:where(body.sa-lesson, #alAsk) .dd.is-open .dd__face { animation: none; background: color-mix(in srgb, var(--lavender-fill) 14%, #FFFFFF); }
 
-:where(body.sa-lesson) .dd__menu {
+:where(body.sa-lesson, #alAsk) .dd__menu {
   position: absolute;
   top: calc(100% + .3em);
   left: 50%;
@@ -388,9 +388,9 @@ body.sa-lesson .board { --row-bottom: 13% !important; }
   translate: -50% 0;
   white-space: nowrap;
 }
-:where(body.sa-lesson) .dd--up .dd__menu { top: auto; bottom: calc(100% + .3em); }
-:where(body.sa-lesson) .dd__menu[hidden] { display: none; }
-:where(body.sa-lesson) .dd__opt {
+:where(body.sa-lesson, #alAsk) .dd--up .dd__menu { top: auto; bottom: calc(100% + .3em); }
+:where(body.sa-lesson, #alAsk) .dd__menu[hidden] { display: none; }
+:where(body.sa-lesson, #alAsk) .dd__opt {
   appearance: none;
   display: flex;
   align-items: center;
@@ -407,16 +407,16 @@ body.sa-lesson .board { --row-bottom: 13% !important; }
   cursor: pointer;
   transition: background .18s ease, opacity .2s ease;
 }
-:where(body.sa-lesson) .dd__opt:hover,
-:where(body.sa-lesson) .dd__opt:focus-visible { background: color-mix(in srgb, var(--lavender-fill) 22%, #FFFFFF); outline: none; }
-:where(body.sa-lesson) .dd__opt.is-out { opacity: .35; pointer-events: none; text-decoration: line-through; }
+:where(body.sa-lesson, #alAsk) .dd__opt:hover,
+:where(body.sa-lesson, #alAsk) .dd__opt:focus-visible { background: color-mix(in srgb, var(--lavender-fill) 22%, #FFFFFF); outline: none; }
+:where(body.sa-lesson, #alAsk) .dd__opt.is-out { opacity: .35; pointer-events: none; text-decoration: line-through; }
 
-:where(body.sa-lesson) .dd.is-wrong .dd__face {
+:where(body.sa-lesson, #alAsk) .dd.is-wrong .dd__face {
   border-style: solid;
   border-color: var(--wrong-border);
   background: color-mix(in srgb, var(--wrong-fill) 26%, #FFFFFF);
 }
-:where(body.sa-lesson) .dd.is-right .dd__face {
+:where(body.sa-lesson, #alAsk) .dd.is-right .dd__face {
   border-style: solid;
   border-color: var(--right-border);
   background: color-mix(in srgb, var(--right-fill) 26%, #FFFFFF);
@@ -424,9 +424,9 @@ body.sa-lesson .board { --row-bottom: 13% !important; }
   cursor: default;
   padding-right: .6em;
 }
-:where(body.sa-lesson) .dd.is-right .dd__caret { display: none; }
+:where(body.sa-lesson, #alAsk) .dd.is-right .dd__caret { display: none; }
 /* The tick on the box's corner, as on an answered name box. */
-:where(body.sa-lesson) .dd__tick {
+:where(body.sa-lesson, #alAsk) .dd__tick {
   position: absolute;
   top: -.42em;
   right: -.42em;
@@ -435,8 +435,8 @@ body.sa-lesson .board { --row-bottom: 13% !important; }
   opacity: 0;
   pointer-events: none;
 }
-:where(body.sa-lesson) .dd__tick circle { fill: var(--right-border); stroke: #FFFFFF; stroke-width: 2.5; }
-:where(body.sa-lesson) .dd__tick path { fill: none; stroke: #FFFFFF; stroke-width: 3; stroke-linecap: round; stroke-linejoin: round; }
+:where(body.sa-lesson, #alAsk) .dd__tick circle { fill: var(--right-border); stroke: #FFFFFF; stroke-width: 2.5; }
+:where(body.sa-lesson, #alAsk) .dd__tick path { fill: none; stroke: #FFFFFF; stroke-width: 3; stroke-linecap: round; stroke-linejoin: round; }
 
 /* ==========================================================================
    The answers
@@ -514,7 +514,7 @@ body.sa-lesson .board { --row-bottom: 13% !important; }
 :where(body.sa-lesson) .qz-bit--yellow   { fill: var(--yellow-fill); }
 
 @media (prefers-reduced-motion: reduce) {
-  :where(body.sa-lesson) .dd.is-asking .dd__face,
+  :where(body.sa-lesson, #alAsk) .dd.is-asking .dd__face,
   :where(body.sa-lesson) .s-handle__halo,
   :where(body.sa-lesson) .sa-rule.is-glow { animation: none; }
 }
@@ -1394,7 +1394,7 @@ body.sa-lesson .board { --row-bottom: 13% !important; }
 .sa-lesson .choice.is-done:not(.is-right) { opacity: .62 !important; }
 .sa-lesson .sa-card.is-tried { opacity: .65 !important; filter: grayscale(.5); }
 .sa-lesson .sa-card.is-done:not(.is-right) { opacity: .62 !important; }
-.sa-lesson .dd__opt.is-out { opacity: .5; }
+.sa-lesson .dd__opt.is-out, :where(#alAsk) .dd__opt.is-out { opacity: .5; }
 
 /* ---- layout: the figure always on the left, the working on the right ------ */
 .sa-lesson .sa-scene--work { grid-template-columns: minmax(0, 1fr) minmax(0, 1.25fr); gap: 3%; }
@@ -1480,14 +1480,14 @@ body.sa-lesson .board { --row-bottom: 13% !important; }
 .sa-lesson .board.has-given .prompt__line { border-radius: .9em; }
 
 /* ---- the dropdown: a clear "your turn" ------------------------------------ */
-.sa-lesson .dd__face {
+.sa-lesson .dd__face, :where(#alAsk) .dd__face {
   min-width: 5em;
   min-height: 2.05em;
   border-width: .13em;
   background: color-mix(in srgb, var(--lavender-fill) 12%, #FFFFFF);
 }
-.sa-lesson .dd.is-right .dd__face { background: color-mix(in srgb, var(--right-fill) 26%, #FFFFFF); }
-.sa-lesson .dd.is-wrong .dd__face { background: color-mix(in srgb, var(--wrong-fill) 26%, #FFFFFF); }
+.sa-lesson .dd.is-right .dd__face, :where(#alAsk) .dd.is-right .dd__face { background: color-mix(in srgb, var(--right-fill) 26%, #FFFFFF); }
+.sa-lesson .dd.is-wrong .dd__face, :where(#alAsk) .dd.is-wrong .dd__face { background: color-mix(in srgb, var(--wrong-fill) 26%, #FFFFFF); }
 
 
 /* ---- the fan ------------------------------------------------------------- */

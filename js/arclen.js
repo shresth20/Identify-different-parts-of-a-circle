@@ -191,6 +191,10 @@
     dom.alAsk.classList.remove('is-live');
     dom.alOpts.textContent = '';
     chips = [];
+    /* the dropdown and its hand, if a round had put them up */
+    Array.prototype.slice.call(document.querySelectorAll('#alLine .al-dd, .al-nudge'))
+      .forEach(function (el) { el.parentNode.removeChild(el); });
+    dom.alSlot.style.display = '';
     M.set([dom.alLine, dom.alOpts, dom.alSlot, dom.alSlotText],
           { clearProps: 'opacity,transform' });
   }
@@ -490,34 +494,128 @@
   }
 
   /* ======================================================================
+   * The blank as a dropdown (user, 2026-10-12: "change the select option to
+   * drop down interaction exactly same as we already using in the game").
+   * The game's own dropdown -- SectorArea.dropdown, as on every worked page
+   * -- set in the sentence in place of the slot; the bird answers a wrong
+   * pick from the header as before (the dropdown's onWrong), and a faint
+   * hand taps the blank until it is first opened.
+   * ====================================================================== */
+  function buildDropdown(spec) {
+    var host = document.createElement('span');
+    host.className = 'al-dd';
+    dom.alLine.insertBefore(host, dom.alSlot);
+    dom.alSlot.style.display = 'none';
+    return global.SectorArea.dropdown(host,
+      spec.options.map(function (k) { return T(k); }),
+      spec.options.indexOf(spec.answer));
+  }
+
+  /* The lesson's pointing hand (Arcs.HAND_D) and its tap loop
+     (Beats.nudgeTap), over the dropdown's face, in the viewport's units:
+     the fingertip a little right of the middle, the hand as tall as the
+     face. Returns the stop. */
+  var HAND_H = 52;                 /* the hand's height in its own units */
+  function handNudge(face) {
+    var NS = 'http://www.w3.org/2000/svg';
+    var svg = document.createElementNS(NS, 'svg');
+    svg.setAttribute('class', 'al-nudge');
+    svg.setAttribute('aria-hidden', 'true');
+    var ring = document.createElementNS(NS, 'circle');
+    ring.setAttribute('class', 'al-nudge__ring');
+    ring.setAttribute('r', '0');
+    var hand = document.createElementNS(NS, 'g');
+    hand.setAttribute('class', 'al-nudge__hand');
+    var path = document.createElementNS(NS, 'path');
+    path.setAttribute('d', A.HAND_D);
+    hand.appendChild(path);
+    svg.appendChild(ring);
+    svg.appendChild(hand);
+    document.body.appendChild(svg);
+
+    function tip() {
+      var r = face.getBoundingClientRect();
+      return { x: r.left + r.width * 0.62, y: r.top + r.height * 0.62, h: r.height };
+    }
+    var tl = Beats.nudgeTap(hand,
+      function (scale) {
+        var p = tip();
+        hand.setAttribute('transform', 'translate(' + round2(p.x) + ' ' + round2(p.y) +
+                          ') scale(' + round2(p.h / HAND_H * scale) + ')');
+      },
+      function (k, alpha) {
+        var p = tip();
+        ring.setAttribute('cx', round2(p.x));
+        ring.setAttribute('cy', round2(p.y));
+        ring.setAttribute('r', round2(p.h * 0.34 * k));
+        ring.style.opacity = alpha;
+      });
+    var stopped = false;
+    return function stop() {
+      if (stopped) return;
+      stopped = true;
+      Beats.nudgeStop(tl, hand).eventCallback('onComplete', function () {
+        if (svg.parentNode) svg.parentNode.removeChild(svg);
+      });
+      ring.style.opacity = 0;
+    };
+  }
+
+  /* Asked: the hand comes a beat after the blank starts calling, and goes
+     the moment the blank is first opened; the right pick sets the
+     sentence's own word in the box ("arc", not "Arc"). */
+  function askDropdown(spec, dd) {
+    var face = dd.el.querySelector('.dd__face');
+    var stop = null, opened = false;
+    face.addEventListener('click', function () {
+      opened = true;
+      if (stop) stop();
+    }, { once: true });
+    Flow.wait(SHORT).then(function () {
+      if (!opened && dd.el.classList.contains('is-asking')) stop = handNudge(face);
+    }, function () { /* the scene was retired */ });
+    return dd.ask({
+      yes: false,
+      burst: function () {},
+      onWrong: function (i) {
+        K.quiet(verdict(spec.wrong[spec.options[i]], 'confused'));
+      }
+    }).then(function () {
+      opened = true;
+      if (stop) stop();
+      dd.el.querySelector('.dd__val').textContent = T(spec.word || spec.answer);
+    }, function (err) {
+      opened = true;
+      if (stop) stop();
+      throw err;
+    });
+  }
+
+  /* ======================================================================
    * One round: a piece lit, the sentence up, the names in, the drop, the
    * verdicts, and Next.
    * ====================================================================== */
   function askRound(spec) {
+    var dd = null;
     return Flow.anim(Beats.arcFocus(spec.on, spec.off))
       .then(function () { return Flow.wait(SHORT); })
 
-      /* ---- the sentence, then the names, one by one ---------------------- */
-      .then(function () { return Flow.anim(askIn()); })
+      /* ---- the sentence, with the dropdown in its blank ------------------ */
+      .then(function () {
+        dd = buildDropdown(spec);
+        return Promise.all([
+          Flow.anim(askIn()),
+          Flow.anim(M.fromTo(dd.el, { scale: 0.8, transformOrigin: 'center center' },
+            { scale: 1, duration: M.dur(0.45), ease: M.POP, delay: M.gap(0.18) }))
+        ]);
+      })
       .then(function () { return Flow.wait(SHORT); })
-      .then(function () {
-        var ids = K.shuffle(spec.options);
-        chips = K.buildChips(dom.alOpts, ids);
-        return Flow.anim(chipsIn(chips));
-      })
 
-      /* ---- the drop. The bird answers every try from the header: up for
-         the first wrong one and standing there until the right name is in.
-         Those verdicts are waits the chain never awaits, so they go through
+      /* ---- the pick. The bird answers every wrong one from the header: up
+         for the first and standing there until the right name is in. Those
+         verdicts are waits the chain never awaits, so they go through
          quiet(); the right answer's is the scene's own beat. ---------------- */
-      .then(function () {
-        return armSlot({
-          answer: spec.answer, word: spec.word,
-          onWrong: function (name) {
-            K.quiet(verdict(spec.wrong[name], 'confused'));
-          }
-        });
-      })
+      .then(function () { return askDropdown(spec, dd); })
       .then(function () { return Flow.wait(SHORT); })
       .then(function () {
         return verdict(spec.right, 'happy');
