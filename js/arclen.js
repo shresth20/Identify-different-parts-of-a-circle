@@ -94,13 +94,15 @@
          are the regions the learner met in skill 1. The word set in the
          slot once it is answered is the sentence's own, in lower case. */
       { on: [dom.alMinor], off: [dom.alMajor],
-        options: ['s4p6Sector', 's2OptSegment', 's2OptArc'],
+        options: ['s2OptSector', 's2OptSegment', 's2OptArc'],
         answer: 's2OptArc', word: 's2WordArc',
         right: [LINES.correct, LINES.arcIs],
-        wrong: { 's4p6Sector': [LINES.notQuite, LINES.sectorNo],
+        wrong: { 's2OptSector': [LINES.notQuite, LINES.sectorNo],
                  's2OptSegment': [LINES.notQuite, LINES.segmentNo] } },
-      /* The larger piece: the major arc, against the minor. */
-      { on: [dom.alMajor], off: [dom.alMinor],
+      /* The larger piece: the major arc, against the minor -- the minor
+         stood further back than the usual dim, so the major is plainly
+         the one asked about (user, 2026-10-13). */
+      { on: [dom.alMajor], off: [dom.alMinor], dim: 0.08,
         options: ['s2OptMajorArc', 's2OptMinorArc'],
         answer: 's2OptMajorArc', word: 's2WordMajorArc',
         right: [LINES.thatsIt, LINES.majorIs],
@@ -597,7 +599,7 @@
    * ====================================================================== */
   function askRound(spec) {
     var dd = null;
-    return Flow.anim(Beats.arcFocus(spec.on, spec.off))
+    return Flow.anim(Beats.arcFocus(spec.on, spec.off, spec.dim))
       .then(function () { return Flow.wait(SHORT); })
 
       /* ---- the sentence, with the dropdown in its blank ------------------ */

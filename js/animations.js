@@ -1387,15 +1387,16 @@
      comes up to full and swells once, `off` drops to a quarter. arcUnfocus
      brings everything back up together. Nothing here hands opacity back:
      a piece's resting opacity is nothing, and these are all pieces that are
-     meant to stay on the board. */
+     meant to stay on the board. A caller may stand `off` further back
+     with its own `dim`. */
   var ARC_DIM = 0.22;
 
-  function arcFocus(on, off) {
+  function arcFocus(on, off, dim) {
     var tl = M.timeline({
       willChange: on.concat(off), willChangeValue: 'opacity',
       revert: function () { unswell(on); }
     });
-    if (off.length) tl.to(off, { opacity: ARC_DIM, duration: M.dur(0.4), ease: 'power2.inOut' }, 0);
+    if (off.length) tl.to(off, { opacity: dim == null ? ARC_DIM : dim, duration: M.dur(0.4), ease: 'power2.inOut' }, 0);
     if (on.length) {
       tl.to(on, { opacity: 1, duration: M.dur(0.3), ease: 'power2.out' }, 0);
       swell(tl, on, 0.1);

@@ -172,6 +172,9 @@
    never onto the picture. */
 .figure__arclen,
 .figure__arclen * { pointer-events: none; }
+/* The minor arc on this page alone in the lesson's pink, the ink skill 4
+   draws its arcs in (user, 2026-10-13). */
+.figure__arclen .arc-piece--minor { stroke: var(--part-centre); }
 
 /* ---- Reduced motion ------------------------------------------------------- */
 @media (prefers-reduced-motion: reduce) {

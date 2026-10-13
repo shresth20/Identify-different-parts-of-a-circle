@@ -2588,7 +2588,7 @@
        is given, r and θ, is already written on the figure, so it is not
        restated beside it: the bird points at it there instead. */
     var head = h('div', 'sa-wk__head',
-      '<p class="sa-wk__formula"><b>' + tr('s3Formula') + '</b> ' + c('a', 'A') + EQ + fr('θ', '360', 'c-ang') + X + PIR2 + '</p>', col);
+      '<p class="sa-wk__formula sa-patch"><b>' + tr('s3Formula') + '</b> ' + c('a', 'A') + EQ + fr('θ', '360', 'c-ang') + X + PIR2 + '</p>', col);
     var formula = head.querySelector('.sa-wk__formula');
     M.set(formula, { opacity: 0 });
     var list = h('div', 'steps', null, col);
@@ -2702,7 +2702,7 @@
           { scale: 1.35, duration: M.dur(0.3), ease: 'power2.out', yoyo: true, repeat: 3 })));
       },
       /* the formula only: r and θ are already on the figure */
-      head: '<p class="sa-wk__formula"><b>' + tr('s3Formula') + '</b> ' + c('a', 'A') + EQ + fr('θ', '360', 'c-ang') + X + PIR2 + '</p>',
+      head: '<p class="sa-wk__formula sa-patch"><b>' + tr('s3Formula') + '</b> ' + c('a', 'A') + EQ + fr('θ', '360', 'c-ang') + X + PIR2 + '</p>',
       steps: function (fig) {
         return [
           [c('a', 'A'), [[fr('90', '360', 'c-ang'), fig.A.lbl], [X], [PIR2]]],
@@ -2892,10 +2892,13 @@
   function majorFigure(host, minorDeg, spec) {
     spec = spec || {};
     var key = 'major|' + minorDeg + '|' + (spec.r || '') + '|' + (spec.minorLabel || '') + '|' + (spec.rAlong || '');
+    /* the picture's frame; a page may crop it closer (spec.vb) */
+    var vb = spec.vb || '30 34 360 384';
     if (parked && keptFig && keptFig.key === key) {
       var o = keptFig.obj;
       unpark();
       host.insertBefore(o.F.wrap, host.firstChild);
+      o.F.svg.setAttribute('viewBox', vb);
       M.set(o.F.wrap, { clearProps: 'opacity,transform' });
       /* back to a plain picture: no light left on from the screen before */
       [o.S.region, o.T.region, o.S.arc, o.T.arc, o.A.arc, o.A.lbl, o.B.arc, o.B.lbl].forEach(function (e) {
@@ -2907,7 +2910,7 @@
       o.draw = function () { return Promise.resolve(); };
       return o;
     }
-    var F = figure(host, '30 34 360 384');
+    var F = figure(host, vb);
     var C = circle(F.svg, 210, 210, 150);
     var a0 = 90 - minorDeg / 2, a1 = 90 + minorDeg / 2;
     var S = sector(C, a0, a1, 'minor');
@@ -3021,7 +3024,9 @@
   /* ---- 17. Which angle for the major area (slide 44) ---------------------------- */
   async function sMajorAngle() {
     var sc = await stage('split');
-    var fig = majorFigure(sc, 100, { majorLabel: '260°' });
+    /* framed close round the circle, so it stands bigger above the card
+       (user, 2026-10-13) */
+    var fig = majorFigure(sc, 100, { majorLabel: '260°', vb: '48 48 324 324' });
     /* The question asked from a perch: the bird and its bubble above, the
        three angles as plain tiles, and the formula card under the FIGURE,
        where the practice pages carry theirs (.sa-scene--practice): in the
@@ -3036,7 +3041,7 @@
     /* the rule of the screen before: the major sector's own angle, 360° − θ */
     var rule = ruleCard(sc, tr('s3RuleAreaMajor'),
       c('a', 'A') + EQ + '<span class="frac c-ang"><span class="frac__n" data-k="num">360° − θ</span>' +
-      '<span class="frac__d">360</span></span>' + X + PIR2, 'sa-rule--small');
+      '<span class="frac__d">360</span></span>' + X + PIR2, 'sa-rule--small sa-patch sa-rule--stack');
     var num = rule.el.querySelector('[data-k="num"]');
     M.set(rule.el, { opacity: 0 });
     var Q = keyed('s3MaAsk');
@@ -3103,10 +3108,14 @@
     var sc = await stage('work');
     var col = h('div', 'sa-wk sa-wk--align', null, sc);
     var fig = majorFigure(sc, 45, { minorLabel: '45°', majorLabel: '360° − θ = ?', rAlong: tr('s3LblR14') });
+    /* The two radii, and the rim points they end in, painted last of the
+       lines, so no arc runs over a point (user, 2026-10-13). */
+    fig.C.over.appendChild(fig.S.ra);
+    fig.C.over.appendChild(fig.S.rb);
 
     /* The formula only: r and θ are already on the figure (see sWorked). */
     var head = h('div', 'sa-wk__head',
-      '<p class="sa-wk__formula"><b>' + tr('s3Formula') + '</b> ' + c('a', 'A') + EQ + fr('360° − θ', '360', 'c-ang') + X + PIR2 + '</p>', col);
+      '<p class="sa-wk__formula sa-patch"><b>' + tr('s3Formula') + '</b> ' + c('a', 'A') + EQ + fr('360° − θ', '360', 'c-ang') + X + PIR2 + '</p>', col);
     var formula = head.querySelector('.sa-wk__formula');
     M.set(formula, { opacity: 0 });
     var list = h('div', 'steps', null, col);
@@ -3398,7 +3407,9 @@
   async function sFan() {
     var sc = await stage('split');
     sc.classList.add('sa-scene--practice');
-    sc.style.gridTemplateColumns = 'minmax(0, 1.3fr) minmax(0, 1fr)';
+    /* the fan a little smaller than it was, so the three answers stand in
+       one row under the bird rather than wrapping (user, 2026-10-13) */
+    sc.style.gridTemplateColumns = 'minmax(0, 1fr) minmax(0, 1fr)';
     var F = figure(sc, '-6 92 432 252');
     var C = { x: 210, y: 330, r: 230 };
     var g = svgEl('g', {}, F.svg);
@@ -3439,8 +3450,8 @@
     var P = perchIn(panel);
     P.row.classList.add('sa-speak--above');
     P.bubble.classList.add('sa-bubble--sun');
-    var slot = h('div', 'sa-qslot', null, panel);
-    var given = ruleCard(sc, tr('s3TagRemember'), c('a', 'A') + EQ + fr('θ', '360', 'c-ang') + X + PIR2, 'sa-rule--small');
+    var slot = h('div', 'sa-qslot sa-qslot--row', null, panel);
+    var given = ruleCard(sc, tr('s3TagRemember'), c('a', 'A') + EQ + fr('θ', '360', 'c-ang') + X + PIR2, 'sa-rule--small sa-patch');
     M.set(given.el, { opacity: 0 });
 
     /* 1. The angle: the fan opens out to 135°, and the angle is marked. */

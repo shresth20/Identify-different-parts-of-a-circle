@@ -874,6 +874,7 @@
     var col = S.h('div', 'sa-wk sa-wk--align', null, sc);
     var fig = arcFigure(sc, { theta: 90, at: 0, r: tr('s2LblR7') });
     var formula = formulaHead(col);
+    formula.classList.add('sa-patch');
     var list = S.h('div', 'steps', null, col);
 
     var s1 = S.stepRow(list, 1, SS() + EQ + DD + X + TWO_PI_R());
@@ -971,7 +972,7 @@
         quiet(anim(M.fromTo(ring, { opacity: 0 }, { opacity: 0.8, duration: M.dur(0.35), yoyo: true, repeat: 3,
           onComplete: function () { if (ring.parentNode) ring.parentNode.removeChild(ring); } })));
       },
-      head: '<p class="sa-wk__formula"><b>' + tr('s3Formula') + '</b> ' + RULE() + '</p>',
+      head: '<p class="sa-wk__formula sa-patch"><b>' + tr('s3Formula') + '</b> ' + RULE() + '</p>',
       steps: function (fig) {
         return [
           [SS(), [[fr('120', '360', 'c-ang'), fig.A.lbl], [X], [TWO_PI_R()]]],
@@ -994,6 +995,7 @@
     var fig = arcFigure(sc, { theta: 60, at: 60, r: tr('s3LblR21'), label: 'θ = ?', s: tr('val22cm') });
     fig.A.lbl.classList.add('lbl--num');
     var formula = formulaHead(col);
+    formula.classList.add('sa-patch');
     var list = S.h('div', 'steps', null, col);
 
     var s1 = S.stepRow(list, 1, DD + EQ + fr('θ', '360', 'c-ang') + X + TWO_PI_R());
