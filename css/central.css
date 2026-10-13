@@ -57,7 +57,8 @@
 }
 
 /* ---- The points ----------------------------------------------------------- */
-.figure__ca .arc-dot { fill: var(--ca-point); }
+/* a point that is picked is red, and plain: no white edge (user, 2026-10-13) */
+.figure__ca .arc-dot { fill: var(--ca-point); stroke: none; }
 
 /* ---- One ink ---------------------------------------------------------------
    Radii, arc, angle, "θ", "r", "s" and the measure all in the skill's own

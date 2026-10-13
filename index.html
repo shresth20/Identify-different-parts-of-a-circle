@@ -26,6 +26,18 @@
   <link rel="stylesheet" href="css/arc-formula.css" />
 </head>
 <body>
+  <!-- The point every line end on a rim wears where the figure has no point
+       of its own: one marker, referenced by the .pt-end / .pt-ends classes
+       (style.css), so it shows, moves and fades with its line. -->
+  <svg class="pt-defs" width="0" height="0" aria-hidden="true" focusable="false">
+    <defs>
+      <marker id="ptMark" viewBox="-6 -6 12 12" refX="0" refY="0"
+              markerWidth="12" markerHeight="12" markerUnits="userSpaceOnUse"
+              overflow="visible">
+        <circle class="pt-mark" r="5.5" />
+      </marker>
+    </defs>
+  </svg>
   <!-- One screen at a time lives inside #app. The background art is painted on
        body, so a screen swap never re-decodes it. -->
   <main id="app">
@@ -579,7 +591,7 @@
               <!-- A radius out of the centre to the upper right, and its
                    name along it: the formulas asked for are written in
                    terms of it (user, 2026-10-09). -->
-              <path class="cq-radius" id="cfRadius" d="M500 210 L621.08 108.42" />
+              <path class="cq-radius pt-end" id="cfRadius" d="M500 210 L621.08 108.42" />
               <circle class="cs-centre" id="cfCentre" cx="500" cy="210" r="5" />
               <!-- The turn is on a group of its own, so the label's pop --
                    a transform the motion library writes -- can never undo
@@ -627,9 +639,9 @@
               <path class="figure__rim" id="csRim"
                     d="M500 52 A158 158 0 0 1 500 368 A158 158 0 0 1 500 52" />
               <circle class="rim-tip" id="csTip" cx="500" cy="52" r="7" />
-              <path class="cs-dia" id="csDia" d="M342 210 L658 210" mask="url(#csDiaMask)" />
+              <path class="cs-dia pt-ends" id="csDia" d="M342 210 L658 210" mask="url(#csDiaMask)" />
               <!-- The upper half, from three o'clock over the top to nine. -->
-              <path class="arc-piece arc-piece--minor" id="csArc"
+              <path class="arc-piece arc-piece--minor pt-ends" id="csArc"
                     d="M658 210 A158 158 0 0 0 342 210" />
               <path class="cs-angle" id="csAngle" d="M542 210 A42 42 0 0 0 458 210" />
               <circle class="cs-centre" id="csCentre" cx="500" cy="210" r="5" />
@@ -657,8 +669,8 @@
               <path class="arc-piece arc-piece--minor" id="cqArc"
                     d="M500 52 A158 158 0 0 1 658 210" />
               <!-- Both radii grow out of the centre. -->
-              <path class="cq-radius" id="cqRadV" d="M500 210 L500 52" />
-              <path class="cq-radius" id="cqRadH" d="M500 210 L658 210" />
+              <path class="cq-radius pt-end" id="cqRadV" d="M500 210 L500 52" />
+              <path class="cq-radius pt-end" id="cqRadH" d="M500 210 L658 210" />
               <!-- The right angle marked as one: a small square in the
                    corner, which says 90° by itself (user, 2026-10-09). -->
               <path class="cs-angle" id="cqAngle" d="M500 180 L530 180 L530 210" />
@@ -861,8 +873,6 @@
               <circle class="sa-centre" id="seCentre" cx="500" cy="210" r="6" />
               <circle class="arc-dot" id="seDotA" cx="500" cy="52" r="7" />
               <circle class="arc-dot" id="seDotB" cx="500" cy="52" r="7" />
-              <text class="figure-label sc-label sc-label--minor" id="seLblSeg" x="0" y="0"
-                    text-anchor="middle" data-i18n="s4p1Segment">Minor segment</text>
               <text class="figure-label sc-label sc-label--tri" id="seLblTri" x="0" y="0"
                     text-anchor="middle" data-i18n="s4p1Triangle">Triangle</text>
             </g>
@@ -923,8 +933,6 @@
               <circle class="sa-centre" id="sjCentre" cx="500" cy="210" r="6" />
               <circle class="arc-dot" id="sjDotA" cx="500" cy="52" r="7" />
               <circle class="arc-dot" id="sjDotB" cx="500" cy="52" r="7" />
-              <text class="figure-label sc-label sc-label--major" id="sjLbl" x="0" y="0"
-                    text-anchor="middle" data-i18n="s4p4Major">Major segment</text>
             </g>
 
             <!-- ---- Skill 4, page 12: the major recap (js/segarea.js).

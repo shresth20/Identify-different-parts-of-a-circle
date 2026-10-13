@@ -283,7 +283,7 @@
 .cs-dia-mask {
   fill: none;
   stroke: #FFFFFF;
-  stroke-width: 10;
+  stroke-width: 12;   /* wide enough for the end points */
 }
 /* The lower half of the rim, put behind a blur: the rim's own line and
    weight, softened. It rests invisible under the sharp rim and is brought

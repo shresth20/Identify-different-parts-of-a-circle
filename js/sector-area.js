@@ -303,8 +303,8 @@
     S.region = svgEl('path', { 'class': 's-region s-region--' + S.kind, d: '' }, C.under);
     S.arc = svgEl('path', { 'class': 's-arc s-arc--' + S.kind, d: '' }, C.over);
     if (o.radii !== false) {
-      S.ra = svgEl('path', { 'class': 's-radius', d: '' }, C.over);
-      S.rb = svgEl('path', { 'class': 's-radius', d: '' }, C.over);
+      S.ra = svgEl('path', { 'class': 's-radius pt-end', d: '' }, C.over);
+      S.rb = svgEl('path', { 'class': 's-radius pt-end', d: '' }, C.over);
     }
     S.set = function (b0, b1) {
       S.a0 = b0; S.a1 = b1;
@@ -2770,7 +2770,7 @@
     var R1 = along(C1, 0, tr('s3LblR12'), -15);
     /* Circle II is given by its diameter: the radius on the right carried
        on, dashed, across to the far side, and the whole line named. */
-    var dia = svgEl('path', { 'class': 's-dia-dash', d: segD(pt(C2, C2.r, 180), C2) }, C2.over);
+    var dia = svgEl('path', { 'class': 's-dia-dash pt-start', d: segD(pt(C2, C2.r, 180), C2) }, C2.over);
     var R2 = text(C2.top, C2.x, C2.y + 22, tr('s3LblD12'), 'lbl lbl--radius');
     R2.style.fontSize = '20px';
     M.set(dia, { opacity: 0 });
@@ -3525,8 +3525,8 @@
     var wedge = svgEl('path', { 'class': 's-beam', d: wedgeD(C, C.r, a0, a1) }, g);
     var trail = svgEl('path', { 'class': 's-trail' }, g);
     var beam = svgEl('path', { 'class': 's-beam s-beam--sweep' }, g);
-    var rUp = svgEl('path', { 'class': 's-radar-line', d: segD(C, pt(C, C.r, a1)) }, g);
-    var rSide = svgEl('path', { 'class': 's-radar-line', d: segD(C, pt(C, C.r, a0)) }, g);
+    var rUp = svgEl('path', { 'class': 's-radar-line pt-end', d: segD(C, pt(C, C.r, a1)) }, g);
+    var rSide = svgEl('path', { 'class': 's-radar-line pt-end', d: segD(C, pt(C, C.r, a0)) }, g);
     var ang = svgEl('path', { 'class': 's-angle', d: arcD(C, 34, a0, a1) }, g);
     var dot = svgEl('circle', { 'class': 'centre__dot', cx: C.x, cy: C.y, r: 6.5 }, g);
     var lp = pt(C, 58, (a0 + a1) / 2);

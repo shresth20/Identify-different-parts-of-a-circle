@@ -179,13 +179,11 @@
   stroke-width: 2;
   opacity: 0;
 }
-/* The two ends of the chord: small, white with the ink's edge, so they
-   sit on the orange arc and the dark chord alike without taking the eye
-   from the region. */
+/* The two ends of the chord: small, in the deep indigo every plain point
+   on a rim wears (--part-point), so they sit on the orange arc and the
+   dark chord alike without taking the eye from the region. */
 .sa-dot {
-  fill: var(--board-highlight);
-  stroke: var(--text-primary);
-  stroke-width: 2;
+  fill: var(--part-point);
   opacity: 0;
 }
 
@@ -250,7 +248,9 @@
 .figure__sk .sa-disc { fill: var(--sa-disc); }
 .figure__sc .arc-dot,
 .figure__se .arc-dot,
-.figure__sj .arc-dot { fill: var(--sa-point); }
+.figure__sf .arc-dot,
+.figure__sj .arc-dot,
+.figure__sk .arc-dot { fill: var(--sa-point); stroke: none; }   /* red and plain: no white edge (user, 2026-10-13) */
 .s4-angle {
   fill: none;
   stroke: var(--part-centre);
@@ -330,6 +330,29 @@
 }
 .se-tri.is-merged { fill: var(--sa-fill-major); }
 .se-piece.is-lifted { filter: drop-shadow(0 6px 9px rgba(40, 24, 140, .28)); }
+/* The sector the page is not about, stepped back through its mask (the
+   wedge's opacity is how far -- see dimmer in segarea.js), and the faint
+   dashed print of the triangle's two sides where it was cut out or put
+   back. */
+.s4-dim { opacity: 0; }
+/* page 4's empty room where the triangle was: a light tint of its colour */
+.s4-print-fill {
+  fill: var(--sa-fill-tri);
+  opacity: 0;
+}
+/* page 11's major segment once it is named: its wash a step deeper */
+.s4-deep {
+  fill: color-mix(in srgb, var(--lavender-fill) 62%, #FFFFFF);
+  opacity: 0;
+}
+.s4-print {
+  fill: none;
+  stroke: var(--sa-radius);
+  stroke-width: 3;
+  stroke-dasharray: 7 7;
+  stroke-linecap: butt;
+  opacity: 0;
+}
 .se-cut {
   fill: none;
   stroke: var(--board-highlight);

@@ -635,6 +635,15 @@ body {
   fill: var(--part-point);
   opacity: 0;
 }
+/* The same mark carried by a line itself, for a figure that draws no
+   point of its own where its line meets the rim: the marker (#ptMark,
+   index.html) is painted with the line, so it comes, goes and moves with
+   it. */
+.pt-defs { position: absolute; width: 0; height: 0; overflow: hidden; }
+.pt-mark { fill: var(--part-point); }
+.pt-end   { marker-end: url(#ptMark); }
+.pt-start { marker-start: url(#ptMark); }
+.pt-ends  { marker-start: url(#ptMark); marker-end: url(#ptMark); }
 
 /* ---- The radius, and the diameter it becomes ----------------------------
    Golden orange for the radius and bright cyan for the diameter: warm

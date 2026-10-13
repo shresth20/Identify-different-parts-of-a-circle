@@ -1179,7 +1179,7 @@
   async function sClock() {
     var X = S.X;
     var sc = await S.stage('split');
-    sc.classList.add('sa-scene--practice');
+    sc.classList.add('sa-scene--practice', 'af-bright');
     var F = S.figure(sc, '34 34 352 352');
     F.svg.classList.add('af-fig');
     var C = { x: 210, y: 210, r: 150 };
@@ -1194,7 +1194,7 @@
         d: S.segD(pt(C, C.r - (i % 3 ? 12 : 20), i * 30), pt(C, C.r - 4, i * 30)) }, ticks);
     }
     var trace = S.svgEl('path', { 'class': 'af-trace' }, g);
-    var start = S.svgEl('path', { 'class': 'af-hand-start', d: S.segD(C, pt(C, C.r, START)) }, g);
+    var start = S.svgEl('path', { 'class': 'af-hand-start pt-end', d: S.segD(C, pt(C, C.r, START)) }, g);
     var ang = S.svgEl('path', { 'class': 's-angle', d: S.arcD(C, 34, END, START) }, g);
     var hand = S.svgEl('path', { 'class': 'af-hand' }, g);
     var tip = S.svgEl('circle', { 'class': 'af-tip', r: 6 }, g);
@@ -1306,6 +1306,7 @@
   async function sFinish() {
     var X = S.X, EQ = S.EQ;
     var sc = await S.stage('split');
+    sc.classList.add('af-bright');
     var F = S.figure(sc);
     F.svg.classList.add('af-fig');
     var C = S.circle(F.svg, 210, 210, 150);

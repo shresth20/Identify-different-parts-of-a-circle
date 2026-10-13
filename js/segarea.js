@@ -145,6 +145,7 @@
   var SF_CY = 185, SF_R = 108;
   var SF_RIM = 0.8;                         /* s: a small circle's pen        */
   var SF_ANGLE_R = 22;                      /* a small circle's angle mark    */
+  var SF_DOT_R = 5;                         /* a small circle's chord ends    */
 
   /* ---- the problems ---------------------------------------------------------
      Drawn in skill 3's stage, in its own units: a circle of this size in
@@ -279,8 +280,12 @@
     dom.seCentre     = $('seCentre');
     dom.seDotA       = $('seDotA');
     dom.seDotB       = $('seDotB');
-    dom.seLblSeg     = $('seLblSeg');
     dom.seLblTri     = $('seLblTri');
+    dom.seDim        = dimmer(dom.se, [dom.seDisc, dom.seRim], 'seDimMask');
+    dom.sePrint      = printOf(dom.se, dom.sePiece);
+    dom.sePrintFill  = el('path', { 'class': 's4-print-fill', d: '' });
+    dom.se.insertBefore(dom.sePrintFill, dom.sePrint);
+    dom.seCall       = callout(dom.se);
     layoutStep();
 
     dom.sf       = $('sf');
@@ -310,7 +315,11 @@
     dom.sjCentre   = $('sjCentre');
     dom.sjDotA     = $('sjDotA');
     dom.sjDotB     = $('sjDotB');
-    dom.sjLbl      = $('sjLbl');
+    dom.sjDim      = dimmer(dom.sj, [dom.sjDisc, dom.sjRim], 'sjDimMask');
+    dom.sjPrint    = printOf(dom.sj, dom.sjPiece.nextSibling);
+    dom.sjDeep     = el('path', { 'class': 's4-deep', d: '' });
+    dom.sj.insertBefore(dom.sjDeep, dom.sjPrint);
+    dom.sjCall     = callout(dom.sj);
     layoutMajor();
 
     dom.sk       = $('sk');
@@ -329,6 +338,90 @@
   }
 
   /* ---- small beats shared by the pages ------------------------------------ */
+  /* ---- pages 4 and 11: the focus, the print and the name ----------------
+     Once the radii cut the circle in two, the sector the page is NOT about
+     steps back: the wash and the rim are whole circles, so that piece of
+     them is faded through a mask -- white everywhere, and over the piece a
+     dark wedge whose opacity is how far it steps back (no blur). The wedge
+     reaches past the rim so the rim's stroke fades with the wash; its
+     straight edges run under the radii, which stay at full. Each is
+     wrapped in a group of its own so nothing on the picture changes
+     layer. */
+  var DIM = 0.62;                           /* how far the other sector fades */
+  var PRINT = 0.45;                         /* the triangle's dashed print    */
+  var PRINT_OUT = 0.75;                     /* ...stronger where it was cut out (page 4) */
+  var PRINT_FILL = 0.55;                    /* ...and its room, lightly tinted */
+  var DIM_PAST = 24;                        /* the wedge, past the rim        */
+  function dimmer(host, items, id) {
+    var box = { x: -100, y: -100, width: 1200, height: 620 };
+    var mask = el('mask', { id: id, maskUnits: 'userSpaceOnUse',
+                            x: box.x, y: box.y, width: box.width, height: box.height });
+    mask.appendChild(el('rect', { x: box.x, y: box.y, width: box.width, height: box.height, fill: '#FFFFFF' }));
+    var wedge = el('path', { 'class': 's4-dim', d: '', fill: '#000000' });
+    mask.appendChild(wedge);
+    host.querySelector('defs').appendChild(mask);
+    items.forEach(function (n) {
+      var g = el('g', { mask: 'url(#' + id + ')' });
+      n.parentNode.insertBefore(g, n);
+      g.appendChild(n);
+    });
+    return wedge;
+  }
+  function dimWedge(a, span) {
+    return 'M' + CX + ' ' + CY + ' L' + MAIN.arc(a, span, RR + DIM_PAST).slice(1) + ' Z';
+  }
+  function dimIn(wedge) {
+    var tl = M.timeline({ revert: function () { M.set(wedge, { opacity: DIM }); } });
+    tl.fromTo(wedge, { opacity: 0 }, { opacity: DIM, duration: M.dur(0.6), ease: 'power2.out' });
+    return tl;
+  }
+
+  /* The triangle's print: its two sides from the centre, dashed and faint,
+     left where the piece was (page 4) or where it joined (page 11). */
+  function printOf(host, before) {
+    var p = el('path', { 'class': 's4-print', d: '' });
+    host.insertBefore(p, before);
+    return p;
+  }
+  function printD(pA, pB) {
+    return 'M' + pA.x + ' ' + pA.y + ' L' + CX + ' ' + CY + ' L' + pB.x + ' ' + pB.y;
+  }
+
+  /* A region's name the way skill 1 puts one (segments.js): a dashed arrow
+     from the word, just past the rim beside the region, to a spot `depth`
+     inside the rim on the region's middle line. */
+  var CALL_OUT = 24, CALL_SIDE = 26, CALL_BEND = 14;
+  function callout(host) {
+    var c = {
+      g: el('g', { 'class': 's4-callout' }),
+      arrow: el('path', { 'class': 'mark__arrow', d: '' }),
+      head:  el('path', { 'class': 'mark__head', d: '' }),
+      label: el('text', { 'class': 'figure-label mark__label', x: 0, y: 0 })
+    };
+    c.g.appendChild(c.arrow); c.g.appendChild(c.head); c.g.appendChild(c.label);
+    c.g.setAttribute('hidden', '');
+    host.appendChild(c.g);
+    return c;
+  }
+  function aimCall(c, deg, depth, key) {
+    var side = Math.cos(deg * Math.PI / 180) >= -0.001 ? 1 : -1;
+    var tip = MAIN.pt(deg, RR - depth);
+    var rim = MAIN.pt(deg, RR + CALL_OUT);
+    var from = { x: round2(rim.x + side * CALL_SIDE),
+                 y: round2(Math.min(Math.max(rim.y, 30), K.VB_H - 30)) };
+    var bend = { x: round2(from.x - side * CALL_BEND), y: from.y };
+    c.arrow.setAttribute('d', 'M' + from.x + ' ' + from.y +
+                              ' Q' + bend.x + ' ' + bend.y + ' ' + tip.x + ' ' + tip.y);
+    c.head.setAttribute('d', K.arrowHead(tip, bend));
+    c.label.setAttribute('x', from.x + side * 8);
+    c.label.setAttribute('y', from.y + 9);
+    c.label.setAttribute('text-anchor', side > 0 ? 'start' : 'end');
+    c.label.textContent = T(key);
+    c.g.setAttribute('hidden', '');
+  }
+  function callIn(c) { return Flow.anim(Beats.callout(c.g, c.arrow, c.head, c.label)); }
+  function callOut(c) { return Flow.anim(Beats.calloutOut(c.g, [c.arrow, c.head, c.label])); }
+
   function grow(line, seconds) {
     return Flow.anim(Beats.growLine(line, seconds || LINE_TIME, 'power2.inOut'));
   }
@@ -1085,11 +1178,14 @@
     dom.seTheta.setAttribute('y', round2(th.y + LABEL_DY));
     dom.seDotA.setAttribute('cx', pA.x); dom.seDotA.setAttribute('cy', pA.y);
     dom.seDotB.setAttribute('cx', pB.x); dom.seDotB.setAttribute('cy', pB.y);
-    /* the segment's name past the rim on the arc's middle line; the
-       triangle's under the piece where it comes to rest */
-    var ls = MAIN.pt(a + SE.span / 2, RR + 58);
-    dom.seLblSeg.setAttribute('x', ls.x);
-    dom.seLblSeg.setAttribute('y', round2(ls.y + LABEL_DY));
+    /* the major sector stepped back, the triangle's print, and the
+       segment's name on a dashed arrow into it; the triangle's name under
+       the piece where it comes to rest */
+    dom.seDim.setAttribute('d', dimWedge(b, 360 - SE.span));
+    dom.sePrint.setAttribute('d', printD(pA, pB));
+    dom.sePrintFill.setAttribute('d', MAIN.tri(a, SE.span));
+    M.set([dom.seDim, dom.sePrint, dom.sePrintFill], { opacity: 0 });
+    aimCall(dom.seCall, a + SE.span / 2, 22, 's4p1Segment');
     dom.seLblTri.setAttribute('x', round2((CX + pA.x) / 2 + PIECE_AWAY.x));
     dom.seLblTri.setAttribute('y', round2(CY + PIECE_AWAY.y + 40));
   }
@@ -1128,6 +1224,8 @@
         piece.classList.remove('is-lifted');
         M.set(piece, { x: PIECE_AWAY.x, y: PIECE_AWAY.y, scale: 1 });
         M.set(dom.seCut, { opacity: 0 });
+        M.set(dom.sePrint, { opacity: PRINT_OUT });
+        M.set(dom.sePrintFill, { opacity: PRINT_FILL });
       }
     });
     tl.call(function () { piece.classList.add('is-lifted'); }, null, 0)
@@ -1135,6 +1233,8 @@
       .to(piece, { x: PIECE_AWAY.x, y: PIECE_AWAY.y, duration: M.dur(REMOVE_TIME), ease: 'power2.inOut' }, M.gap(LIFT))
       .to(dom.seCut, { opacity: 0, duration: M.dur(0.3), ease: 'power2.in' }, M.gap(LIFT))
       .to(apex, { t: 1, duration: M.dur(REMOVE_TIME), ease: 'power2.inOut', onUpdate: draw }, M.gap(LIFT))
+      .to(dom.sePrint, { opacity: PRINT_OUT, duration: M.dur(0.6), ease: 'power2.out' }, M.gap(LIFT + 0.4))
+      .to(dom.sePrintFill, { opacity: PRINT_FILL, duration: M.dur(0.6), ease: 'power2.out' }, M.gap(LIFT + 0.4))
       .to(piece, { scale: 1, duration: M.dur(0.35), ease: M.POP }, M.gap(LIFT + REMOVE_TIME - 0.1))
       .call(function () { piece.classList.remove('is-lifted'); }, null, M.gap(LIFT + REMOVE_TIME));
     tl.call(Beats.pop, null, M.gap(LIFT + REMOVE_TIME));
@@ -1203,7 +1303,10 @@
           { word: 'radii',   run: function () { return pulseEdge([dom.seRadA, dom.seRadB], []); } },
           { word: 'arc',     run: function () { return Flow.anim(Beats.growLine(dom.seArc, 0.7, 'power2.inOut')); } },
           { word: 'form', run: function () {
-            return Flow.anim(Beats.secFill(dom.seSector, function (t) { return MAIN.wedge(SE.a, SE.span, t); }, FILL_TIME));
+            return Promise.all([
+              Flow.anim(Beats.secFill(dom.seSector, function (t) { return MAIN.wedge(SE.a, SE.span, t); }, FILL_TIME)),
+              Flow.anim(dimIn(dom.seDim))
+            ]);
           } }
         ]);
       })
@@ -1255,7 +1358,7 @@
         return sayWith(L('s4p5Left'), [
           { word: 'segment', run: function () {
             return pulseEdge([dom.seChord], [dom.seArc])
-              .then(function () { return Flow.anim(Beats.labelIn(dom.seLblSeg)); })
+              .then(function () { return callIn(dom.seCall); })
               .then(function () { return Flow.anim(Beats.labelIn(dom.seLblTri)); });
           } }
         ]);
@@ -1325,6 +1428,12 @@
     }
     f.centre = el('circle', { 'class': 'sa-centre', cx: geo.cx, cy: geo.cy, r: 5 });
     g.appendChild(f.centre);
+    /* the chord's two ends on the rim, as the big pages mark them */
+    f.dots = [pA, pB].map(function (p) {
+      var d = el('circle', { 'class': 'arc-dot', cx: p.x, cy: p.y, r: SF_DOT_R });
+      g.appendChild(d);
+      return d;
+    });
     host.appendChild(g);
     return f;
   }
@@ -1337,6 +1446,8 @@
       .then(function () { return Flow.wait(100); })
       .then(function () { return Flow.anim(discIn(f.disc)); })
       .then(function () { return Flow.anim(Beats.plotDot(f.centre, 0.3)); })
+      .then(function () { return Flow.anim(Beats.plotDot(f.dots[0])); })
+      .then(function () { return Flow.anim(Beats.plotDot(f.dots[1])); })
       .then(function () { return Flow.wait(SHORT); });
     function angle() {
       if (!f.angle) return Promise.resolve();
@@ -1484,10 +1595,14 @@
     var mid = MAIN.chordMid(a, SE.span);
     dom.sjClip.setAttribute('cx', mid.x);
     dom.sjClip.setAttribute('cy', mid.y);
-    /* the name inside the bigger piece, on the far side from the chord */
-    var lm = MAIN.pt(a + SE.span / 2 + 180, RR * 0.5);
-    dom.sjLbl.setAttribute('x', lm.x);
-    dom.sjLbl.setAttribute('y', round2(lm.y + LABEL_DY));
+    /* the minor sector stepped back, the triangle's print, and the name
+       on a dashed arrow into the bigger piece, on the far side from the
+       chord */
+    dom.sjDim.setAttribute('d', dimWedge(a, SE.span));
+    dom.sjPrint.setAttribute('d', printD(pA, pB));
+    dom.sjDeep.setAttribute('d', MAIN.arc(MJ.a, MJ.span) + ' Z');
+    M.set([dom.sjDim, dom.sjPrint, dom.sjDeep], { opacity: 0 });
+    aimCall(dom.sjCall, a + SE.span / 2 + 180, 34, 's4p4Major');
   }
 
   /* The bigger piece drawn back to the major sector: its apex carried
@@ -1551,13 +1666,24 @@
     var gone = [dom.sjTriA, dom.sjTriB, dom.sjAngle, dom.sjTheta, dom.sjRadA, dom.sjRadB];
     var tl = M.timeline({
       willChange: gone, willChangeValue: 'opacity',
-      revert: function () { M.set(gone, { opacity: 0 }); }
+      revert: function () { M.set(gone, { opacity: 0 }); M.set(dom.sjPrint, { opacity: PRINT }); }
     });
-    tl.to(gone, { opacity: 0, duration: M.dur(0.5), ease: 'power2.inOut' }, 0);
+    tl.to(gone, { opacity: 0, duration: M.dur(0.5), ease: 'power2.inOut' }, 0)
+      .to(dom.sjPrint, { opacity: PRINT, duration: M.dur(0.5), ease: 'power2.out' }, M.gap(0.2));
+    return tl;
+  }
+
+  /* The finished major segment, coloured a step deeper as it is named: a
+     layer of the deeper wash over the whole region (under the print, the
+     chord and the rim) faded up, so only opacity moves. */
+  function deepen(layer) {
+    var tl = M.timeline({ revert: function () { M.set(layer, { opacity: 1 }); } });
+    tl.fromTo(layer, { opacity: 0 }, { opacity: 1, duration: M.dur(0.6), ease: 'power2.out' });
     return tl;
   }
 
   function sceneMajor() {
+    var drawn = null;
     return K.wipeBoard()
       .then(function () { return Flow.wait(BEAT); })
 
@@ -1581,17 +1707,22 @@
       .then(function () { return Flow.wait(SHORT); })
 
       /* ---- "Now, let's look at the larger piece: the major segment." -- the
-         bird comes up; the bigger piece is coloured in from the chord on "larger",
-         its arc lights on "major", and it is named -------------------------- */
+         bird comes up; on "larger" its thick purple arc is drawn round and
+         then the bigger piece is coloured in from the chord; on "major" the
+         arc swells and it is named ------------------------------------------ */
       .then(function () {
         return sayWith(L('s4p11Big'), [
           { word: 'larger', run: function () {
-            return Flow.anim(Beats.segFill(dom.sjMajor, dom.sjClip, MAIN.reachMajor(SE.span), FILL_TIME));
+            drawn = Flow.anim(Beats.growLine(dom.sjArcMajor, 1.0, 'power2.inOut'))
+              .then(function () {
+                return Flow.anim(Beats.segFill(dom.sjMajor, dom.sjClip, MAIN.reachMajor(SE.span), FILL_TIME));
+              });
+            return drawn;
           } },
           { word: 'major', run: function () {
-            return Flow.anim(Beats.growLine(dom.sjArcMajor, 1.0, 'power2.inOut'))
+            return (drawn || Promise.resolve())
               .then(function () { return Flow.anim(Beats.arcPulse([dom.sjArcMajor])); })
-              .then(function () { return Flow.anim(Beats.labelIn(dom.sjLbl)); });
+              .then(function () { return callIn(dom.sjCall); });
           } }
         ], { arrive: true });
       })
@@ -1603,11 +1734,12 @@
       .then(function () {
         return sayWith(L('s4p11How'), [
           { word: 'see', run: function () {
-            return Flow.anim(Beats.labelsOut([dom.sjLbl])).then(function () {
+            return callOut(dom.sjCall).then(function () {
               return Promise.all([
                 grow(dom.sjRadA, PUT_TIME),
                 grow(dom.sjRadB, PUT_TIME),
-                Flow.anim(drawBack())
+                Flow.anim(drawBack()),
+                Flow.anim(dimIn(dom.sjDim))
               ]);
             });
           } }
@@ -1640,7 +1772,7 @@
           { word: 'form',    run: function () { return Flow.anim(merge()); } },
           { word: 'segment', run: function () {
             return pulseEdge([dom.sjChord], [dom.sjArcMajor])
-              .then(function () { return Flow.anim(Beats.labelIn(dom.sjLbl)); });
+              .then(function () { return Promise.all([Flow.anim(deepen(dom.sjDeep)), callIn(dom.sjCall)]); });
           } }
         ]);
       })
@@ -1733,13 +1865,15 @@
       }
     }
     if (o.tri) g.tri = svgEl('path', { 'class': 'se-tri', d: geo.tri(a0, th) }, C.under);
-    g.ra = svgEl('path', { 'class': 's-radius', d: lineD(centre, pA) }, C.over);
-    g.rb = svgEl('path', { 'class': 's-radius', d: lineD(centre, pB) }, C.over);
-    g.chord = svgEl('path', { 'class': 'sa-chord' +
+    g.ra = svgEl('path', { 'class': 's-radius pt-end', d: lineD(centre, pA) }, C.over);
+    g.rb = svgEl('path', { 'class': 's-radius pt-end', d: lineD(centre, pB) }, C.over);
+    /* the chord's ends on the rim; the arcs over them carry the same two
+       points, so the points stay on top of whichever is drawn last */
+    g.chord = svgEl('path', { 'class': 'sa-chord pt-ends' +
       (o.kind === 'pipe' ? ' sq-surface' : o.kind === 'bed' ? ' sq-path' : ''), d: lineD(pB, pA) }, C.over);
     if (!o.plain) {
-      if (o.major) g.arcMinor = svgEl('path', { 'class': 'sa-arc sa-arc--blue', d: geo.arc(a0, th) }, C.over);
-      g.arc = svgEl('path', { 'class': 'sa-arc' + (o.major ? ' sa-arc--major' : o.kind === 'pipe' ? ' sa-arc--blue' : ''),
+      if (o.major) g.arcMinor = svgEl('path', { 'class': 'sa-arc sa-arc--blue pt-ends', d: geo.arc(a0, th) }, C.over);
+      g.arc = svgEl('path', { 'class': 'sa-arc pt-ends' + (o.major ? ' sa-arc--major' : o.kind === 'pipe' ? ' sa-arc--blue' : ''),
                               d: o.major ? geo.arc(a1, 360 - th) : geo.arc(a0, th) }, C.over);
     }
     g.A = SA.angleMark(C, a0, a1, o.deg || (th + '°'), { r: 34 });

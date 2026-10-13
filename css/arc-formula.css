@@ -15,6 +15,13 @@
      same colour the found length is written in. */
   --af-arc: var(--sa-minor-edge);
 }
+/* The clock and the last page: the radius ink (the hand, its length, the
+   r) and the major arc's sand a step brighter -- the darker pair read
+   muddy there (user, 2026-10-13). */
+:where(body.sa-lesson) .af-bright {
+  --sa-radius: #E8930A;
+  --sa-major-edge: #EBA639;
+}
 
 /* ---- The arc, lit -----------------------------------------------------------
    A piece of the circumference, picked out: heavier than the rim it lies
