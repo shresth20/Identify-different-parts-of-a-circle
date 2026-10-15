@@ -967,8 +967,8 @@
       /* a wrong answer shown on the figure: half the rim, or all of it */
       onWrong: function (i, fig) {
         var C = fig.C;
-        var ring = S.svgEl('path', { 'class': 's-arc s-arc--minor af-ghost-arc',
-          d: S.arcD(C, C.r, fig.a0, fig.a0 + (i === 1 ? 180 : 360)) }, C.over);
+        var ring = S.underPoints(S.svgEl('path', { 'class': 's-arc s-arc--minor af-ghost-arc',
+          d: S.arcD(C, C.r, fig.a0, fig.a0 + (i === 1 ? 180 : 360)) }, C.over));
         quiet(anim(M.fromTo(ring, { opacity: 0 }, { opacity: 0.8, duration: M.dur(0.35), yoyo: true, repeat: 3,
           onComplete: function () { if (ring.parentNode) ring.parentNode.removeChild(ring); } })));
       },

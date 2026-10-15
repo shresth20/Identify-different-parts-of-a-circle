@@ -10,7 +10,8 @@
  *   T('p04HeightIs', { h: 'h₁' })  -> "And its height is h₁."
  *   T('p20Work.0')                 -> first item of an array key
  *   I18n.voice('p01Hey')           -> "assets/VO/en/p01Hey.webm?v=1"
- *   I18n.say('p01Hey')             -> plays it; resolves true/false
+ *   I18n.say('p01Hey')             -> plays it (js/audio.js); resolves true/false
+ *   I18n.clips()                   -> every clip's url, for js/loader.js
  *   I18n.cues('p01Hey')            -> [ms, ...]: when each word of the line
  *                                     is heard, from the clip's start
  *   I18n.applyStatic()             -> fills data-i18n / data-i18n-html /
@@ -244,14 +245,12 @@ var I18n = (function () {
     return (p.dir || '') + file + (p.rev ? '?v=' + p.rev : '');
   }
 
-  var _clips = Object.create(null);           /* url -> Audio, made once */
-  var _playing = null;
-  function _clip(url) {
-    if (!_clips[url]) { _clips[url] = new Audio(url); _clips[url].preload = 'auto'; }
-    return _clips[url];
-  }
+  /* The clips are fetched by the loader before Start (js/loader.js) and
+     played by js/audio.js; preload() decodes a few ahead of their lines. */
+  var _playing = null;                        /* GameAudio handle */
   function preload(keys) {
-    (keys || []).forEach(function (k) { var u = voice(k); if (u) _clip(u); });
+    if (!window.GameAudio) return;
+    (keys || []).forEach(function (k) { GameAudio.warm(voice(k)); });
   }
   /* every key the current language has a recording of */
   function voiced() {
@@ -273,30 +272,30 @@ var I18n = (function () {
     var words = String(text != null ? text : t(key)).match(/\S+\s*/g) || [];
     return words.length === list.length ? list.slice() : null;
   }
+  /* every clip the merged locales name, for the loader to fetch */
+  function clips() {
+    var p = _pack();
+    return p && p.urls ? Object.keys(p.urls).map(function (k) { return p.urls[k]; }) : [];
+  }
   function stop() {
-    if (_playing) { try { _playing.pause(); _playing.currentTime = 0; } catch (e) {} }
+    var h = _playing;
     _playing = null;
+    if (h) h.stop();
   }
   /* say(key): play the key's clip; one clip at a time. Resolves with true
      when it has ended, false when there was no clip, it could not play
-     (autoplay blocked, file not recorded yet) or it was cut by a later say. */
+     (autoplay blocked, file not recorded yet) or it was cut by a later say
+     or by stop(). */
   function say(key) {
-    var url = voice(key);
+    var p = _pack();
+    /* only a recorded line: a key with no clip yet is silence, not a 404 */
+    var url = p && p.urls && p.urls[key];
     stop();
-    if (!url) return Promise.resolve(false);
-    var a = _clip(url);
-    _playing = a;
-    return new Promise(function (resolve) {
-      var done = function (ok) {
-        a.onended = a.onerror = null;
-        if (_playing === a) _playing = null;
-        resolve(ok);
-      };
-      a.onended = function () { done(true); };
-      a.onerror = function () { done(false); };
-      try { a.currentTime = 0; } catch (e) {}
-      var p = a.play();
-      if (p && p.catch) p.catch(function () { done(false); });
+    if (!url || !window.GameAudio) return Promise.resolve(false);
+    var h = _playing = GameAudio.play(url);
+    return h.done.then(function (ok) {
+      if (_playing === h) _playing = null;
+      return ok;
     });
   }
 
@@ -323,7 +322,7 @@ var I18n = (function () {
     load: load,
     t: t, has: has, fmt: fmt, html: html, applyStatic: applyStatic,
     hasVoice: hasVoice, voice: voice, say: say, stop: stop, preload: preload,
-    voiced: voiced, cues: cues,
+    voiced: voiced, cues: cues, clips: clips,
     getLang: getLang, getLanguages: getLanguages, setLang: setLang
   };
 })();

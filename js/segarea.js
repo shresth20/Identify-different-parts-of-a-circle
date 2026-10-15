@@ -682,7 +682,7 @@
   }
 
   /* The region, lit: it breathes a halo in the colour of the edge that
-     makes it (segarea.css) until the card is answered. A segment's clip
+     makes it (segarea.css), twice, and rests. A segment's clip
      is taken off first -- it was only there for the colour to spread
      through, and a halo seen through it would be cut at its edge. */
   function lightRegion(card) {

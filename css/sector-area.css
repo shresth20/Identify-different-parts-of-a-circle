@@ -489,9 +489,10 @@ body.sa-lesson .board { --row-bottom: 13% !important; }
 :where(body.sa-lesson) .sa-rule__eq { font-size: 1.22em; font-weight: 800; white-space: nowrap; }
 :where(body.sa-lesson) .sa-rule--small .sa-rule__eq { font-size: 1.02em; }
 /* Lit, to say this is the rule to remember: a soft halo breathing round
-   the words themselves. */
+   the words themselves -- twice, then at rest, so nothing is still
+   pulsing when the Next button comes (user, 2026-10-13). */
 :where(body.sa-lesson) .sa-rule.is-glow {
-  animation: sa-rule-glow 2.4s ease-in-out infinite;
+  animation: sa-rule-glow 2.4s ease-in-out 2;
 }
 @keyframes sa-rule-glow {
   0%, 100% { filter: drop-shadow(0 0 0 transparent); }
@@ -789,12 +790,15 @@ body.sa-lesson .board { --row-bottom: 13% !important; }
 :where(body.sa-lesson) .s-arcpiece--minor { stroke: var(--coral-border); --focus: var(--coral-border); }
 :where(body.sa-lesson) .s-arcpiece--major { stroke: var(--blue-border);  --focus: var(--blue-border); }
 
-/* Lit: a halo of the piece's own ink, breathing -- on a figure in a
-   panel; in a card the lit piece wears none (see the design pass). */
-:where(body.sa-lesson) .is-focus { animation: sa-focus 1.7s ease-in-out infinite; }
-:where(body.sa-lesson) .s-arcpiece.is-focus { animation: sa-focus 1.7s ease-in-out infinite, sa-focus-line 1.7s ease-in-out infinite; }
+/* Lit: a halo of the piece's own ink, breathing twice and then gone -- on
+   a figure in a panel; in a card the lit piece wears none (see the design
+   pass). Never a loop: a part left pulsing under the Next button reads as
+   something still to do (user, 2026-10-13). The halo starts and ends at
+   nothing, so the last breath fades out instead of snapping off. */
+:where(body.sa-lesson) .is-focus { animation: sa-focus 1.7s ease-in-out 2; }
+:where(body.sa-lesson) .s-arcpiece.is-focus { animation: sa-focus 1.7s ease-in-out 2, sa-focus-line 1.7s ease-in-out 2; }
 @keyframes sa-focus {
-  0%, 100% { filter: drop-shadow(0 0 2px var(--focus)); }
+  0%, 100% { filter: drop-shadow(0 0 0 transparent); }
   50%      { filter: drop-shadow(0 0 9px var(--focus)) drop-shadow(0 0 3px var(--focus)); }
 }
 @keyframes sa-focus-line {
@@ -1171,7 +1175,7 @@ body.sa-lesson .board { --row-bottom: 13% !important; }
 }
 :where(body.sa-lesson) .sa-work__bit { display: inline-flex; align-items: center; }
 :where(body.sa-lesson) .s-found-lbl { font-size: 17px; }
-:where(body.sa-lesson) .s-beam.is-focus { animation: sa-focus 1.7s ease-in-out infinite; }
+:where(body.sa-lesson) .s-beam.is-focus { animation: sa-focus 1.7s ease-in-out 2; }
 :where(body.sa-lesson) .s-fan-paper, :where(body.sa-lesson) .s-fan-fold { --focus: var(--coral-border); }
 :where(body.sa-lesson) .s-fan-paper.is-flash2, :where(body.sa-lesson) .s-fan-fold.is-flash2 { animation: sa-focus 1.3s ease-in-out 2; }
 :where(body.sa-lesson) .s-found-lbl--fan { font-size: 26px; }

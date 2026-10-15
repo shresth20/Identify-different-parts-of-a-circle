@@ -190,11 +190,12 @@
 /* The shaded region, lit: a soft breathing halo in the colour of the
    edge that makes it -- the arc's orange for the sector and the segment,
    the radii's green for the triangle -- and the fill a shade deeper at
-   the top of each breath. On while the question is open; a card that has
-   been refused goes quiet, and the right one keeps glowing. */
+   the top of each breath. Two breaths, then at rest, so no card is still
+   pulsing when the Next button comes (user, 2026-10-13); a card that has
+   been refused goes quiet at once. */
 .sa-card .sa-region { --glow: var(--sa-arc); }
 .sa-card--triangle .sa-region { --glow: var(--sa-ink-tri); }
-.sa-card .sa-region.is-glow { animation: sa4-region-glow 1.9s ease-in-out infinite; }
+.sa-card .sa-region.is-glow { animation: sa4-region-glow 1.9s ease-in-out 2; }
 .sa-card.is-done:not(.is-right) .sa-region.is-glow { animation: none; filter: none; }
 @keyframes sa4-region-glow {
   0%, 100% { fill: var(--sa-fill); filter: drop-shadow(0 0 0 transparent); }

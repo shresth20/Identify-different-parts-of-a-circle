@@ -1,18 +1,17 @@
 /* ==========================================================================
  * script.js -- entry point
  * --------------------------------------------------------------------------
- * Builds the scene, waits for the artwork the first beats need, and starts
- * the lesson. Nothing here decides what happens: that is pages.js.
+ * Builds the scene, fetches everything the lesson will show or play behind
+ * the welcome screen's loading bar (js/loader.js), and starts the lesson.
+ * Nothing here decides what happens: that is pages.js.
  *
- * The wait for artwork is bounded on purpose. A sprite sheet that has not
- * decoded shows one blank frame, and on a character that reads as a flicker
- * -- but a sheet that never arrives must not hold the lesson up forever, so
- * the preload races a deadline and the lesson starts either way.
+ * The welcome scene starts at once -- the bird is already waving behind
+ * the artwork -- but Start is only offered once the loader is done, so no
+ * line ever waits on its clip and no sprite sheet paints blank. A file that
+ * never arrives is given up on by the loader, never by the lesson.
  * ========================================================================== */
 (function (global) {
   'use strict';
-
-  var PRELOAD_DEADLINE = 2500;   /* ms -- start regardless after this */
 
   /* Fetched AND decoded: a big image that has only been downloaded can
      still paint blank for a frame the first time it is shown. The Image is
@@ -22,17 +21,13 @@
     return new Promise(function (resolve) {
       var img = new Image();
       kept.push(img);
-      function done() { resolve(src); }
+      function done() { resolve(true); }
       img.onload = function () {
         if (img.decode) img.decode().then(done, done); else done();
       };
-      img.onerror = done;
+      img.onerror = function () { resolve(false); };
       img.src = src;
     });
-  }
-
-  function deadline(ms) {
-    return new Promise(function (resolve) { setTimeout(resolve, ms); });
   }
 
   function boot() {
@@ -47,27 +42,43 @@
 
     global.Pages.init();
 
-    /* Only what the opening beats actually touch. The rest of the 82
-       animations on disk are never fetched. */
-    var art = [
-      imageReady('assets/image/welcome-page.webp'),
-      imageReady('assets/image/board.webp'),
-      imageReady('assets/image/bg.webp'),
-      global.Mascot.preload([
-        'blinking', 'wave_start', 'waving', 'wave_stop',
-        'talk_start', 'talking', 'talk_stop',
-        'happy_start', 'happy', 'happy_stop',
-        /* the activity's moods, a few minutes off but cheap to have ready */
-        'confused_start', 'confused', 'confused_stop',
-        'celebrate_start', 'celebrating', 'celebrate_stop'
-      ])
-    ];
+    var tasks = [];
+    function add(name, weight, run, queued) {
+      tasks.push({ name: name, weight: weight, run: run, queued: !!queued });
+    }
+    /* The artwork, decoded as well as fetched. */
+    ['assets/image/welcome-page.webp', 'assets/image/board.webp',
+     'assets/image/bg.webp', 'assets/image/protractor.webp'].forEach(function (src) {
+      add(src, 3, function () { return imageReady(src); });
+    });
+    /* Every sheet the bird is played from -- the big ones, so weighted up. */
+    Object.keys(global.Mascot.SHEETS).forEach(function (clip) {
+      add('sheet ' + clip, 8, function () { return global.Mascot.preload([clip]); });
+    });
+    /* Every face the stylesheets declare, used yet or not. */
+    if (document.fonts && document.fonts.forEach) {
+      document.fonts.forEach(function (face) {
+        add('font ' + face.family + ' ' + face.weight, 2, function () {
+          return face.load().then(function () { return true; }, function () { return false; });
+        });
+      });
+    }
+    /* The chimes, then every voice clip, a few at a time. */
+    var A = global.GameAudio;
+    var sounds = (global.Beats.sounds ? global.Beats.sounds() : [])
+      .concat(global.I18n && global.I18n.clips ? global.I18n.clips() : []);
+    if (A) sounds.forEach(function (url) {
+      add(url, 1, function () { return A.load(url); }, true);
+    });
 
-    /* Unless a run has already been started from the level bar while the
-       art was still coming in: starting the lesson over on top of it would
-       tear down a scene the learner is already watching. */
-    Promise.race([Promise.all(art), deadline(PRELOAD_DEADLINE)])
-      .then(function () { if (!global.Pages.started()) global.Pages.run(); });
+    if (global.Loader) global.Loader.run(tasks);
+    else Promise.all(tasks.map(function (t) { return t.run(); }));
+
+    /* The welcome scene holds Start back until the loader is done (see
+       sceneWelcome). Unless a run has already been started from the level
+       bar: starting the lesson over on top of it would tear down a scene
+       the learner is already watching. */
+    if (!global.Pages.started()) global.Pages.run();
 
     /* Replaying is a genuine stop, not a rewind: Flow.reset kills everything
        the abandoned run still had in the air before the fresh one starts, so

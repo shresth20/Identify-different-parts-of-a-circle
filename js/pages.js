@@ -2045,6 +2045,9 @@
     mascot.state('waving');
 
     return Flow.wait(SHORT)
+      /* Start stands where the loading line is, and only once the line has
+         gone: every picture and clip is in by then (js/loader.js). */
+      .then(function () { return Flow.anim(global.Loader ? global.Loader.ready() : null); })
       .then(function () {
         dom.startBtn.removeAttribute('hidden');
         /* One frame between display:none coming off and the class going on,
@@ -2869,8 +2872,8 @@
     sayAside  = onVoice(global.Typer.create($('asideType'), { box: dom.bubbleAside }));
     /* ...and the line under it, with no box: the box is the first line's. */
     sayMore   = onVoice(global.Typer.create($('asideMore')));
-    /* Every clip fetched now, so none starts late against its words. */
-    if (global.I18n && global.I18n.voiced) global.I18n.preload(global.I18n.voiced());
+    /* Every clip is fetched by the loader before Start (js/loader.js), so
+       none starts late against its words. */
 
     sections.forEach(function (s) { if (s.build) s.build(kit); });
 

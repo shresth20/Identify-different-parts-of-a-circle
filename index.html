@@ -1118,6 +1118,15 @@
          is there for screen readers only. -->
     <section class="welcome" id="welcome">
       <h1 class="welcome__title" data-i18n="uiTitle">Identify Different Parts of a Circle</h1>
+      <!-- Where Start will stand: every picture, font and clip is fetched
+           behind this line first (js/loader.js), then Start takes its place. -->
+      <div class="loader" id="loader" role="progressbar" aria-valuemin="0" aria-valuemax="100"
+           aria-valuenow="0" data-i18n-attr="aria-label:loadingAria">
+        <span class="loader__body">
+          <span class="loader__text"><span data-i18n="loadingLabel"></span><span class="loader__pct" id="loaderPct"></span></span>
+          <span class="loader__line"><span class="loader__fill" id="loaderFill"></span></span>
+        </span>
+      </div>
       <button class="start-btn" id="startBtn" type="button" hidden data-i18n="btnStart">Start</button>
     </section>
   </main>
@@ -1131,6 +1140,7 @@
   <script src="locales s2/locales.js"></script>
   <script src="locales s3/locales.js"></script>
   <script src="locales s4/locales.js"></script>
+  <script src="js/audio.js"></script>
   <script src="js/i18n.js"></script>
   <script src="js/motion.js"></script>
   <script src="js/flow.js"></script>
@@ -1182,6 +1192,7 @@
        split it out later, this line, js/segarea.js, css/segarea.css and
        those six groups are the whole of it. -->
   <script src="js/segarea.js"></script>
+  <script src="js/loader.js"></script>
   <script src="js/script.js"></script>
   <!-- TEMPORARY: the Back / Skip / Replay level bar. Delete this line
        and js/devnav.js to remove it; nothing else refers to it. -->

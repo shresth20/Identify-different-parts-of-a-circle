@@ -18,14 +18,16 @@
    * motion.js owns the mute flag and the "same cue twice is one cue" gate;
    * this is just the few lines that actually make a noise.
    * ====================================================================== */
-  /* Opus in WebM, as every voice clip is (see CLIP_EXT in i18n.js) */
+  /* Opus in WebM, as every voice clip is (see CLIP_EXT in i18n.js). Fetched
+     with the rest before Start (js/loader.js) and played by js/audio.js. */
   var CLIPS = {
     click:   'assets/audio/button-click.webm',
     correct: 'assets/audio/correct-answer.webm',
     wrong:   'assets/audio/incorrect-answer.webm',
     cheer:   'assets/audio/confetti-sound.webm'
   };
-  var pool = Object.create(null);
+  var A = global.GameAudio;
+  var live = Object.create(null);     /* key -> the cue's sound still playing */
 
   /* How long a cue is LOUD, in ms -- the answer chimes ring at the level of
      the voice for this long and then only tail away -- and when each was
@@ -34,22 +36,16 @@
   var RING_MS = { correct: 600, wrong: 600 };
   var rang = Object.create(null);
 
+  /* A cue rung again starts over rather than doubling up on itself. Before
+     the first gesture the browser will not play it, and done says false:
+     expected, not a fault. */
   function sfx(key) {
     var src = CLIPS[key];
-    if (!src || !M || !M.mayPlay(key)) return;
-    var a = pool[key];
-    if (!a) {
-      a = pool[key] = new Audio(src);
-      a.preload = 'auto';
-    }
-    try {
-      a.currentTime = 0;
-      /* Before the first gesture the browser refuses to play, and says so by
-         rejecting. That is expected, not a fault. */
-      var p = a.play();
-      if (p && p.catch) p.catch(function () {});
-      rang[key] = performance.now();
-    } catch (e) { /* no audio device; the lesson is not about the sound */ }
+    if (!src || !A || !M || !M.mayPlay(key)) return;
+    if (live[key]) live[key].stop();
+    var h = live[key] = A.play(src, { keep: true });
+    h.done.then(function () { if (live[key] === h) live[key] = null; });
+    rang[key] = performance.now();
   }
 
   /* ms until every chime still ringing has quietened: 0 when none is. */
@@ -65,34 +61,18 @@
      A run of dots lands in quick succession and the run IS the cadence, so
      this one cue keeps its own spacing rather than motion.js's 100ms gate.
        It is the click clip at a third of its volume and a touch off its own
-     pitch each time, played round-robin through four voices: one <audio>
-     restarted over and over clips its own tail, and identical clicks read as
-     an interface rather than as beads being laid down. */
+     pitch each time, each pop its own sound, so one that lands on the tail
+     of the last does not cut it off: identical clicks read as an interface
+     rather than as beads being laid down. */
   var POP_GATE = 46;
-  var POP_VOICES = 4;
-  var popPool = [];
   var popAt = 0;
-  var popTurn = 0;
 
   function pop() {
     var now = (global.performance && performance.now()) || Date.now();
-    if (M && M.isMuted && M.isMuted()) return;
+    if (!A || (M && M.isMuted && M.isMuted())) return;
     if (now - popAt < POP_GATE) return;
     popAt = now;
-
-    if (popPool.length < POP_VOICES) {
-      var fresh = new Audio(CLIPS.click);
-      fresh.preload = 'auto';
-      popPool.push(fresh);
-    }
-    var a = popPool[popTurn++ % popPool.length];
-    try {
-      a.volume = 0.3;
-      a.playbackRate = 0.94 + Math.random() * 0.2;
-      a.currentTime = 0;
-      var p = a.play();
-      if (p && p.catch) p.catch(function () {});
-    } catch (e) { /* as above */ }
+    A.play(CLIPS.click, { keep: true, volume: 0.3, rate: 0.94 + Math.random() * 0.2 });
   }
 
   /* ======================================================================
@@ -1987,6 +1967,8 @@
     /* 1 as written; 1.4 makes every figure beat 1.4 times as quick */
     figureSpeed: function (s) { figSpeed = s > 0 ? s : 1; },
     sfx: sfx,
+    /* every cue's clip, for the loader to fetch */
+    sounds: function () { return Object.keys(CLIPS).map(function (k) { return CLIPS[k]; }); },
     ringing: ringing,
     pop: pop,
     boardIn: boardIn,

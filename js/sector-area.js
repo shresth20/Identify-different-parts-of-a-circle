@@ -297,11 +297,20 @@
 
   /* A sector: its region, the arc that bounds it and its two radii. The
      major one shares the minor one's radii, so it is made without its own. */
+  /* A line set among lines already drawn to the rim goes under them all, so
+     the points they end in (.pt-end and kin) stay on top of it (user,
+     2026-10-13: a point is never crossed by a line). */
+  function underPoints(el) {
+    var first = el.parentNode.querySelector(':scope > .pt-end, :scope > .pt-start, :scope > .pt-ends');
+    if (first && first !== el) el.parentNode.insertBefore(el, first);
+    return el;
+  }
+
   function sector(C, a0, a1, kind, o) {
     o = o || {};
     var S = { C: C, kind: kind || 'minor' };
     S.region = svgEl('path', { 'class': 's-region s-region--' + S.kind, d: '' }, C.under);
-    S.arc = svgEl('path', { 'class': 's-arc s-arc--' + S.kind, d: '' }, C.over);
+    S.arc = underPoints(svgEl('path', { 'class': 's-arc s-arc--' + S.kind, d: '' }, C.over));
     if (o.radii !== false) {
       S.ra = svgEl('path', { 'class': 's-radius pt-end', d: '' }, C.over);
       S.rb = svgEl('path', { 'class': 's-radius pt-end', d: '' }, C.over);
@@ -3108,10 +3117,6 @@
     var sc = await stage('work');
     var col = h('div', 'sa-wk sa-wk--align', null, sc);
     var fig = majorFigure(sc, 45, { minorLabel: '45°', majorLabel: '360° − θ = ?', rAlong: tr('s3LblR14') });
-    /* The two radii, and the rim points they end in, painted last of the
-       lines, so no arc runs over a point (user, 2026-10-13). */
-    fig.C.over.appendChild(fig.S.ra);
-    fig.C.over.appendChild(fig.S.rb);
 
     /* The formula only: r and θ are already on the figure (see sWorked). */
     var head = h('div', 'sa-wk__head',
@@ -3879,7 +3884,7 @@
     shuffled: shuffled, praise: praise, oops: oops, svgEl: svgEl, h: h, fr: fr, c: c,
     r2: r2, pt: pt, ringD: ringD, arcD: arcD, wedgeD: wedgeD, bandD: bandD, segD: segD,
     fadeIn: fadeIn, popIn: popIn, fadeOut: fadeOut, cardIn: cardIn, settleFig: settleFig,
-    figure: figure, text: text, circle: circle, drawCircle: drawCircle, sector: sector,
+    figure: figure, text: text, circle: circle, drawCircle: drawCircle, sector: sector, underPoints: underPoints,
     radii: radii, sweep: sweep, arcIn: arcIn, show: show, angleMark: angleMark, angleIn: angleIn,
     clearPrompt: clearPrompt, speak: speak, mascotJumpIn: mascotJumpIn, mascotJumpOut: mascotJumpOut,
     perchIn: perchIn, perchSay: perchSay, perchOut: perchOut, say: say, bubbleSay: bubbleSay,
