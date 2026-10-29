@@ -197,6 +197,26 @@
   letter-spacing: .3px;
   white-space: nowrap;
 }
+/* Once it stands on its own in the middle of the half, the legend is set
+   on a soft patch, as a formula is (.sa-patch, sector-area.css): the same
+   tint and rounding, no border (user, 2026-10-29). The patch is a layer of
+   its own under the lines, faded in as the legend travels there -- under
+   the bird it is not wanted -- and only its opacity is ever animated. */
+.cl-legend {
+  position: relative;
+  isolation: isolate;
+}
+.cl-legend::before {
+  content: '';
+  position: absolute;
+  inset: -.4em -.9em;
+  z-index: -1;
+  border-radius: .7em;
+  background: color-mix(in srgb, var(--part-centre) 10%, #F6EEFF);
+  opacity: 0;
+  transition: opacity .45s ease-out;
+}
+.cl-pane.is-centred .cl-legend::before { opacity: 1; }
 /* Each line rests unseen and is brought up as its name is said. */
 .cl-item { opacity: 0; }
 .cl-item--s  { color: var(--cl-s); }
@@ -216,4 +236,5 @@
   .figure__ca .cm-arc,
   .figure__ca .ca-radius,
   .figure__ca .cm-label { transition: none !important; }
+  .cl-legend::before { transition: none; }
 }

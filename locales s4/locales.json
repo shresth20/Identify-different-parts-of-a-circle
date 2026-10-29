@@ -204,6 +204,7 @@
     "s4p1WrongTriangle": "That is a triangle.",
     "s4p1Look": "Look for the region between a chord and an arc.",
     "s4p1Right": "A segment is the region between a chord and its arc.",
+    "s4p1Auto": "Segment is the correct answer.",
     "s4p2Ask": "Tap the correct formula for the area of the minor sector.",
     "s4p2Opt180": "(θ⁄180) × πr²",
     "s4p2Opt360": "(θ⁄360) × πr²",

@@ -17,8 +17,9 @@
  * here touches the kit until a scene plays, by which time it exists.
  *
  *   Formula intro     a word on the field: now, the formula
- *   Whole-turn arc    θ walked round to 360°: the arc becomes the rim
- *   Tap the arc       the whole rim's length asked for: 2πr
+ *   Whole-turn arc    θ walked round to 360° (held at 238° on the way):
+ *                     the arc becomes the rim
+ *   Whole-circle arc  that arc's length said outright: 2πr
  *   Arc length for θ  the rim cut into 360 arcs of 1°; one; ten; any; θ
  *   Apply intro       a word on the field: now, some problems
  *   Worked example    r = 7 cm, θ = 90°: s = 11 cm, a line at a time
@@ -85,6 +86,67 @@
   function TWO_PI_R() { return c('pi', '2πr'); }
   function SS() { return c('a', 's'); }
   function RULE() { return SS() + S.EQ + fr('θ', '360', 'c-ang') + S.X + TWO_PI_R(); }
+
+  /* Lit twice and left at rest (.is-flash2, sector-area.css) -- restarted
+     on a mark that was lit before, so it breathes twice again. */
+  function flash2(els) {
+    els.forEach(function (el) { el.classList.remove('is-flash2'); });
+    if (els[0]) void els[0].getBoundingClientRect();
+    els.forEach(function (el) { el.classList.add('is-flash2'); });
+  }
+
+  /* A line saying where to look, said on the header: the marks it names
+     glow twice as the voice -- or, unrecorded, the typing -- reaches
+     `phrase`, their name in it (user, 2026-10-29: "parallelly glow it"). */
+  async function lookAt(key, phrase, els) {
+    var at = S.sayWith(keyed(key), [phrase]);
+    quiet(at[phrase].then(function () { flash2(els); }));
+    await at.done;
+  }
+
+  /* An angle's "θ = 200°" is wider than the gap its mark leaves it, and
+     across a radius it cannot be read (user, 2026-10-12; again while the
+     whole turn plays, 2026-10-29): while its box crosses either radius of
+     the angle b0..b1, or the mark's own arc, it is stepped out along the
+     middle of the angle -- never past the rim. */
+  function crosses(b, p, q) {
+    /* does the segment p-q pass through the box b (Liang-Barsky)? */
+    var t0 = 0, t1 = 1, dx = q.x - p.x, dy = q.y - p.y;
+    var e = [[-dx, p.x - b.x], [dx, b.x + b.width - p.x], [-dy, p.y - b.y], [dy, b.y + b.height - p.y]];
+    for (var i = 0; i < 4; i++) {
+      var pp = e[i][0], qq = e[i][1];
+      if (pp === 0) { if (qq < 0) return false; continue; }
+      var t = qq / pp;
+      if (pp < 0) { if (t > t1) return false; if (t > t0) t0 = t; }
+      else { if (t < t0) return false; if (t < t1) t1 = t; }
+    }
+    return true;
+  }
+  function clearOfRadii(C, A, b0, b1) {
+    if (b1 - b0 >= 300) return;                 /* set below the ring: clear */
+    var ends = [pt(C, C.r, b0), pt(C, C.r, b1)];
+    var x0 = +A.lbl.getAttribute('x'), y0 = +A.lbl.getAttribute('y');
+    var dir = pt({ x: 0, y: 0 }, 1, (b0 + b1) / 2);
+    for (var k = 0; k < 30; k++) {
+      var b;
+      try { b = A.lbl.getBBox(); } catch (e) { return; }
+      if (!b.width) return;
+      var box = { x: b.x - 5, y: b.y - 3, width: b.width + 10, height: b.height + 6 };
+      /* ...and off the angle's own arc: no part of it nearer the centre */
+      var nearX = Math.max(box.x - C.x, 0, C.x - (box.x + box.width));
+      var nearY = Math.max(box.y - C.y, 0, C.y - (box.y + box.height));
+      var onArc = Math.hypot(nearX, nearY) < A.r + 4;
+      if (!onArc && !crosses(box, C, ends[0]) && !crosses(box, C, ends[1])) return;
+      /* one more step would put a corner of the words past the rim: stop */
+      var nx = b.x + dir.x * 4, ny = b.y + dir.y * 4, far = 0;
+      [[nx, ny], [nx + b.width, ny], [nx, ny + b.height], [nx + b.width, ny + b.height]]
+        .forEach(function (c) { far = Math.max(far, Math.hypot(c[0] - C.x, c[1] - C.y)); });
+      if (far > C.r - 6) return;
+      x0 += dir.x * 4; y0 += dir.y * 4;
+      A.lbl.setAttribute('x', r2(x0));
+      A.lbl.setAttribute('y', r2(y0));
+    }
+  }
 
   /* ---- handed from one page to the next ------------------------------------ */
   var fullTurn = null;       /* the whole-turn figure, for "Tap the arc"      */
@@ -187,7 +249,7 @@
         host: slot, tiles: true, voice: voice,
         onWrong: spec.onWrong ? function (i) { spec.onWrong(i, fig); } : null, stagger: 0.35,
         onShown: function () { quiet(anim(S.cardIn(given.el))); },
-        yes: keyed('fbThatsCorrect'), why: spec.why
+        yes: keyed('fbThatsCorrect'), why: spec.why, auto: spec.auto
       });
       await wait(900);
 
@@ -235,10 +297,13 @@
 
   /* ---- 1. The whole turn ---------------------------------------------------
      One circle in the middle of the board; two radii, the arc between
-     them lit, the angle marked θ. What if the angle went all the way
-     round? One radius is walked round like a clock's second hand --
-     clockwise, in ticks of 6° -- and the arc grows with it until it is the
-     whole rim. */
+     them lit, the angle marked θ -- and the bird says to look at it as it
+     glows. What if the angle went all the way round? One radius is walked
+     round like a clock's second hand -- clockwise, in ticks of 6° -- and
+     the arc grows with it: held at 238° while the bird says so, then on
+     until it is the whole rim, and the arc is looked at and named
+     (user, 2026-10-29). The measure is kept off the radii all the way. */
+  var HOLD_AT = 238;         /* θ the turn stops at on its way round: 70 + 28 ticks of 6 */
   async function sWholeTurn() {
     var sc = await S.stage('solo');
     var F = S.figure(sc);
@@ -265,6 +330,11 @@
     await S.angleIn(A);
     await wait(SHORT);
 
+    /* Where to look first: the angle at the centre, glowing twice as it
+       is named. */
+    await lookAt('s2LookCentral', 'central angle', [A.arc, A.lbl]);
+    await wait(BEAT);
+
     /* What if the angle went all the way round? */
     await S.say(keyed('s3Central360Q'));
     await wait(BEAT);
@@ -272,6 +342,7 @@
     await wait(SHORT);
     A.lbl.classList.remove('lbl--big');
     A.set(a0, a1, 'θ = ' + (a1 - a0) + '°');
+    clearOfRadii(C, A, a0, a1);
     await anim(S.popIn(A.lbl, { from: 0.7 }));
     await S.say(keyed('s2CentralHere', { deg: a1 - a0 }));
     await wait(SHORT);
@@ -284,41 +355,62 @@
       ends[0].setAttribute('cx', r2(p.x));
       ends[0].setAttribute('cy', r2(p.y));
       A.set(cur, a1, 'θ = ' + deg + '°');
+      /* the measure never lies across a radius as it turns (it did, at
+         238° -- user, 2026-10-29) */
+      clearOfRadii(C, A, cur, a1);
     }
     place();
+    /* The radius walked round from where it stands to `to`, a tick of
+       STEP at a time, and set exactly there at the end. */
     var STEP = 6;
-    var tl = M.timeline();
-    for (var at = a0 - STEP; at >= a1 - 360 - 0.01; at -= STEP) {
-      tl.to(hand, { a: at, duration: M.dur(0.075), ease: 'back.out(3)', onUpdate: place });
-      tl.call(Beats.pop);
-      tl.to({}, { duration: M.dur(0.045) });
+    function tickTo(to) {
+      var tl = M.timeline();
+      for (var t = hand.a - STEP; t >= to - 0.01; t -= STEP) {
+        tl.to(hand, { a: t, duration: M.dur(0.075), ease: 'back.out(3)', onUpdate: place });
+        tl.call(Beats.pop);
+        tl.to({}, { duration: M.dur(0.045) });
+      }
+      return anim(tl).then(function () {
+        hand.a = to;
+        place();
+      });
     }
-    await anim(tl);
-    hand.a = a1 - 360;
-    place();
+
+    /* Held at 238°: the arc has grown with the angle, and the bird says
+       so as the arc swells once -- then the turn goes on. */
+    await tickTo(a1 - HOLD_AT);
+    await wait(SHORT);
+    await Promise.all([S.say(keyed('s2ThetaGrows')), anim(Beats.linePulse([Sec.arc], ARC_W))]);
+    await wait(BEAT);
+    await S.say(keyed('s2IncreaseMore'));
+    await wait(SHORT);
+    await tickTo(a1 - 360);
 
     /* The full turn: the arc is the whole rim, lit twice and left at rest. */
     Beats.sfx('correct');
-    [Sec.arc, A.arc, A.lbl].forEach(function (el) { el.classList.add('is-flash2'); });
+    flash2([Sec.arc, A.arc, A.lbl]);
     await anim(Beats.linePulse([Sec.arc], ARC_W));
     burstOn(C.disc);
     await S.say(keyed('s2WholeFull'), 'happy');
     await wait(SHORT);
-    Sec.arc.classList.remove('is-flash2');
-    void Sec.arc.getBoundingClientRect();
-    Sec.arc.classList.add('is-flash2');
+    /* Where to look: the arc, glowing twice as it is named -- and then
+       what it is. */
+    await lookAt('s2LookArc', 'arc length', [Sec.arc]);
+    await wait(BEAT);
     await S.say(keyed('s2WholeArc'), 'happy');
     await wait(BEAT);
     fullTurn = { sc: sc, wrap: F.wrap, svg: F.svg, C: C, S: Sec, A: A, at: a1 };
     await S.handOver();
   }
 
-  /* ---- 2. Tap the arc length of the whole circle ----------------------------
+  /* ---- 2. The arc length of the whole circle --------------------------------
      The full-turn circle of the scene before -- the same element -- stays
      on the board and glides to the left as its page becomes a picture and
-     a panel; its radius is named r. The bird comes onto a perch in the
-     panel and asks, in a warm bubble, which of three tiles is the whole
-     rim's length. */
+     a panel; its radius is named r. The bird, still on the header, says to
+     look closely -- this arc length is the circumference -- as the arc
+     glows twice, and then says what that length is: 2πr. Said outright,
+     not asked (user, 2026-10-29); the panel then sets it out as the page's
+     result. */
   async function sArcTap() {
     var H = fullTurn;
     fullTurn = null;
@@ -334,7 +426,7 @@
       M.set(wrap, { x: (r0.left + r0.width / 2) - (r1.left + r1.width / 2),
                     y: (r0.top + r0.height / 2) - (r1.top + r1.height / 2),
                     scale: k, transformOrigin: '50% 50%' });
-      /* the line goes; the bird stays on the header until its perch is up */
+      /* the line goes; the bird stays on the header, to say what comes next */
       await Promise.all([S.hush(),
         anim(M.to(wrap, { x: 0, y: 0, scale: 1, duration: M.dur(0.9), ease: 'power3.inOut' }))]);
     } else {
@@ -360,37 +452,14 @@
     await anim(S.popIn(rl, { from: 0.5 }));
     await wait(SHORT);
 
-    /* The question, from a perch, in a bubble of its own warm colour. */
-    var P = S.perchIn(panel);
-    P.row.classList.add('sa-speak--above');
-    P.bubble.classList.add('sa-bubble--sun');
-    await anim(S.fadeIn(P.row, { y: 0 }));
-    /* The label over the circle is read out as it comes in -- the voice
-       alone, nothing typed: the words are on the figure, not in a bubble. */
-    var over = S.text(C.top, C.x, C.y - C.r - 22, tr('s2ArcOver'), 'lbl s-over-lbl');
-    await S.voiceAlone('s2ArcOver', function () { return anim(S.fadeIn(over, { y: 6 })); });
+    /* Look closely: the arc, glowing twice as it is named -- the whole
+       rim -- and then its length, said outright. */
+    await lookAt('s2ArcIsCircum', 'arc length', [Sec.arc]);
+    await wait(BEAT);
+    await S.say(keyed('s2ArcWillBe'));
     await wait(SHORT);
-    var QUESTION = keyed('s2ArcAsk');
-    await S.perchSay(P, QUESTION);
-    var voice = S.bubbleVoice(P, QUESTION);
-    await S.askChoice([tr('p27OptPiR'), tr('p27Opt2PiR'), tr('p27OptPiR2')], 1, {
-      host: S.h('div', 'sa-qslot sa-qslot--big', null, panel),
-      tiles: true,
-      voice: voice,
-      yes: [keyed('fbThatsCorrect'), keyed('p27Right')],
-      why: {
-        0: [keyed('fbNotQuite'), keyed('p27WrongPiR')],
-        2: [keyed('fbNotQuite'), keyed('p27WrongPiR2')]
-      }
-    });
-    await wait(900);
 
-    /* Answered: the question goes -- bubble, bird and tiles -- and the
-       answer is set in its place, on one line, as a result. */
-    voice.stop();
-    var gone = Array.prototype.slice.call(panel.children);
-    await Promise.all([anim(S.fadeOut(gone)), S.perchOut()]);
-    gone.forEach(function (g) { if (g.parentNode) g.parentNode.removeChild(g); });
+    /* ...and set out in the panel, on one line, as a result. */
     var res = S.h('div', 'sa-result sa-result--two',
       '<span class="sa-result__tick" aria-hidden="true"></span>' +
       '<span class="sa-result__lines"><span class="sa-result__txt">' + tr('s2LblCircumOfCircle') + ' ' + S.EQ + ' ' + TWO_PI_R() + '</span>' +
@@ -400,7 +469,7 @@
       { scale: 1.4, duration: M.dur(0.3), ease: 'power2.out', yoyo: true, repeat: 3 })));
     await anim(S.cardIn(res));
     await wait(BEAT);
-    arcFig = { sc: sc, svg: svg, wrap: wrap, C: C, S: Sec, at: at, panel: panel, over: over };
+    arcFig = { sc: sc, svg: svg, wrap: wrap, C: C, S: Sec, at: at, panel: panel, over: null };
     await S.handOver();
   }
 
@@ -442,48 +511,7 @@
     S.show([A.arc, A.lbl]);
     var deg = { v: 360 };
 
-    /* "θ = 200°" is wider than the gap the mark leaves it, and across a
-       radius it cannot be read (user, 2026-10-12): while its box crosses
-       either radius, it is stepped out along the middle of the angle --
-       never past the rim. */
-    function crosses(b, p, q) {
-      /* does the segment p-q pass through the box b (Liang-Barsky)? */
-      var t0 = 0, t1 = 1, dx = q.x - p.x, dy = q.y - p.y;
-      var e = [[-dx, p.x - b.x], [dx, b.x + b.width - p.x], [-dy, p.y - b.y], [dy, b.y + b.height - p.y]];
-      for (var i = 0; i < 4; i++) {
-        var pp = e[i][0], qq = e[i][1];
-        if (pp === 0) { if (qq < 0) return false; continue; }
-        var t = qq / pp;
-        if (pp < 0) { if (t > t1) return false; if (t > t0) t0 = t; }
-        else { if (t < t0) return false; if (t < t1) t1 = t; }
-      }
-      return true;
-    }
-    function clearOfRadii(b0, b1) {
-      if (b1 - b0 >= 300) return;                 /* set below the ring: clear */
-      var ends = [pt(C, C.r, b0), pt(C, C.r, b1)];
-      var x0 = +A.lbl.getAttribute('x'), y0 = +A.lbl.getAttribute('y');
-      var dir = pt({ x: 0, y: 0 }, 1, (b0 + b1) / 2);
-      for (var k = 0; k < 30; k++) {
-        var b;
-        try { b = A.lbl.getBBox(); } catch (e) { return; }
-        if (!b.width) return;
-        var box = { x: b.x - 5, y: b.y - 3, width: b.width + 10, height: b.height + 6 };
-        /* ...and off the angle's own arc: no part of it nearer the centre */
-        var nearX = Math.max(box.x - C.x, 0, C.x - (box.x + box.width));
-        var nearY = Math.max(box.y - C.y, 0, C.y - (box.y + box.height));
-        var onArc = Math.hypot(nearX, nearY) < A.r + 4;
-        if (!onArc && !crosses(box, C, ends[0]) && !crosses(box, C, ends[1])) return;
-        /* one more step would put a corner of the words past the rim: stop */
-        var nx = b.x + dir.x * 4, ny = b.y + dir.y * 4, far = 0;
-        [[nx, ny], [nx + b.width, ny], [nx, ny + b.height], [nx + b.width, ny + b.height]]
-          .forEach(function (c) { far = Math.max(far, Math.hypot(c[0] - C.x, c[1] - C.y)); });
-        if (far > C.r - 6) return;
-        x0 += dir.x * 4; y0 += dir.y * 4;
-        A.lbl.setAttribute('x', r2(x0));
-        A.lbl.setAttribute('y', r2(y0));
-      }
-    }
+    /* "θ = 200°" kept off the radii as it changes (clearOfRadii). */
     function turnTo(v) {
       deg.v = v;
       Sec.set(at - v, at);
@@ -495,7 +523,7 @@
         A.lbl.setAttribute('text-anchor', 'start');
       } else {
         A.lbl.setAttribute('text-anchor', 'middle');
-        clearOfRadii(at - v, at);
+        clearOfRadii(C, A, at - v, at);
       }
     }
 
@@ -687,6 +715,7 @@
                                         fr('θ', '180', 'c-ang') + X + TWO_PI_R(),
                                         fr('θ', '360', 'c-ang') + X + TWO_PI_R()], 2, { up: true });
     await Dd.ask({
+      auto: keyed('s2DeriveAuto'),
       yes: [keyed('fbThatsCorrect'), keyed('s2DeriveRight')],
       why: {
         0: [keyed('fbNotQuite'), keyed('s2DeriveWrongPiR2')],
@@ -902,6 +931,7 @@
     await S.say(keyed('s2WkPutTheta'));
     pulse(fig.A.lbl);
     await d1.ask({
+      auto: keyed('s2WkThetaAuto'),
       yes: [keyed('fbThatsCorrect'), keyed('s2WkThetaRight')],
       why: {
         1: [keyed('fbNotQuite'), keyed('s2WkThetaWrongFlip')],
@@ -915,6 +945,7 @@
     await S.say(keyed('s2WkPutR'));
     pulse(fig.R);
     await d2.ask({
+      auto: keyed('s2WkRAuto'),
       yes: [keyed('fbThatsCorrect'), keyed('s2WkRRight')],
       why: {
         1: [keyed('fbNotQuite'), keyed('p29Wrong14')],
@@ -935,6 +966,7 @@
     await S.stepIn(s4);
     await S.say(keyed('s2FindArcLen'));
     await d4.ask({
+      auto: keyed('s2WkFoundAuto'),
       yes: keyed('fbThatsCorrect'),
       why: {
         1: [keyed('fbNotQuite'), keyed('p29Wrong44')],
@@ -960,6 +992,7 @@
       theta: 120, at: 30, r: tr('s3LblR21'),
       prompt: keyed('s2PrAskArc'),
       options: [tr('val44cm'), tr('val66cm'), tr('val132cm')], right: 0,
+      auto: keyed('p30Auto'),
       why: {
         1: [keyed('fbNotQuite'), keyed('p30Wrong66')],
         2: [keyed('fbNotQuite'), keyed('p30Wrong132')]
@@ -1023,6 +1056,7 @@
     await S.say(keyed('s2AnPutS'));
     pulse(fig.sLbl);
     await d1.ask({
+      auto: keyed('s2AnSAuto'),
       yes: [keyed('fbThatsCorrect'), keyed('s2AnSRight')],
       why: {
         1: [keyed('fbNotQuite'), keyed('p31WrongS21')],
@@ -1036,6 +1070,7 @@
     await S.say(keyed('s2AnPutR'));
     pulse(fig.R);
     await d2.ask({
+      auto: keyed('s2AnRAuto'),
       yes: [keyed('fbThatsCorrect'), keyed('s2AnRRight')],
       why: {
         1: [keyed('fbNotQuite'), keyed('p31WrongR22')],
@@ -1062,6 +1097,7 @@
     await d4.ask({
       /* the confetti from the middle of the circle, not beside the box */
       burst: function () { burstOn(fig.C.disc); },
+      auto: keyed('s2AnFoundAuto'),
       yes: keyed('fbThatsCorrect'),
       why: {
         1: [keyed('fbNotQuite'), keyed('p31Wrong30')],
@@ -1259,6 +1295,7 @@
     await S.askChoice([tr('val270'), tr('val180'), tr('val45')], 0, {
       host: slot, tiles: true, voice: voice1, stagger: 0.35,
       onShown: function () { quiet(anim(S.cardIn(given.el))); },
+      auto: keyed('p34Auto'),
       yes: [keyed('fbThatsCorrect'), keyed('p34Right')],
       why: {
         1: [keyed('fbNotQuite'), keyed('p34Wrong180')],
@@ -1276,6 +1313,7 @@
     var voice2 = S.bubbleVoice(P, Q2);
     await S.askChoice([tr('val66cm'), tr('val88cm'), tr('val44cm')], 0, {
       host: slot, tiles: true, voice: voice2, stagger: 0.35,
+      auto: keyed('p35Auto'),
       yes: keyed('fbThatsCorrect'),
       why: {
         1: [keyed('fbNotQuite'), keyed('p35Wrong88')],
@@ -1418,7 +1456,7 @@
     scenes: [
       { name: 'Formula intro',     play: own(sFormulaIntro, true) },
       { name: 'Whole-turn arc',    play: own(sWholeTurn) },
-      { name: 'Tap the arc length', play: own(sArcTap) },
+      { name: 'Whole-circle arc', play: own(sArcTap) },
       { name: 'Arc length for θ',  play: own(sArcDerive) },
       { name: 'Apply intro',       play: own(sApplyIntro) },
       { name: 'Worked example',    play: own(sWorked) },

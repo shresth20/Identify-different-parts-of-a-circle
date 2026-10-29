@@ -19,13 +19,15 @@
  *   touched): "Correct formula of
  *   Circumference is". Three formulas arrive under it, one by one, and one
  *   has to be pressed. A wrong one is refused -- the pill shakes its head
- *   and stays red, and the box turns red with it to say "Not quite!" and
- *   then, in the sentence that replaces it, WHY it is wrong -- and the
- *   learner tries again for as long as it takes. The right one turns
- *   green, the other pills fade back, the box turns green with "Correct!"
- *   and then the formula, and Next arrives. The bird stays beside its
- *   verdict until Next is PRESSED -- only then does it drop away with the
- *   box, the pills and the circle.
+ *   and stays red, and the voice says "Not quite!" and WHY it is wrong --
+ *   and the learner tries again among the rest; once only the right one
+ *   is left, it is lit for them and the voice says it is the answer, and
+ *   why. The right one turns green, the other pills fade back, the voice
+ *   says "Correct!" and the formula, and Next arrives. Every verdict is
+ *   HEARD only: the question stays in the box, as it was asked, the whole
+ *   time (user, 2026-10-29). The bird stays beside it until Next is
+ *   PRESSED -- only then does it drop away with the box, the pills and
+ *   the circle.
  *
  * Page 2 -- the semicircle's arc length. The same ask, on a new circle:
  *
@@ -35,27 +37,28 @@
  *   circle in two. The upper half is lit, and as it is the lower half of
  *   the rim goes soft behind a blur, so the eye is kept on the upper
  *   border. The bird comes up onto the header to say "This is the
- *   semicircle.", then springs away as the circle slides to the left half,
+ *   semicircle.", the lit half glowing twice as it does, then hops across
+ *   as the circle slides to the left half,
  *   and lands in the right pane to ask, from bubble-02, for the formula of
  *   the semicircle's arc length. Three formulas, one by one; a wrong press
  *   is refused with why, as on page 1. The right one shows, at once, the
  *   straight angle at the centre -- 180°, in the dashed line's own ink,
- *   the text's dark blue -- while the box turns green to say so, and Next
- *   arrives.
+ *   the text's dark blue -- while the voice says so, and Next arrives.
  *
  * Page 3 -- the quadrant's arc length. Two pills this time:
  *
  *   The board opens blank. A circle is outlined at skill 1's pace and a
  *   small dot goes on its centre. The vertical radius grows up out of the
  *   dot to twelve o'clock, then the horizontal one out to three, and the
- *   quarter between them is swept in -- tinted, with its own piece of the
- *   rim lit -- one-fourth of the whole circle. The right angle at the
+ *   quarter's own piece of the rim is lit between them -- the region
+ *   inside left clear -- one-fourth of the whole circle, while the rest of
+ *   the rim, the major arc, goes soft behind a blur. The right angle at the
  *   centre is drawn and "90°" lands inside it. The figure slides smoothly
  *   to the left half, and the bird comes up in the right pane to ask for
  *   the quarter's arc length. Two formulas arrive one by one, each with
  *   its fraction stood up as on paper; a wrong press is refused with why,
  *   and the right one lights the quarter once more and puts skill 1's
- *   small burst up off it while the box turns green to say so.
+ *   small burst up off it while the voice says so.
  *     Its words are the first in the game read by key (T('key'), js/
  *   i18n.js) from locales s2/locales.json, and each line is voiced by the
  *   same key (I18n.say) once a recording is there.
@@ -108,6 +111,7 @@
       options: [half, right, area],
       answer:  right,
       wrong:   wrong,
+      auto:    said('s2CfAuto', T('s2CfAuto')),
       /* the formula's row is kept whole, and "=" never starts a row */
       right:   [said('fbCorrect', T('fbCorrect')),
                 said('s2CfRight', T('s2CfRight', { f: whole(right) }).replace(' =', NB + '='))]
@@ -128,6 +132,7 @@
       options: [right, full, quarter],
       answer:  right,
       wrong:   wrong,
+      auto:    said('s2CsAuto', T('s2CsAuto')),
       right:   [said('fbCorrect', T('fbCorrect')),
                 said('s2CsRight', tie(T('s2CsRight', { f: whole(full) })))]
     };
@@ -145,6 +150,7 @@
       options: [half, quarter],
       answer:  half,
       wrong:   wrong,
+      auto:    said('p21Auto', T('p21Auto')),
       right:   [said('fbCorrect', T('fbCorrect')), said('p21Right', tie(T('p21Right')))]
     };
   }
@@ -204,13 +210,14 @@
     dom.csDia    = $('csDia');
     dom.csDiaPen = $('csDiaPen');
     dom.csArc    = $('csArc');
+    dom.csGlow   = $('csGlow');
     dom.csAngle  = $('csAngle');
     dom.csCentre = $('csCentre');
     dom.csDeg    = $('csDeg');
 
     dom.cq       = $('cq');
-    dom.cqSector = $('cqSector');
     dom.cqRim    = $('cqRim');
+    dom.cqLower  = $('cqLower');
     dom.cqTip    = $('cqTip');
     dom.cqArc    = $('cqArc');
     dom.cqRadV   = $('cqRadV');
@@ -314,34 +321,55 @@
     mascot.idle();
   }
 
-  /* A verdict said from the box, in its colour -- or in none, for the
-     question itself. The box is already open: only the hue and the words
-     change, and the bird holds the mood for as long as it is talking.
-     `lines` is one sentence or several, said one at a time, each read for
-     a moment and then replaced -- the box closing round each in turn.
-       A newer verdict takes the box over: `saying` is bumped at the start,
-     and an older chain that wakes up to find itself outvoted says nothing
-     more and leaves the bird alone rather than settling it out from under
-     the new line. `on(i, line)`, if given, is called as line i starts --
-     for a mark on the board that should light with the words naming it
-     (the wiper pages, practice.js). */
+  /* A verdict on a press: HEARD, not written (user, 2026-10-29). The
+     question stays in the box as it was asked, in the box's own hue, and
+     the voice says "Not quite! ..." or "Correct! ..." over it while the
+     bird holds the mood. `lines` is one sentence or several, heard one
+     after another.
+       A newer verdict cuts an older one off: `saying` is bumped at the
+     start, and an older chain that wakes up to find itself outvoted says
+     nothing more and leaves the bird alone rather than settling it out
+     from under the new line. `on(i, line)`, if given, is called as line i
+     starts -- for a mark on the board that should light with the words
+     naming it. `cls` (the box's old verdict hue) is no longer worn. */
   function verdict(lines, mood, cls, on) {
     var mine = ++saying;
     function live() { return mine === saying; }
     dom.cfBubble.classList.remove('is-ok', 'is-bad');
-    if (cls) dom.cfBubble.classList.add(cls);
-    mascot.state(mood || 'talking');
     return [].concat(lines).reduce(function (chain, line, i) {
       return chain
-        .then(function () { if (i && live()) return Flow.wait(READ); })
+        .then(function () { if (i && live()) return Flow.wait(SHORT); })
         .then(function () {
           if (!live()) return;
           if (on) on(i, line);
-          return speak(line);
+          mascot.state(mood || 'talking');
+          return hearOnly(line, live);
         });
     }, Promise.resolve()).then(function () {
       if (live()) mascot.settle();
     });
+  }
+
+  /* One line of a verdict, by its clip alone. A line not yet recorded is
+     held for the time it would take to say, so the beats after it keep
+     their place; under Skip nothing is heard and nothing is held. */
+  var VO_MIN = 1600, VO_PACE = 65;    /* ms: as SectorArea's voiceAlone */
+  function hearOnly(line, live) {
+    var from = Date.now();
+    return K.hear(line.vo).then(function (played) {
+      if (played || Flow.isFast() || !live()) return;
+      return Flow.wait(Math.max(0, Math.max(VO_MIN, line.text.length * VO_PACE) - (Date.now() - from)));
+    });
+  }
+
+  /* Only the answer left, put in for the learner: the bird says which it
+     is first -- `spec.auto`, the page's line naming it -- and then why,
+     without the "Correct!" a found answer gets (user, 2026-10-29). */
+  var PRAISED = ['fbCorrect', 'fbThatsCorrect'];
+  var AUTO_AFTER = 800;   /* ms: the last wrong pill seen refused first */
+  function autoLines(spec) {
+    var why = [].concat(spec.right).filter(function (l) { return PRAISED.indexOf(l.vo) < 0; });
+    return [spec.auto || said('fbAutoRight', T('fbAutoRight'))].concat(why);
   }
 
   /* One line into the box: a plain string, or {text, vo} -- a line read by
@@ -425,6 +453,21 @@
     return tl;
   }
 
+  /* A lit arc glowing twice, then at rest: its halo -- a blurred copy laid
+     under it (#csGlow, index.html) -- breathes up and away two times, as
+     the bird names it (user, 2026-10-29). Opacity only: the blur itself
+     never changes. Two breaths and gone, never a loop. */
+  var GLOW_BREATH = 0.65;  /* s: half a breath, up or down */
+  function glowTwice(halo) {
+    var tl = M.timeline({
+      willChange: halo, willChangeValue: 'opacity',
+      revert: function () { M.set(halo, { clearProps: 'opacity' }); }
+    });
+    tl.fromTo(halo, { opacity: 0 },
+      { opacity: 1, duration: M.dur(GLOW_BREATH), ease: 'sine.inOut', yoyo: true, repeat: 3 });
+    return tl;
+  }
+
   /* ======================================================================
    * The interaction: one press on one of three pills
    * ----------------------------------------------------------------------
@@ -443,6 +486,7 @@
   function armChoices(spec) {
     var live = true;
     var misses = 0;
+    var auto = false;             /* only the answer left: put in for the learner */
 
     function onPick(ev) {
       if (!live) return;
@@ -460,6 +504,15 @@
          is choosing among the rest rather than pressing the same one. */
       btn.classList.add('is-done');
       Beats.choiceWrong(btn);
+      /* Every wrong pill tried: the learner is not asked to press the one
+         that is left -- the wait ends, and the ask puts it in. */
+      var left = opts.filter(function (b) { return !b.classList.contains('is-done'); });
+      if (left.length === 1 && left[0].dataset.name === spec.answer) {
+        live = false;
+        auto = true;
+        dom.gate.dispatchEvent(new MouseEvent('click'));
+        return;
+      }
       if (spec.onWrong) spec.onWrong(btn.dataset.name, misses);
     }
 
@@ -475,6 +528,7 @@
        pressed one is -- without firing the gate, which the skip has already
        answered. */
     function fillIn() {
+      if (auto) return;           /* the ask lights it, a beat later */
       for (var i = 0; i < opts.length; i++) {
         if (opts[i].dataset.name === spec.answer &&
             !opts[i].classList.contains('is-right')) {
@@ -487,7 +541,7 @@
     opts.forEach(function (b) { b.addEventListener('click', onPick); });
 
     return Flow.once(dom.gate, { auto: true }).then(
-      function () { fillIn(); off(); return { misses: misses }; },
+      function () { fillIn(); off(); return { misses: misses, auto: auto }; },
       function (err) { off(); throw err; });
   }
 
@@ -533,7 +587,7 @@
       .then(function () {
         return askFormula({
           ask: lines.ask, options: lines.options, answer: lines.answer,
-          wrong: lines.wrong, right: lines.right
+          wrong: lines.wrong, right: lines.right, auto: lines.auto
         });
       })
       .then(function () { return closeOut(dom.cf); });
@@ -545,8 +599,10 @@
    *   spec: ask (the question), options, answer, wrong ({name: lines}),
    * right (lines), and `reveal` -- what the board shows the moment the
    * right formula is pressed, alongside the verdict -- if anything;
-   * `onAsk`, a beat on the board played as the question is asked, and
-   * `onRight(i)`, one as each sentence of the right verdict starts.
+   * `onAsk`, a beat on the board played as the question is asked,
+   * `onRight(i)`, one as each sentence of the right verdict starts, and
+   * `auto`, the line naming the answer for when it is put in for the
+   * learner (see autoLines).
    * ====================================================================== */
   function askFormula(spec) {
     /* ---- the bird, and the question from bubble-02 -------------------------
@@ -589,10 +645,11 @@
         return Flow.anim(optsIn(opts));
       })
 
-      /* ---- the press. The box answers every try: red with the why for a
-         wrong one -- those verdicts are waits the chain never awaits, so
-         they go through quiet() -- and the right answer's verdict is the
-         scene's own beat, said in green once the gate has fired. ---------- */
+      /* ---- the press. Every try is answered by the voice, the question
+         left standing in the box: the why for a wrong one -- those verdicts
+         are waits the chain never awaits, so they go through quiet() --
+         and the right answer's verdict is the scene's own beat, once the
+         gate has fired. ---------------------------------------------------- */
       .then(function () {
         return armChoices({
           answer: spec.answer,
@@ -602,15 +659,24 @@
         });
       })
       /* The answer stands alone: the other pills -- spent, no longer
-         controls -- step back to a faint 0.4 while the box says why, so the
-         green one is what the eye is left on. */
-      .then(function () {
+         controls -- step back to a faint 0.4 while the voice says why, so
+         the green one is what the eye is left on. Put in for the learner
+         when it was the only one left: the last wrong pill is seen refused
+         first, and it lights without the chime. */
+      .then(function (res) {
+        var auto = !!(res && res.auto);
         var right = opts.filter(function (b) { return b.dataset.name === spec.answer; })[0];
-        return Promise.all([
-          verdict(spec.right, 'happy', 'is-ok', spec.onRight),
-          Flow.anim(M.focus(right, opts, { opacity: 0.4 })),
-          spec.reveal ? spec.reveal() : null
-        ]);
+        return (auto ? Flow.wait(AUTO_AFTER) : Promise.resolve()).then(function () {
+          if (auto) {
+            right.classList.add('is-right');
+            K.quiet(Flow.anim(M.correct(right)));
+          }
+          return Promise.all([
+            verdict(auto ? autoLines(spec) : spec.right, 'happy', null, spec.onRight),
+            Flow.anim(M.focus(right, opts, { opacity: 0.4 })),
+            spec.reveal ? spec.reveal() : null
+          ]);
+        });
       })
       .then(function () { return Flow.wait(BEAT); });
   }
@@ -694,8 +760,13 @@
       })
       .then(function () { return Flow.wait(DIA_HOLD); })
 
-      /* ---- named from the header ------------------------------------------ */
-      .then(function () { return K.arriveSaying(lines.is); })
+      /* ---- named from the header, the lit half glowing twice as the
+         words arrive (user, 2026-10-29) ---------------------------------- */
+      .then(function () {
+        return K.arriveSaying(lines.is, 'talking', function () {
+          return Flow.anim(glowTwice(dom.csGlow));
+        });
+      })
       .then(function () {
         mascot.settle();
         return Flow.wait(BEAT);
@@ -720,7 +791,7 @@
         dom.cfPane.classList.add('is-long');
         return askFormula({
           ask: lines.ask, options: lines.options, answer: lines.answer,
-          wrong: lines.wrong, right: lines.right,
+          wrong: lines.wrong, right: lines.right, auto: lines.auto,
           reveal: showAngle
         });
       })
@@ -744,16 +815,6 @@
    * by one. The right one lights the quarter again and puts up skill 1's
    * burst off it.
    * ====================================================================== */
-
-  /* The quarter at t of its sweep, 0 to 1: from the vertical radius,
-     clockwise round to the horizontal one. */
-  function quarterWedge(t) {
-    var a = (-90 + 90 * t) * Math.PI / 180;
-    var x = K.CX + R * Math.cos(a);
-    var y = K.CY + R * Math.sin(a);
-    return 'M' + K.CX + ' ' + K.CY + ' L' + K.CX + ' ' + (K.CY - R) +
-           ' A' + R + ' ' + R + ' 0 0 1 ' + x.toFixed(2) + ' ' + y.toFixed(2) + ' Z';
-  }
 
   function sceneQuadrant() {
     var lines = quadLines();
@@ -783,16 +844,20 @@
       })
       .then(function () { return Flow.wait(SHORT); })
 
-      /* ---- the quarter between them: tint swept round from one radius to
-         the other with its piece of the rim lit at the same pace, then the
-         lit piece swells once -- one-fourth of the whole circle ------------ */
+      /* ---- the quarter between them: its piece of the rim lit, swept round
+         from one radius to the other -- the region inside left clear, no
+         tint (user, 2026-10-29) -- and then the rest of the rim, the major
+         arc, put behind a blur as the lit piece swells once, so the eye is
+         kept on the quarter's own arc ------------------------------------- */
+      .then(function () {
+        return Flow.anim(Beats.growLine(dom.cqArc, LINE_TIME, 'power2.inOut'));
+      })
       .then(function () {
         return Promise.all([
-          Flow.anim(Beats.secFill(dom.cqSector, quarterWedge, LINE_TIME)),
-          Flow.anim(Beats.growLine(dom.cqArc, LINE_TIME, 'power2.inOut'))
+          Flow.anim(softenLower(dom.cqRim, dom.cqLower)),
+          Flow.anim(Beats.arcPulse([dom.cqArc]))
         ]);
       })
-      .then(function () { return Flow.anim(Beats.arcPulse([dom.cqArc])); })
       .then(function () { return Flow.wait(SHORT); })
 
       /* ---- the right angle at the centre: the small square, which says
@@ -815,7 +880,7 @@
       .then(function () {
         return askFormula({
           ask: lines.ask, options: lines.options, answer: lines.answer,
-          wrong: lines.wrong, right: lines.right,
+          wrong: lines.wrong, right: lines.right, auto: lines.auto,
           reveal: celebrateQuarter
         });
       })
@@ -870,7 +935,6 @@
     dom.cf.setAttribute('hidden', '');
     dom.cs.setAttribute('hidden', '');
     dom.cq.setAttribute('hidden', '');
-    dom.cqSector.setAttribute('d', '');
     dom.cqBurst.textContent = '';
     if (global.I18n) global.I18n.stop();
     restorePane();

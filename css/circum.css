@@ -297,6 +297,18 @@
   filter: url(#csSoft);
   opacity: 0;
 }
+.cs-lower.cq-lower { filter: url(#cqSoft); }
+/* The upper half's halo: the lit arc's own yellow, wide and blurred, laid
+   under it. Unseen at rest; it breathes up twice while the half is named
+   (glowTwice, circum.js), and only its opacity is ever animated. */
+.cs-glow {
+  fill: none;
+  stroke: var(--part-arc-minor);
+  stroke-width: 16;
+  stroke-linecap: round;
+  filter: url(#csGlowBlur);
+  opacity: 0;
+}
 .cs-angle {
   fill: none;
   stroke: var(--cs-ink);
@@ -323,18 +335,14 @@
    angle and its "90°" (.cs-angle, .cs-deg, shared) -- so the two arms and
    the right angle between them read as one thing. Solid and a little
    heavier than the dashed divider: these are the radii themselves. The
-   quarter between them is tinted with the lit arc's own yellow, faint, so
-   the piece of the rim it is bounded by stays the strongest mark. All rest
-   invisible; the beats reveal them. */
+   quarter between them is left clear (user, 2026-10-29): its piece of the
+   rim is the mark, and the rest of the rim is blurred behind it (.cq-lower,
+   above). All rest invisible; the beats reveal them. */
 .cq-radius {
   fill: none;
   stroke: var(--cs-ink);
   stroke-width: 3.4;
   stroke-linecap: round;
-  opacity: 0;
-}
-.cq-sector {
-  fill: color-mix(in srgb, var(--part-arc-minor) 30%, #FFFFFF);
   opacity: 0;
 }
 

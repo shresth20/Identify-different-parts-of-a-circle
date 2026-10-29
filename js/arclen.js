@@ -61,6 +61,10 @@
       arcIs:     K.keyed('s2AlArcIs'),
       majorIs:   K.keyed('s2AlMajorIs'),
 
+      /* when the answer is put in for the learner: which it is, first */
+      arcAuto:   K.keyed('s2AlArcAuto'),
+      majorAuto: K.keyed('s2AlMajorAuto'),
+
       sectorNo:  K.keyed('s2AlSectorNo'),
       segmentNo: K.keyed('s2AlSegmentNo'),
       minorNo:   K.keyed('s2AlMinorNo')
@@ -97,6 +101,7 @@
         options: ['s2OptSector', 's2OptSegment', 's2OptArc'],
         answer: 's2OptArc', word: 's2WordArc',
         right: [LINES.correct, LINES.arcIs],
+        auto: [LINES.arcAuto, LINES.arcIs],
         wrong: { 's2OptSector': [LINES.notQuite, LINES.sectorNo],
                  's2OptSegment': [LINES.notQuite, LINES.segmentNo] } },
       /* The larger piece: the major arc, against the minor -- the minor
@@ -106,6 +111,7 @@
         options: ['s2OptMajorArc', 's2OptMinorArc'],
         answer: 's2OptMajorArc', word: 's2WordMajorArc',
         right: [LINES.thatsIt, LINES.majorIs],
+        auto: [LINES.majorAuto, LINES.majorIs],
         wrong: { 's2OptMinorArc': [LINES.notQuite, LINES.minorNo] } }
     ];
   }
@@ -565,7 +571,11 @@
 
   /* Asked: the hand comes a beat after the blank starts calling, and goes
      the moment the blank is first opened; the right pick sets the
-     sentence's own word in the box ("arc", not "Arc"). */
+     sentence's own word in the box ("arc", not "Arc"). Once every wrong
+     name has been tried, the right one is put in for the learner (the
+     dropdown's own `auto`) and the wait resolves { auto: true }: the
+     last wrong pick is then not answered -- the round's verdict opens
+     with which name it is instead (user, 2026-10-29). */
   function askDropdown(spec, dd) {
     var face = dd.el.querySelector('.dd__face');
     var stop = null, opened = false;
@@ -582,10 +592,11 @@
       onWrong: function (i) {
         K.quiet(verdict(spec.wrong[spec.options[i]], 'confused'));
       }
-    }).then(function () {
+    }).then(function (res) {
       opened = true;
       if (stop) stop();
       dd.el.querySelector('.dd__val').textContent = T(spec.word || spec.answer);
+      return res;
     }, function (err) {
       opened = true;
       if (stop) stop();
@@ -618,9 +629,10 @@
          verdicts are waits the chain never awaits, so they go through
          quiet(); the right answer's is the scene's own beat. ---------------- */
       .then(function () { return askDropdown(spec, dd); })
-      .then(function () { return Flow.wait(SHORT); })
-      .then(function () {
-        return verdict(spec.right, 'happy');
+      .then(function (res) {
+        return Flow.wait(SHORT).then(function () {
+          return verdict(res && res.auto ? spec.auto : spec.right, 'happy');
+        });
       })
       /* ---- the question is answered: the names not chosen go, smoothly,
          leaving the sentence with the right one in its slot. ---------------- */

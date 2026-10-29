@@ -48,13 +48,11 @@ window.GAME_LOCALES_S1={
         "s1DiaLook": "VO-skill 1/En/s1DiaLook.webm",
         "s1DiaVO": "VO-skill 1/En/s1DiaVO.webm",
         "s1Draw": "VO-skill 1/En/s1Draw.webm",
-        "s1EveryDia": "VO-skill 1/En/s1EveryDia.webm",
         "s1Hello": "VO-skill 1/En/s1Hello.webm",
         "s1Longest": "VO-skill 1/En/s1Longest.webm",
         "s1QzAsk": "VO-skill 1/En/s1QzAsk.webm",
         "s1QzDone": "VO-skill 1/En/s1QzDone.webm",
         "s1QzDragName": "VO-skill 1/En/s1QzDragName.webm",
-        "s1QzFinalDone": "VO-skill 1/En/s1QzFinalDone.webm",
         "s1QzTapName": "VO-skill 1/En/s1QzTapName.webm",
         "s1QzWrongCentre": "VO-skill 1/En/s1QzWrongCentre.webm",
         "s1QzWrongChord": "VO-skill 1/En/s1QzWrongChord.webm",
@@ -125,13 +123,11 @@ window.GAME_LOCALES_S1={
         "s1DiaLook": [60, 240, 500, 920, 1320, 1680, 1980, 2420, 2720, 3080, 3330],
         "s1DiaVO": [60, 240, 400, 600],
         "s1Draw": [60, 400, 560, 840],
-        "s1EveryDia": [60, 380, 720, 1120, 1320, 1940, 2110, 2380, 2800, 3140, 3400, 3540],
         "s1Hello": [50, 200],
         "s1Longest": [60, 250, 620, 700, 840, 1060, 1520, 1960, 2270, 2410],
         "s1QzAsk": [60, 360, 730, 1000, 1220, 1340, 1620, 2020, 2340, 2490, 2800],
         "s1QzDone": [60, 260, 930, 1080, 1200, 1380, 1700, 2020, 2220, 2380],
         "s1QzDragName": [60, 320, 540, 860, 1060, 1460, 1600],
-        "s1QzFinalDone": [60, 260, 980, 1130, 1320, 1480, 1680, 1960, 2160, 2310],
         "s1QzTapName": [60, 360, 480, 810],
         "s1QzWrongCentre": [60, 280, 1030, 1280, 1440, 1880, 2160, 2400, 2680, 3000, 3100, 3360, 3690, 3900],
         "s1QzWrongChord": [60, 240, 920, 1100, 1420, 1840, 2140, 2400, 2620, 2830],
@@ -190,6 +186,7 @@ window.GAME_LOCALES_S1={
     "s1TwoJoined": "Now look at two radii forming a straight line through the centre.",
     "s1DiaLook": "This line segment joins two points and passes through the centre.",
     "s1DiaVO": "This is the diameter.",
+    "s1DiaTwice": "Remember, the diameter is twice the radius.",
     "s1LblDiameter": "Diameter",
     "fbThatsCorrect": "That’s correct!",
     "optYes": "Yes",
@@ -200,7 +197,6 @@ window.GAME_LOCALES_S1={
     "s1ChordAsk": "Is the diameter also a chord?",
     "s1DiaIsChord": "A diameter is also a chord.",
     "s1Longest": "In fact, it is the longest chord of a circle.",
-    "s1EveryDia": "Every diameter is a chord, but not every chord is a diameter.",
     "s1QzAsk": "Drag each name to the box pointing to the correct part.",
     "s1QzWrongCentre": "Not quite! The centre is the fixed point in the middle of the circle.",
     "s1QzWrongRadius": "Not quite! A radius joins the centre to a point on the circle.",
@@ -302,7 +298,7 @@ window.GAME_LOCALES_S1={
     "s1SecMajorIs": "The larger region is the major sector.",
     "s1QzTapName": "Tap the correct name.",
     "s1QzDragName": "Drag the correct name into the box.",
-    "s1QzFinalDone": "Great job! You know the main parts of a circle!"
+    "s1QzFinalDone": "Great job! We have explored all the parts of the circle."
   }
 }
 ;

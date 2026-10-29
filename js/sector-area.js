@@ -653,6 +653,68 @@
     }, Promise.resolve());
   }
 
+  /* A verdict on an answer given beside the figure -- the bird on its perch
+     -- is heard and not written (user, 2026-10-29): the question stays in
+     the bubble as it was asked, the voice says "Not quite! ..." or "That's
+     correct! ..." over it, and the bird acts the mood while it does. A
+     newer answer cuts an older run off, as sayAll's do. A line not yet
+     recorded holds for the time it would take to say, so whatever waits on
+     the verdict keeps its place. */
+  function heardOnly(lines, mood) {
+    var mine = ++told;
+    return [].concat(lines).reduce(function (chain, text, i) {
+      return chain.then(function () {
+        if (mine !== told) return;
+        return (i ? wait(SHORT) : Promise.resolve()).then(function () {
+          if (mine !== told) return;
+          var line = lineOf(text);
+          var from = Date.now();
+          mascot.state(mood || 'talking');
+          return voiceOf(line).then(function (played) {
+            if (played || mine !== told || Flow.isFast()) return;
+            return wait(Math.max(VO_MIN, line.text.length * VO_PACE) - (Date.now() - from));
+          });
+        });
+      });
+    }, Promise.resolve()).then(function () { if (mine === told) mascot.settle(); });
+  }
+  /* Where an answer's verdict goes: heard only while the bird is on a
+     perch beside the figure -- and, in skills 3 and 4, from the header
+     too, so a question asked there keeps its words up while it is
+     answered, as skill 2's bubble on the right does (user, 2026-10-29).
+     Skill 2's own header questions, built from this kit, still say theirs. */
+  var section = null;      /* this skill's addSection spec, `first` set there */
+  function hearAll() { return !!section && Pages.level() >= section.first; }
+  function answered(lines, mood) {
+    return (perch && perch.open) || hearAll() ? heardOnly(lines, mood) : sayAll(lines, mood);
+  }
+  /* The verdict being heard, cut off where it is -- for a pick that the
+     page answers itself a beat later -- with the words left standing. */
+  function cutVoice() {
+    told++;
+    if (global.I18n) global.I18n.stop();
+    mascot.settle();
+  }
+
+  /* The last choice left is the answer (user, 2026-10-29): once every wrong
+     one has been tried the learner is not asked to press the one that is
+     left -- it is put in for them, and the bird says so first ("Arc is the
+     correct answer.") and then why, without the praise a found answer gets.
+     `opening` is the page's own line naming the answer; a page that names
+     none gets the general one. */
+  var PRAISED = ['fbCorrect', 'fbThatsCorrect', 'praiseWellDone', 'praiseAwesome',
+                 's3ThatsRight', 's3GreatJob'];
+  function autoLines(opening, yes) {
+    var why = [].concat(yes || []).filter(function (l) {
+      return !(l && typeof l === 'object' && PRAISED.indexOf(l.vo) >= 0);
+    });
+    return [opening || keyed('fbAutoRight')].concat(why);
+  }
+  function allTried(list, good) {
+    return list.every(function (x) { return x === good || x.__out; });
+  }
+  var AUTO_AFTER = 800;     /* ms: the last wrong pick seen refused before the answer goes in */
+
   /* The last line taken off the header, the bird left standing: for a
      drawing that is meant to be watched before anything is said about it. */
   function hush() {
@@ -822,6 +884,7 @@
     btns.forEach(function (b) { M.button3d(b, { edge: 4 }); });
     var good = btns[right];
 
+    var tell = o.voice || answered;
     function loop() {
       var live = btns.filter(function (b) { return !b.__out; });
       return waitPick(live, good).then(function (b) {
@@ -829,16 +892,25 @@
           btns.forEach(function (x) { x.classList.add('is-done'); });
           quiet(anim(Beats.choiceRight(good)));
           burstAt(good);
-          return (o.voice || sayAll)(o.yes || praise(), 'happy');
+          return tell(o.yes || praise(), 'happy');
         }
         b.__out = true;
         quiet(anim(Beats.choiceWrong(b)).then(function () {
           b.classList.remove('is-wrong');
           b.classList.add('is-out');
         }));
+        /* only the answer left: put in for the learner, not asked for */
+        if (allTried(btns, good)) {
+          return wait(AUTO_AFTER).then(function () {
+            btns.forEach(function (x) { x.classList.add('is-done'); });
+            good.classList.add('is-right');
+            quiet(anim(M.correct(good)));
+            return tell(autoLines(o.auto, o.yes), 'happy');
+          });
+        }
         var why = o.why && o.why[btns.indexOf(b)];
         if (o.onWrong) o.onWrong(btns.indexOf(b));
-        quiet((o.voice || sayAll)(why || o.no || oops(), 'confused'));
+        quiet(tell(why || o.no || oops(), 'confused'));
         return loop();
       });
     }
@@ -893,13 +965,15 @@
           { opacity: 1, y: 0, duration: M.dur(0.22), ease: 'power2.out' })));
       }
     }
-    function win() {
+    /* `auto`: put in for the learner once every wrong choice is tried --
+       the same green and tick, but no chime: it was not found. */
+    function win(auto) {
       open(false);
       dd.classList.remove('is-asking', 'is-wrong');
       val.innerHTML = good.innerHTML;
       dd.classList.add('is-right');
       face.disabled = true;
-      Beats.sfx('correct');
+      if (!auto) Beats.sfx('correct');
       quiet(anim(M.correct(face)));
       return anim(M.fromTo(tick, { opacity: 0, scale: 0, transformOrigin: 'center center' },
         { opacity: 1, scale: 1, duration: M.dur(0.4), ease: M.POP }));
@@ -907,7 +981,10 @@
 
     return {
       el: dd,
-      /* Ask, and wait for the right answer. */
+      /* Ask, and wait for the right answer. Resolves { auto }: true when
+         the answer was put in for the learner (see autoLines). `q.auto`
+         is the page's line naming the answer; with `q.yes === false` the
+         page says its verdict itself, either way. */
       ask: function (q) {
         q = q || {};
         dd.classList.add('is-asking');
@@ -920,8 +997,8 @@
                 /* q.burst: the page's own confetti in place of the
                    burst beside the box (a page that throws it elsewhere) */
                 if (typeof q.burst === 'function') q.burst(); else burstAt(face);
-                if (q.yes !== false) return sayAll(q.yes || praise(), 'happy');
-              });
+                if (q.yes !== false) return answered(q.yes || praise(), 'happy');
+              }).then(function () { return { auto: false }; });
             }
             open(false);
             b.__out = true;
@@ -937,12 +1014,19 @@
                 val.innerHTML = '';
               });
             }));
+            /* Only the answer left: the refused pick is seen red and goes,
+               and the answer is put in, unasked, with what it is. */
+            if (allTried(items, good)) {
+              return wait(AUTO_AFTER).then(function () { return win(true); }).then(function () {
+                if (q.yes !== false) return answered(autoLines(q.auto, q.yes), 'happy');
+              }).then(function () { return { auto: true }; });
+            }
             /* q.onWrong(i): the page answers the wrong pick itself (the
                options' index i), as a page with its own bird lines does */
             if (q.onWrong) q.onWrong(items.indexOf(b));
             else {
               var why = q.why && q.why[items.indexOf(b)];
-              quiet(sayAll(why || q.no || oops(), 'confused'));
+              quiet(answered(why || q.no || oops(), 'confused'));
             }
             return loop();
           });
@@ -1135,31 +1219,16 @@
      the formula on the right; the right answer brings the working. */
   /* The question asked from a perch, as the "Tap the area" page asks it:
      the bird in the panel, the question in a warm bubble above it. Every
-     answer is said in that bubble -- red for a wrong one, and then the
-     question again; green for the right one. Returns the voice to hand to
-     askChoice. */
+     answer is HEARD, not written (heardOnly): the question stays in the
+     bubble, unchanged and uncoloured, for as long as it is being answered
+     (user, 2026-10-29 -- the bubble used to turn red or green and say the
+     verdict in place of the question). Returns the voice to hand to
+     askChoice; `stop` is kept for the pages that call it once the question
+     is done, though nothing is left to stop. */
   function bubbleVoice(P, question) {
-    var asked = 0;
-    function tone(t) {
-      P.bubble.classList.toggle('is-no', t === 'no');
-      P.bubble.classList.toggle('is-yes', t === 'yes');
-    }
-    var voice = function (lines, mood) {
-      var mine = ++asked;
-      if (mood === 'happy') {
-        tone('yes');
-        return sayAll(lines, mood);
-      }
-      tone('no');
-      return sayAll(lines, mood)
-        .then(function () { return wait(1500); })
-        .then(function () {
-          if (mine !== asked || !perch) return;
-          tone(null);
-          return say(question);
-        });
-    };
-    voice.stop = function () { asked++; };
+    P.bubble.classList.remove('is-no', 'is-yes');
+    var voice = function (lines, mood) { return heardOnly(lines, mood); };
+    voice.stop = function () {};
     return voice;
   }
 
@@ -1323,28 +1392,13 @@
   }
 
   /* ---- 1. Which one is a sector? -----------------------------------------
-     The board opens on three empty cards, and nothing is said. Each card
-     draws one part of a circle, slowly, and lights it: a segment (cut by a
-     chord), a sector (cut by two radii), an arc (cut by two points). Only
-     then does the bird ask which card shows a sector -- so the learner meets
-     the word beside the two things it is not. */
+     The board opens on three cards, each with one part of a circle already
+     drawn and lit: a segment (cut by a chord), a sector (cut by two radii),
+     an arc (cut by two points). They come in finished, together -- drawing
+     them one by one was too slow (user, 2026-10-29) -- and the bird then
+     asks which one shows a sector, so the learner meets the word beside the
+     two things it is not. */
   var SLOW_PEN = 1.6;          /* s: a circle drawn in slow motion             */
-  var CARD_PEN = 0.8;          /* s: each card's circle here -- twice as quick
-                                  (user, 2026-10-12)                            */
-  var clipN = 0;
-
-  /* A region coloured in from a point outward -- the chord's middle, for a
-     segment -- through a clip circle that grows until it covers it. */
-  function growFrom(svg, region, x, y, seconds) {
-    var defs = svg.querySelector('defs') || svgEl('defs', {}, svg);
-    var id = 'saGrow' + (++clipN);
-    var clip = svgEl('clipPath', { id: id }, defs);
-    var c = svgEl('circle', { cx: r2(x), cy: r2(y), r: 0 }, clip);
-    region.setAttribute('clip-path', 'url(#' + id + ')');
-    M.set(region, { opacity: 1 });
-    Beats.pop();
-    return anim(M.to(c, { attr: { r: 340 }, duration: M.dur(seconds || 1.1), ease: 'power2.inOut' }));
-  }
 
   /* The piece a card is about, lit; the other piece of the same circle
      stepped well back, so the lit one is what the eye lands on.
@@ -1364,7 +1418,6 @@
     off.classList.add('is-dim');
     b.classList.add('is-dim');
     C.dimRim = b;
-    return wait(500);
   }
 
   function cardFigure(card) {
@@ -1384,11 +1437,8 @@
       b.setAttribute('aria-label', tr('s3A11yCard'));
       return b;
     });
-    await anim(M.fromTo(cards, { opacity: 0, y: 16, scale: 0.96 },
-      { opacity: 1, y: 0, scale: 1, duration: M.dur(0.5), ease: 'power3.out', stagger: M.gap(0.12) }));
-
-    /* 1. The segment: a filled circle, a chord, the two regions it makes,
-          and the MAJOR segment lit. */
+    /* 1. The segment: a filled circle, a chord across it, and the smaller
+          of the two regions it makes lit. */
     var f1 = cardFigure(cards[0]);
     var C1 = circle(f1, 210, 210, 150);
     var ca = 205, cb = 335;                         /* the chord's two ends */
@@ -1401,22 +1451,11 @@
     var chordDots = [pa, pb].map(function (p) {
       return svgEl('circle', { 'class': 's-dot', cx: r2(p.x), cy: r2(p.y), r: 5.5 }, C1.top);
     });
-    var mid = { x: (pa.x + pb.x) / 2, y: (pa.y + pb.y) / 2 };
+    show([C1.disc, segMinor, segMajor, chord].concat(chordDots));
+    spotlight(C1, segMinor, segMajor, [ca, cb], [cb, ca + 360]);
 
-    await anim(Beats.drawRim(C1.rim, C1.tip, { time: CARD_PEN }));
-    await anim(Beats.fillDisc(C1.disc));
-    await wait(SHORT);
-    await anim(popIn(chordDots, { stagger: 0.18 }));
-    await anim(Beats.growLine(chord, 0.8, 'power2.inOut'));
-    await wait(SHORT);
-    await growFrom(f1, segMinor, mid.x, mid.y, 0.6);
-    await growFrom(f1, segMajor, mid.x, mid.y, 0.9);
-    await wait(SHORT);
-    await spotlight(C1, segMinor, segMajor, [ca, cb], [cb, ca + 360]);
-    await wait(1000);
-
-    /* 2. The sector: a filled circle, two radii, the two regions they make,
-          and the MINOR sector lit. */
+    /* 2. The sector: a filled circle, two radii, and the smaller of the two
+          regions they make lit. */
     var f2 = cardFigure(cards[1]);
     var C2 = circle(f2, 210, 210, 150);
     var S = sector(C2, 55, 145, 'minor');
@@ -1424,22 +1463,11 @@
     var ends = [pt(C2, 150, 55), pt(C2, 150, 145)].map(function (p) {
       return svgEl('circle', { 'class': 's-dot', cx: r2(p.x), cy: r2(p.y), r: 5.5 }, C2.top);
     });
+    show([C2.disc, C2.dot, S.region, T.region, S.ra, S.rb].concat(ends));
+    spotlight(C2, S.region, T.region, [55, 145], [145, 415]);
 
-    await anim(Beats.drawRim(C2.rim, C2.tip, { time: CARD_PEN }));
-    await anim(Beats.fillDisc(C2.disc));
-    await anim(Beats.plotDot(C2.dot, 0.35));
-    await wait(SHORT);
-    await radii(S, 0.75);
-    await anim(popIn(ends, { stagger: 0.15 }));
-    await wait(SHORT);
-    await sweep(S, 0.7);
-    await sweep(T, 1.0);
-    await wait(SHORT);
-    await spotlight(C2, S.region, T.region, [55, 145], [145, 415]);
-    await wait(1000);
-
-    /* 3. The arc: a plain white circle, two points on it, the two arcs
-          between them, and the MINOR arc lit. */
+    /* 3. The arc: a plain white circle, two points on it, and the smaller
+          of the two arcs between them lit. */
     var f3 = cardFigure(cards[2]);
     var C3 = circle(f3, 210, 210, 150);
     C3.disc.setAttribute('class', 'figure__disc s-disc--white');
@@ -1449,29 +1477,13 @@
     var arcDots = [pt(C3, 150, aa), pt(C3, 150, ab)].map(function (p) {
       return svgEl('circle', { 'class': 's-dot', cx: r2(p.x), cy: r2(p.y), r: 6 }, C3.top);
     });
+    show([C3.disc, minorArc, majorArc].concat(arcDots));
+    spotlight(C3, minorArc, majorArc, [aa, ab], [ab, aa + 360]);
 
-    await anim(Beats.drawRim(C3.rim, C3.tip, { time: CARD_PEN }));
-    await wait(SHORT);
-    await anim(popIn(arcDots, { stagger: 0.2 }));
-    await wait(SHORT);
-    await anim(Beats.growLine(minorArc, 0.6, 'power2.inOut'));
-    await anim(Beats.growLine(majorArc, 1.1, 'power2.inOut'));
-    await wait(SHORT);
-    await spotlight(C3, minorArc, majorArc, [aa, ab], [ab, aa + 360]);
-    await wait(800);
-
-    /* A look at all three before the question: each card is picked out
-       in turn. */
-    var lit = [segMinor, S.region, minorArc];
-    for (var q = 0; q < cards.length; q++) {
-      cards[q].classList.add('is-look');
-      lit[q].classList.add('is-flash2');
-      await wait(900);
-      cards[q].classList.remove('is-look');
-    }
-    await wait(1700);
-    lit.forEach(function (e) { e.classList.remove('is-flash2'); });
-    await wait(SHORT);
+    /* The three cards rise in with their pictures already in them. */
+    await anim(M.fromTo(cards, { opacity: 0, y: 16, scale: 0.96 },
+      { opacity: 1, y: 0, scale: 1, duration: M.dur(0.5), ease: 'power3.out', stagger: M.gap(0.12) }));
+    await wait(BEAT);
 
     /* What makes each card what it is, pulsed as its name is said: the
        chord of the segment, the two radii and the arc of the sector, the
@@ -1489,14 +1501,18 @@
       { els: [minorArc], name: 'arc' }
     ];
 
-    /* The question, with the bird. A wrong card shakes and steps back, and
-       the bird says what that card shows instead; the right one goes green. */
-    await say(keyed('s3PickAsk'));
+    /* The question, typed in with the bird. Every answer is HEARD, as skill
+       2's bubble on the right answers (user, 2026-10-29): the question
+       stays on the header while the voice says what a wrong card shows
+       instead, or why the right one is right. A wrong card shakes and
+       steps back; the right one goes green. */
+    await say(keyed('s3PickWhich'));
     sc.classList.add('is-live');
     /* pressed as the first lesson's pills are: the wall collapses under
        the finger */
     cards.forEach(function (c) { M.button3d(c, { edge: 5 }); });
     var right = cards[1];
+    var auto = false;
     for (;;) {
       var picked = await waitPick(cards.filter(function (c) { return !c.__out; }), right);
       if (picked === right) break;
@@ -1509,32 +1525,37 @@
           c.classList.add('is-tried');
         }));
       })(picked);
+      /* Both wrong cards tried: the answer is shown at once (user,
+         2026-10-29). What was being said about the first is cut off, and
+         as soon as this one is seen refused the sector card goes green for
+         the learner, with what a sector is (autoLines). */
+      if (allTried(cards, right)) {
+        auto = true;
+        cutVoice();
+        await wait(AUTO_AFTER);
+        break;
+      }
       var dw = DEFS[cards.indexOf(picked)];
       sweepGlow(dw.els);
       quiet(beat(dw.els));
-      quiet(sayAll(picked === cards[0]
+      quiet(answered(picked === cards[0]
         ? [keyed('fbNotQuite'), keyed('s3PickWrongSeg')]
         : [keyed('fbNotQuite'), keyed('s3PickWrongArc')], 'confused'));
     }
     sc.classList.remove('is-live');
     right.classList.add('is-right');
     cards.forEach(function (c) { if (c !== right) c.classList.add('is-done'); });
-    Beats.sfx('correct');
+    if (!auto) Beats.sfx('correct');
     quiet(anim(M.correct(right)));
-    burstAt(right);
+    if (!auto) burstAt(right);
     sweepGlow(DEFS[1].els);
     quiet(beat(DEFS[1].els));
-    await sayAll([keyed('fbThatsCorrect'),
-                  keyed('s3PickRight')], 'happy');
-    await wait(SHORT);
-    /* All three named, each card glowing as it is: the recall rounded off. */
-    cards.forEach(function (c) { c.classList.remove('is-done', 'is-tried'); c.classList.add('is-named'); });
-    sweepGlow(DEFS[0].els.concat(DEFS[2].els));
-    await say(keyed('s3PickRecap'), 'happy');
-    cards.forEach(function (c) { c.classList.remove('is-named'); });
+    var yes = [keyed('fbThatsCorrect'), keyed('s3PickRight')];
+    await answered(auto ? autoLines(keyed('s3PickAuto'), yes) : yes, 'happy');
     DEFS.forEach(function (d) { d.els.forEach(function (e) { e.classList.remove('is-defining'); }); });
-    /* No Next: the sector circle itself carries on into the next scene,
-       three seconds after this one has finished speaking. */
+    /* No recap after it (user, 2026-10-29), and no Next: the sector circle
+       itself carries on into the next scene, three seconds after the
+       verdict has been heard. */
     carry = { svg: f2, C: C2, S: S, T: T };
     await wait(3000);
   }
@@ -1728,12 +1749,13 @@
     }
 
     /* Answered as skill 1's naming pages are answered (namePair, pages.js):
-       the bird stays on the header and the instruction is said ONCE; a
-       wrong drop is answered on the spot in one line and the name goes
-       home -- the instruction is not said again; a right drop is told
-       "Correct!", but for the one that fills the last box (user,
-       2026-10-12). The drag, the tap-then-tap and the keyboard are
-       armQuiz's, the box and chip beats are Beats'. */
+       the bird stays on the header and the instruction is said ONCE, and
+       stays up -- every drop is answered by the voice alone, as skill 2's
+       bubble on the right answers (user, 2026-10-29); a wrong drop in one
+       line, the name going home; a right drop "Correct!", but for the one
+       that fills the last box (user, 2026-10-12). The drag, the
+       tap-then-tap and the keyboard are armQuiz's, the box and chip beats
+       are Beats'. */
     var WRONG = {};
     WRONG[MINOR] = 's3NameWrongMinor'; WRONG[MAJOR] = 's3NameWrongMajor';
     var placed = 0;
@@ -1746,9 +1768,9 @@
       onRight: function (box) {
         placed++;
         confirm(box.name);
-        if (placed < 2) quiet(say(keyed('fbCorrect'), 'happy'));
+        if (placed < 2) quiet(answered(keyed('fbCorrect'), 'happy'));
       },
-      onWrong: function (box) { quiet(say(keyed(WRONG[box.name]), 'confused')); }
+      onWrong: function (box) { quiet(answered(keyed(WRONG[box.name]), 'confused')); }
     });
     await quiet(said);
     await done;
@@ -1779,10 +1801,12 @@
       y: (stR.top + stR.height / 2) - scR.top - k * cy,
       duration: M.dur(0.9), ease: 'power3.inOut'
     })) : null;
-    /* 5. Both at once: together, the two make the whole circle. */
+    /* 5. Both at once: together, the two make the whole circle. The
+       praise and its reason are the last drop's verdict, heard as the
+       others were; the line after it is the lesson's own, and written. */
     var both = [S.region, T.region];
     await Promise.all([zoom,
-      sayAll([keyed('s3GreatJob'), keyed('s3NameTwoRadii')], 'happy')]);
+      answered([keyed('s3GreatJob'), keyed('s3NameTwoRadii')], 'happy')]);
     both.forEach(function (r) { r.classList.remove('is-flash2', 'is-lit'); r.classList.add('is-flash2'); });
     await say(keyed('s3NameWhole'), 'happy');
     await wait(BEAT);
@@ -2070,35 +2094,11 @@
     await wait(SHORT);
     var QUESTION = keyed('s3AreaAsk');
     await perchSay(P, QUESTION);
-    /* Every answer is spoken in the question's own bubble, by the bird on
-       its perch: the feedback first, and then, after a moment to read it,
-       the question again. A newer tap takes the bubble over from an older
-       one, so a question is never put back over newer feedback. */
-    var asked = 0;
-    function tone(t) {
-      P.bubble.classList.toggle('is-no', t === 'no');
-      P.bubble.classList.toggle('is-yes', t === 'yes');
-    }
-    function inBubble(lines, mood) {
-      var mine = ++asked;
-      /* A right answer is not explained: the bubble only says so, and the
-         page then gives the answer as a result of its own (below). */
-      if (mood === 'happy') {
-        tone('yes');
-        return sayAll(lines, mood);
-      }
-      /* The bubble wears the verdict: red while it is saying what was
-         wrong, green while it is saying what was right, and its own warm
-         colour again for the question. */
-      tone(mood === 'happy' ? 'yes' : 'no');
-      return sayAll(lines, mood)
-        .then(function () { return wait(1500); })
-        .then(function () {
-          if (mine !== asked || !perch) return;
-          tone(null);
-          return say(QUESTION);
-        });
-    }
+    /* Every answer is heard, not written: the question stays in the
+       bubble while the voice says what was wrong or right (bubbleVoice). A
+       right answer is not explained -- the page then gives the answer as a
+       result of its own (below). */
+    var inBubble = bubbleVoice(P, QUESTION);
     await askChoice(['πr', 'πr²', '2πr'], 1, {
       host: h('div', 'sa-qslot sa-qslot--big', null, panel),
       tiles: true,
@@ -2113,7 +2113,7 @@
 
     /* The question has been answered: it goes -- bubble, bird and tiles --
        and the answer is set in its place, on one line, as a result. */
-    asked++;
+    inBubble.stop();
     var gone = Array.prototype.slice.call(panel.children);
     await Promise.all([anim(fadeOut(gone)), perchOut()]);
     gone.forEach(function (g) { if (g.parentNode) g.parentNode.removeChild(g); });
@@ -3851,7 +3851,7 @@
     }
   }
 
-  Pages.addSection({
+  section = {
     name: 'Sector area',
     skill: 'Skill 3 · Area of a sector',
     scenes: SCENES,
@@ -3860,7 +3860,8 @@
     wipe: wipe,
     reset: reset,
     stage: stageAt
-  });
+  };
+  Pages.addSection(section);
 
   /* ---- the kit, handed over ----------------------------------------------
      Skill 2's formula and practice pages (js/arc-formula.js) are built
@@ -3894,6 +3895,7 @@
     dropdown: dropdown, stepRow: stepRow, stepIn: stepIn, stepDone: stepDone, ddIn: ddIn,
     noteCard: noteCard, ruleCard: ruleCard, lineIn: lineIn, clearStage: clearStage, stage: stage,
     bubbleVoice: bubbleVoice, writeSteps: writeSteps, fieldTalk: fieldTalk, keyWord: keyWord,
+    answered: answered, heardOnly: heardOnly, autoLines: autoLines, cutVoice: cutVoice,
     flyNumber: flyNumber, magnifier: magnifier,
     boxLeader: boxLeader, figToScene: figToScene
   };

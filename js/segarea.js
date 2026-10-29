@@ -78,7 +78,6 @@
   /* ---- pacing ------------------------------------------------------------ */
   var BEAT = K.BEAT, SHORT = K.SHORT;
   var LOOK = SA.LOOK;                       /* ms: a picture looked at        */
-  var READ = 900;                           /* ms a verdict's sentence stands */
   var TALK_GAP = 1400;                      /* ms between two bubble lines    */
   var PEN_QUICK = 1.0;                      /* s: a circle drawn quickly      */
   var DOT_TIME = 0.5;                       /* s: the centre dot              */
@@ -220,7 +219,6 @@
   var dom = null;          /* pages.js's, with this skill's own on top */
   var mascot = null;
   var cards = [];          /* page 1's three, in the order they stand */
-  var saying = 0;          /* which verdict owns the header line now  */
   var figs = [];           /* page 5's three small circles            */
   var kfigs = [];          /* page 12's three                         */
   var hand = null;         /* the pointing hand, for page 3's pick    */
@@ -460,20 +458,12 @@
     var said = o.arrive ? K.arriveSaying(line, o.mood) : K.speak(line, o.mood);
     return Promise.all([said].concat(beats));
   }
-  /* The bird's verdicts, said from the header where it already stands:
-     one sentence or several, each typed in turn and read for a moment
-     before the next takes its place. A newer verdict takes the header
-     over: an older chain that wakes up to find itself outvoted stops
-     between its lines rather than talking over the new one. */
-  function verdict(lines, mood) {
-    var mine = ++saying;
-    function live() { return mine === saying; }
-    return [].concat(lines).reduce(function (chain, line, i) {
-      return chain
-        .then(function () { if (i && live()) return Flow.wait(READ); })
-        .then(function () { if (live()) return K.speak(line, mood); });
-    }, Promise.resolve());
-  }
+  /* The bird's verdicts, HEARD and not written (user, 2026-10-29): the
+     question stays on the header as it was asked while the voice says
+     "Not quite! ..." or "Correct! ..." over it -- skill 2's bubble on the
+     right, on the header. One sentence or several, one after another; a
+     newer verdict cuts an older one off (SectorArea's heardOnly). */
+  function verdict(lines, mood) { return SA.heardOnly(lines, mood); }
 
   /* The page's last beat on the lesson's figure: Next, and only its PRESS
      sends the bird away with its line and the picture. `keepHeader` leaves
@@ -482,8 +472,7 @@
   function closePage(group, keepHeader) {
     return K.handOver(dom.nextBtn)
       .then(function () {
-        saying++;
-        if (global.I18n) global.I18n.stop();
+        SA.cutVoice();
         return Promise.all([
           K.mascotJumpOut(keepHeader),
           Flow.anim(Beats.lineOut(dom.promptLine)),
@@ -782,12 +771,13 @@
 
   /* The right card: green, one outward pulse, the tick popping onto its
      corner, and its name under its circle. The green is a state it stays
-     in. */
-  function cardRight(card) {
+     in. `auto`: turned over for the learner once the others are spent --
+     no chime, it was not found. */
+  function cardRight(card, auto) {
     var g = card.g;
     g.classList.remove('is-wrong');
     g.classList.add('is-right');
-    Beats.sfx('correct');
+    if (!auto) Beats.sfx('correct');
     M.set(card.badge, { opacity: 0, scale: 0, transformOrigin: 'center center' });
     var tl = M.timeline({
       willChange: [g, card.badge], willChangeValue: 'transform, opacity',
@@ -829,6 +819,7 @@
   function armCards(spec) {
     var live = true;
     var misses = 0;
+    var auto = false;             /* only the answer left: put in for the learner */
     var list = cards.map(function (card) { return card.g; });
 
     dom.sa.classList.add('is-asking');
@@ -852,6 +843,16 @@
       }
       misses++;
       K.quiet(Flow.anim(cardWrong(card)));
+      /* Every wrong card tried: the learner is not asked to tap the one
+         left -- the wait ends and the page turns it over (user,
+         2026-10-29). */
+      var left = cards.filter(function (c) { return !c.g.classList.contains('is-done'); });
+      if (left.length === 1 && left[0].kind === spec.answer) {
+        live = false;
+        auto = true;
+        dom.gate.dispatchEvent(new MouseEvent('click'));
+        return;
+      }
       if (spec.onWrong) spec.onWrong(card, misses);
     }
     function onKey(ev) {
@@ -887,7 +888,7 @@
     });
 
     return Flow.once(dom.gate, { auto: true }).then(
-      function () { off(); return { misses: misses }; },
+      function () { off(); return { misses: misses, auto: auto }; },
       function (err) { off(); throw err; });
   }
 
@@ -897,8 +898,9 @@
 
   /* The scene. A blank board with its header closed, so the row has the
      whole of it; three cards made one after another where they stand,
-     each region lit; the bird up to ask; the taps, each answered from the
-     header; the right card named with the rest; and Next. */
+     each region lit; the bird up to ask; the taps, each answered by the
+     voice with the question left up on the header; the right card named
+     with the rest; and Next. */
   function sceneSegment() {
     var names = { sector: 's4p1Sector', triangle: 's4p1Triangle', segment: 's4p1Segment' };
     var wrong = {
@@ -924,7 +926,7 @@
 
       /* ---- the question: the cards go live as the bird sets off, before
          its line is finished; the header opens for it, and the bird STAYS
-         on it -- every verdict is said from there ------------------------ */
+         on it with the question up -- every verdict is heard from there - */
       .then(function () {
         outcome = K.quiet(armCards({
           answer: ANSWER,
@@ -938,13 +940,22 @@
       })
 
       /* ---- the segment found: the card goes green with its tick, the bird
-         says so and why, and every card is named --------------------------- */
-      .then(function () {
-        return Promise.all([
-          Flow.anim(cardRight(answerCard())),
-          verdict([keyed('fbCorrect'), L('s4p1Right')], 'happy')
-            .then(function () { return Flow.anim(namesIn()); })
-        ]);
+         says so and why, and every card is named. Put in for the learner
+         when only it was left: the last wrong card is seen refused first,
+         and the bird opens with which is the answer instead of praise. -- */
+      .then(function (res) {
+        var auto = !!(res && res.auto);
+        var yes = [keyed('fbCorrect'), L('s4p1Right')];
+        /* the first wrong card's verdict is cut off: the answer goes in
+           at once (user, 2026-10-29) */
+        if (auto) SA.cutVoice();
+        return (auto ? Flow.wait(800) : Promise.resolve()).then(function () {
+          return Promise.all([
+            Flow.anim(cardRight(answerCard(), auto)),
+            verdict(auto ? SA.autoLines(L('s4p1Auto'), yes) : yes, 'happy')
+              .then(function () { return Flow.anim(namesIn()); })
+          ]);
+        });
       })
       .then(function () { return Flow.wait(BEAT); })
       .then(function () { return closePage(dom.sa, false); })
@@ -2447,7 +2458,6 @@
      the picture right after this -- so this is about attributes, classes
      and the cards, which are built afresh each run. */
   function reset() {
-    saying++;
     [dom.sa, dom.sc, dom.se, dom.sf, dom.sj, dom.sk].forEach(function (g) { g.setAttribute('hidden', ''); });
     putAwayCards();
     dom.sc.classList.remove('is-picking');

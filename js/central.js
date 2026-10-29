@@ -14,7 +14,7 @@
  *
  * ONE circle for the whole section. The learner makes the angle on page 1,
  * and every page after it works on that very figure -- the protractor is
- * laid on it, its fraction is asked about, its parts are named -- so
+ * laid on it, its angle is read and its parts are named -- so
  * nothing is drawn twice and every number on the later pages is the
  * learner's own (user, 2026-10-09).
  *
@@ -33,9 +33,11 @@
  *   a round number. Both down, the bird springs away and the picture is
  *   finished without it: a radius grown out of the centre to each point,
  *   in the order they were placed, then the angle between the two radii
- *   drawn at the centre and "θ" set inside it. The bird comes back up to
- *   say what it is -- the central angle for the minor sector -- and the
- *   angle is lit while it says so. Next pressed, the bird goes and the
+ *   drawn at the centre and "θ" set inside it. The bird, watching from
+ *   the header, says to look at the angle between the two radii -- they
+ *   swell once as it does -- and then what it is: the central angle for
+ *   the minor sector, the angle lit while it says so (user, 2026-10-29:
+ *   where to look first, then the name). Next pressed, the bird goes and the
  *   header closes, but the figure STAYS for the page after.
  *
  * Page 2 -- measuring it. The same figure, read off a protractor:
@@ -54,15 +56,10 @@
  *   and Next arrives. Next pressed, the question goes and the protractor
  *   is lifted off, but the figure and the bird STAY for the page after.
  *
- * Page 3 -- the sector's share. The same board, one more question:
+ * (A page asking what fraction of the whole circle the sector is came
+ * here; it was taken out, user 2026-10-29.)
  *
- *   From where it stands the bird asks what fraction of the whole circle
- *   the sector is. Three fractions built from the angle just read, each
- *   stood up as on paper with its degree signs; a wrong one is refused
- *   with why. Next pressed, the question goes but the figure and the bird
- *   stay once more.
- *
- * Page 4 -- the three named. The same board, and the bird explains:
+ * Page 3 -- the three named. The same board, and the bird explains:
  *
  *   "θ = 80°" gives way to "θ", and the bird says, a sentence at a time,
  *   what s, r and θ are: as each is named, the mark it names takes a
@@ -70,7 +67,8 @@
  *   radii green, the angle pink -- and the same words in the same colour
  *   land in a legend under the bird, where the answers usually stand.
  *   Then the bird goes with its box, the legend moves to the middle of
- *   the right half, left-aligned beside the figure, and Next arrives.
+ *   the right half, left-aligned beside the figure, on a soft patch of its
+ *   own as a formula is set (user, 2026-10-29), and Next arrives.
  *   Next pressed, the legend and the figure go together and the header
  *   opens again over a clean board.
  *
@@ -127,27 +125,7 @@
     };
   }
 
-  /* Page 3's. The fractions are spelled with U+2044 in the locale and
-     stood up by mathtext.js, degree signs and all, on the pills -- the
-     angle on top is the one just read. */
-  function fractionLines() {
-    var deg = cut.span;
-    var whole = T('p24Opt360', { deg: deg });
-    var quarter = T('p24Opt90', { deg: deg });
-    var half = T('p24Opt180', { deg: deg });
-    var wrong = {};
-    wrong[quarter] = nope('p24Wrong90');
-    wrong[half] = nope('p24Wrong180');
-    return {
-      ask:     said('p24Ask', tie(T('p24Ask'))),
-      options: [whole, quarter, half],
-      answer:  whole,
-      wrong:   wrong,
-      right:   [said('fbCorrect', T('fbCorrect')), said('p24Right', tie(T('p24Right')))]
-    };
-  }
-
-  /* Page 4's: the three sentences, each with the mark it names. */
+  /* Page 3's: the three sentences, each with the mark it names. */
   function nameLines() {
     return [
       { which: 's',  say: said('p25S',     tie(T('p25S'))) },
@@ -536,7 +514,19 @@
       .then(function () { return Flow.anim(Beats.labelIn(dom.caTheta)); })
       .then(function () { return Flow.wait(BEAT); })
 
-      /* ---- named from the header, the angle lit as the words arrive ------ */
+      /* ---- first, where to look: the angle between the two radii, the
+         radii swelling once as the words arrive (user, 2026-10-29) ------- */
+      .then(function () {
+        return K.speak(said('s2LookRadiiAngle', T('s2LookRadiiAngle')), 'talking', function () {
+          return Flow.anim(Beats.linePulse([dom.caRadA, dom.caRadB], LINE_W));
+        });
+      })
+      .then(function () {
+        mascot.settle();
+        return Flow.wait(BEAT);
+      })
+
+      /* ---- then named from the header, the angle lit as the words arrive - */
       .then(function () {
         return K.speak(said('p22Central', T('p22Central')), 'talking', function () {
           return Flow.anim(hotAngle());
@@ -607,8 +597,8 @@
 
       /* ---- Next -- and only its PRESS takes the question away: the box
          shuts and the pills go, the protractor is lifted off, and the
-         figure and the bird STAY. The page after asks about this sector
-         from the same spot. --------------------------------------------- */
+         figure and the bird STAY. The page after names the parts of this
+         very figure from the same spot. --------------------------------- */
       .then(function () { return K.handOver(dom.nextBtn); })
       .then(function () {
         return Promise.all([
@@ -619,29 +609,7 @@
   }
 
   /* ======================================================================
-   * Page 3 -- the sector's share of the circle. The board as page 2 left
-   * it -- the figure stood aside with its angle read, the bird in the
-   * pane -- and one more question from the same spot. Three fractions,
-   * each built from the angle just read and stood up as on paper; a wrong
-   * one is refused with why.
-   * ====================================================================== */
-  function sceneFraction() {
-    var lines = fractionLines();
-    return Flow.wait(BEAT)
-      .then(function () {
-        return C.ask({
-          ask: lines.ask, options: lines.options, answer: lines.answer,
-          wrong: lines.wrong, right: lines.right
-        });
-      })
-      /* Next pressed: the question goes, the figure and the bird stay --
-         the page after names the parts of this very figure. */
-      .then(function () { return K.handOver(dom.nextBtn); })
-      .then(function () { return C.clearAsk(); });
-  }
-
-  /* ======================================================================
-   * Page 4 -- the three named. The board as page 3 left it, the measure
+   * Page 3 -- the three named. The board as page 2 left it, the measure
    * giving way to "θ", and the bird explaining what s, r and θ are: each
    * mark takes its own colour as it is named, and the legend line in that
    * colour lands under the bird. Then the bird goes, the legend takes the
@@ -696,7 +664,9 @@
   function legendOut() {
     var items = [dom.clItems.s, dom.clItems.r, dom.clItems.th];
     var tl = M.timeline({ willChange: items, willChangeValue: 'transform, opacity' });
-    tl.to(items, { opacity: 0, y: 8, duration: M.dur(0.26), ease: M.IN, stagger: M.gap(0.05) });
+    tl.to(items, { opacity: 0, y: 8, duration: M.dur(0.26), ease: M.IN, stagger: M.gap(0.05) })
+      /* ...and the patch they stand on, with them */
+      .to(dom.clLegend, { opacity: 0, duration: M.dur(0.3), ease: M.IN }, 0);
     return tl;
   }
   /* The legend put away: emptied of every inline write, and shut. */
@@ -791,8 +761,8 @@
      The field page and the central angle open on a wiped board -- each
      one's first beat is the wipe -- so there is nothing to stage. The
      protractor page opens on the central angle's board less the bird: the
-     figure drawn and its angle marked, the header closed. The two after
-     open on the protractor page's board less the protractor: the figure
+     figure drawn and its angle marked, the header closed. The page after
+     opens on the protractor page's board less the protractor: the figure
      stood aside with every mark on it and its angle read, the header
      closed, the pane open and the bird standing in it. */
   function stage(i) {
@@ -817,7 +787,6 @@
       { name: 'Terms intro',       play: sceneTermsIntro },
       { name: 'Central angle',     play: sceneCentral  },
       { name: 'Measure the angle', play: sceneMeasure  },
-      { name: 'Sector fraction',   play: sceneFraction },
       { name: 'Arc, radius, angle', play: sceneNames   }
     ],
     build: build,

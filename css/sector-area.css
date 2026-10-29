@@ -1280,14 +1280,8 @@ body.sa-lesson .board { --row-bottom: 13% !important; }
 }
 :where(body.sa-lesson) .sa-try__eq { display: flex; align-items: center; gap: 0 .15em; white-space: nowrap; font-variant-numeric: tabular-nums; }
 
-/* Which is a sector? -- the look before the question, and the marks that
-   define each part, lit as they are named. */
-:where(body.sa-lesson) .sa-card.is-look {
-  border-color: var(--lavender-fill);
-  box-shadow: inset 0 1px 0 #FFFFFF, 0 0 0 .22em color-mix(in srgb, var(--lavender-fill) 30%, transparent),
-              0 .6em 1.4em rgba(63, 42, 138, .16);
-}
-:where(body.sa-lesson) .sa-card.is-named { opacity: 1 !important; }
+/* Which is a sector? -- the marks that define each part, lit as they are
+   named. */
 :where(body.sa-lesson) .s-chord.is-defining,
 :where(body.sa-lesson) .s-radius.is-defining { stroke: var(--part-centre); filter: drop-shadow(0 0 4px color-mix(in srgb, var(--part-centre) 60%, transparent)); }
 :where(body.sa-lesson) .s-arc.is-defining,
@@ -1466,8 +1460,7 @@ body.sa-lesson .board { --row-bottom: 13% !important; }
 }
 .sa-lesson .sa-card:hover { filter: brightness(1.03); }
 .sa-lesson .is-live .sa-card:not(.is-tried):hover,
-.sa-lesson .is-live .sa-card:not(.is-tried):focus-visible,
-.sa-lesson .sa-card.is-look {
+.sa-lesson .is-live .sa-card:not(.is-tried):focus-visible {
   outline: none;
   border-color: var(--lavender-border);
   box-shadow: 0 var(--edge) 0 var(--pill-wall),

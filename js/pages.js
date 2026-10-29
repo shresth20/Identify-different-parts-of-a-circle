@@ -62,7 +62,7 @@
      at before the colour goes in, and the rim is lit for a good while before
      it is named, and again after. Milliseconds, except the pen's trip round,
      which is a tween's seconds. */
-  var DRAW_TIME   = 4;      /* s: the pen, once round -- slow on purpose    */
+  var DRAW_TIME   = 3;      /* s: the pen, once round -- unhurried (user, 2026-10-29: was 4) */
   var ASKED_HOLD  = 1200;   /* "Let's draw a circle!", then the pen         */
   var DRAWN_HOLD  = 2000;   /* the ring, closed, before it is filled        */
   var FILLED_HOLD = 1200;   /* the filled circle, before the rim is lit     */
@@ -2231,7 +2231,8 @@
          at. Two seconds after that line is finished the bird jumps off with
          it, the header closes, and the circle pops up to its bigger size in
          the middle of the board. The voice names the line, the name is
-         written under it and the rule under the circle. Next -- and the
+         written under it and the rule under the circle, and the voice says
+         the rule ("the diameter is twice the radius"). Next -- and the
          header opens again, for the chord scene to open on. */
       .then(function () {
         return Promise.all([Flow.anim(Beats.calloutOut(dom.mark, markParts())), lineAway()]);
@@ -2272,6 +2273,9 @@
       })
       .then(function () { return Flow.wait(BEAT); })
       .then(function () { return Flow.anim(Beats.showRule(dom.diaRule, dom.diaPlate)); })
+      .then(function () { return Flow.wait(BEAT); })
+      /* the rule, said: heard only -- it is already written under the circle */
+      .then(function () { return voiceOver('s1DiaTwice'); })
       .then(function () { return Flow.wait(BEAT); })
       /* Stop: the diameter, its name and its rule stay until Next. Then all
          of it goes, and the circle is left with only its centre, which is
@@ -2396,8 +2400,6 @@
         });
       })
       .then(function () { return speak(keyed('s1Longest')); })
-      .then(function () { return Flow.wait(SHORT); })
-      .then(function () { return speak(keyed('s1EveryDia')); })
       .then(function () { return Flow.wait(BEAT); })
       /* Stop, until Next. The activity wipes the board from here. */
       .then(function () { return handOver(dom.nextBtn); });

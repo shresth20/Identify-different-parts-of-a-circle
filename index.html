@@ -622,6 +622,13 @@
                         x="300" y="30" width="400" height="360">
                   <feGaussianBlur stdDeviation="2.4" />
                 </filter>
+                <!-- The upper half's halo, for its two glows while it is
+                     named: a wide soft blur, fixed -- only its opacity is
+                     animated (glowTwice, circum.js). -->
+                <filter id="csGlowBlur" filterUnits="userSpaceOnUse"
+                        x="300" y="10" width="400" height="240">
+                  <feGaussianBlur stdDeviation="6" />
+                </filter>
                 <!-- The mask the dashed diameter is drawn through: the same
                      line, solid and wider, grown out from the centre by
                      circum.js -- the dash trick cannot draw a dashed line
@@ -640,6 +647,8 @@
                     d="M500 52 A158 158 0 0 1 500 368 A158 158 0 0 1 500 52" />
               <circle class="rim-tip" id="csTip" cx="500" cy="52" r="7" />
               <path class="cs-dia pt-ends" id="csDia" d="M342 210 L658 210" mask="url(#csDiaMask)" />
+              <!-- The upper half's halo, under it: unseen until it glows. -->
+              <path class="cs-glow" id="csGlow" d="M658 210 A158 158 0 0 0 342 210" />
               <!-- The upper half, from three o'clock over the top to nine. -->
               <path class="arc-piece arc-piece--minor pt-ends" id="csArc"
                     d="M658 210 A158 158 0 0 0 342 210" />
@@ -653,15 +662,28 @@
                  (js/circum.js). Its own circle once more, outlined as the
                  semicircle's was: the rim and its pen, the small dot at the
                  centre, the vertical radius up to twelve o'clock and the
-                 horizontal one out to three, the quarter between them
-                 tinted in with its own piece of the rim lit, and the right
+                 horizontal one out to three, the quarter's own piece of the
+                 rim lit -- the region inside left clear -- and the rest of
+                 the rim, the major arc, then put behind a blur; and the right
                  angle at the centre marked with its square. Radii and angle
                  share page 2's ink (--cs-ink, circum.css); the dot keeps the
                  centre's pink. The burst goes up off the lit quarter when
                  the right formula is pressed. Nothing here is a target; the
                  answer is a press on a pill in #cfPane. -->
             <g class="figure__cf" id="cq" hidden>
-              <path class="cq-sector" id="cqSector" d="" />
+              <defs>
+                <!-- The blur the major arc is put behind once the quarter
+                     is lit, as the semicircle's lower half is (#csSoft). -->
+                <filter id="cqSoft" filterUnits="userSpaceOnUse"
+                        x="300" y="30" width="400" height="360">
+                  <feGaussianBlur stdDeviation="2.4" />
+                </filter>
+              </defs>
+              <!-- The major arc, from three o'clock round under the bottom
+                   and up to twelve: the rim's own line, blurred. It takes
+                   over from the rim outside the quarter once the quarter's
+                   arc is lit. -->
+              <path class="cs-lower cq-lower" id="cqLower" d="M658 210 A158 158 0 1 1 500 52" />
               <path class="figure__rim" id="cqRim"
                     d="M500 52 A158 158 0 0 1 500 368 A158 158 0 0 1 500 52" />
               <circle class="rim-tip" id="cqTip" cx="500" cy="52" r="7" />
