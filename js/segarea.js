@@ -743,9 +743,10 @@
   }
 
   /* A card refused: it turns red (a class -- the stylesheet transitions
-     the plate) and shakes its head, as a refused box does, holds the red
-     for a beat, and is a plain card again -- spent, with its name under
-     its circle so the learner knows what it WAS. */
+     the plate) and shakes its head, as a refused box does, with its name
+     coming up under its circle so the learner knows what it WAS. The red
+     is held until the card has been answered: armCards takes it off, and
+     the card is a plain one again -- spent. */
   var SHAKE = [-5, 5, -5, 5, -4, 4, 0];
 
   function cardWrong(card) {
@@ -754,10 +755,7 @@
     Beats.sfx('wrong');
     var tl = M.timeline({
       willChange: g, willChangeValue: 'transform',
-      revert: function () {
-        g.classList.remove('is-wrong');
-        M.set(g, { clearProps: 'transform' });
-      }
+      revert: function () { M.set(g, { clearProps: 'transform' }); }
     });
     var each = M.dur(0.3) / SHAKE.length;
     SHAKE.forEach(function (x, i) {
@@ -765,7 +763,6 @@
     });
     var name = nameIn(card);
     if (name) tl.add(name, M.gap(0.1));
-    tl.to({}, { duration: M.dur(0.5) });        /* the red, read before it goes */
     return tl;
   }
 
@@ -818,6 +815,7 @@
      presses it. */
   function armCards(spec) {
     var live = true;
+    var busy = false;             /* a wrong card being answered: none is live */
     var misses = 0;
     var auto = false;             /* only the answer left: put in for the learner */
     var list = cards.map(function (card) { return card.g; });
@@ -830,7 +828,7 @@
       return null;
     }
     function onPick(ev) {
-      if (!live) return;
+      if (!live || busy) return;
       var g = ev.currentTarget;
       var card = cardOf(g);
       if (!card || g.classList.contains('is-done')) return;
@@ -842,25 +840,38 @@
         return;
       }
       misses++;
-      K.quiet(Flow.anim(cardWrong(card)));
-      /* Every wrong card tried: the learner is not asked to tap the one
-         left -- the wait ends and the page turns it over (user,
-         2026-10-29). */
+      /* Answered in full, the last wrong card too (user, 2026-10-29): it
+         stays red, and no card is live, until `onWrong` -- the saying of
+         why, which it returns -- is over. Then the red goes and the
+         learner tries again among the rest; or, every wrong card tried,
+         the learner is not asked to tap the one left -- the wait ends and
+         the page turns it over. */
+      busy = true;
+      dom.sa.classList.remove('is-asking');
       var left = cards.filter(function (c) { return !c.g.classList.contains('is-done'); });
-      if (left.length === 1 && left[0].kind === spec.answer) {
+      var last = left.length === 1 && left[0].kind === spec.answer;
+      function heard() {
+        busy = false;
+        g.classList.remove('is-wrong');
+      }
+      K.quiet(Promise.all([
+        Flow.anim(cardWrong(card)),
+        spec.onWrong ? spec.onWrong(card, misses) : null
+      ]).then(function () {
+        heard();
+        if (!live) return;        /* answered already: a skip, or the scene gone */
+        if (!last) { dom.sa.classList.add('is-asking'); return; }
         live = false;
         auto = true;
         dom.gate.dispatchEvent(new MouseEvent('click'));
-        return;
-      }
-      if (spec.onWrong) spec.onWrong(card, misses);
+      }, heard));
     }
     function onKey(ev) {
       if (ev.key !== 'Enter' && ev.key !== ' ' && ev.key !== 'Spacebar') return;
       ev.preventDefault();
       onPick(ev);
     }
-    function onDown(ev) { if (live) ev.currentTarget.classList.add('is-down'); }
+    function onDown(ev) { if (live && !busy) ev.currentTarget.classList.add('is-down'); }
     function onUp(ev) { ev.currentTarget.classList.remove('is-down'); }
     function off() {
       live = false;
@@ -930,7 +941,7 @@
       .then(function () {
         outcome = K.quiet(armCards({
           answer: ANSWER,
-          onWrong: function (card) { K.quiet(verdict(wrong[card.kind], 'confused')); }
+          onWrong: function (card) { return verdict(wrong[card.kind], 'confused'); }
         }));
         return K.arriveSaying(L('s4p1Ask'));
       })
@@ -941,15 +952,13 @@
 
       /* ---- the segment found: the card goes green with its tick, the bird
          says so and why, and every card is named. Put in for the learner
-         when only it was left: the last wrong card is seen refused first,
-         and the bird opens with which is the answer instead of praise. -- */
+         when only it was left: once the last wrong card has been answered,
+         a beat, and the bird opens with which is the answer instead of
+         praise. ---------------------------------------------------------- */
       .then(function (res) {
         var auto = !!(res && res.auto);
         var yes = [keyed('fbCorrect'), L('s4p1Right')];
-        /* the first wrong card's verdict is cut off: the answer goes in
-           at once (user, 2026-10-29) */
-        if (auto) SA.cutVoice();
-        return (auto ? Flow.wait(800) : Promise.resolve()).then(function () {
+        return (auto ? Flow.wait(500) : Promise.resolve()).then(function () {
           return Promise.all([
             Flow.anim(cardRight(answerCard(), auto)),
             verdict(auto ? SA.autoLines(L('s4p1Auto'), yes) : yes, 'happy')

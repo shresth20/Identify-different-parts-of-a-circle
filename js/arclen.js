@@ -571,11 +571,12 @@
 
   /* Asked: the hand comes a beat after the blank starts calling, and goes
      the moment the blank is first opened; the right pick sets the
-     sentence's own word in the box ("arc", not "Arc"). Once every wrong
-     name has been tried, the right one is put in for the learner (the
-     dropdown's own `auto`) and the wait resolves { auto: true }: the
-     last wrong pick is then not answered -- the round's verdict opens
-     with which name it is instead (user, 2026-10-29). */
+     sentence's own word in the box ("arc", not "Arc"). A wrong pick
+     stays in the box until its verdict -- which onWrong returns -- has
+     been said; once every wrong name has been answered so, the right one
+     is put in for the learner (the dropdown's own `auto`) and the wait
+     resolves { auto: true }: the round's verdict then opens with which
+     name it is (user, 2026-10-29). */
   function askDropdown(spec, dd) {
     var face = dd.el.querySelector('.dd__face');
     var stop = null, opened = false;
@@ -590,7 +591,7 @@
       yes: false,
       burst: function () {},
       onWrong: function (i) {
-        K.quiet(verdict(spec.wrong[spec.options[i]], 'confused'));
+        return verdict(spec.wrong[spec.options[i]], 'confused');
       }
     }).then(function (res) {
       opened = true;
@@ -625,9 +626,9 @@
       .then(function () { return Flow.wait(SHORT); })
 
       /* ---- the pick. The bird answers every wrong one from the header: up
-         for the first and standing there until the right name is in. Those
-         verdicts are waits the chain never awaits, so they go through
-         quiet(); the right answer's is the scene's own beat. ---------------- */
+         for the first and standing there until the right name is in, each
+         heard to its end before the blank is live again; the right
+         answer's is the scene's own beat. ----------------------------------- */
       .then(function () { return askDropdown(spec, dd); })
       .then(function (res) {
         return Flow.wait(SHORT).then(function () {

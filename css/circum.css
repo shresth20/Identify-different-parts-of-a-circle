@@ -236,6 +236,8 @@
 /* A spent pill -- refused, or passed over once the answer is in -- is not
    a control: restated here, because the rule above outranks style.css's. */
 .cf-opts .choice.is-done { pointer-events: none; }
+/* ...and while a wrong one is being answered, none is (circum.js). */
+.cf-opts.is-hearing .choice { pointer-events: none; }
 
 /* The semicircle page asks with longer formulas: a step smaller, so all
    three still stand in one row across the half-stage. */

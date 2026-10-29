@@ -412,7 +412,26 @@ body.sa-lesson .board { --row-bottom: 13% !important; }
 }
 :where(body.sa-lesson, #alAsk) .dd__opt:hover,
 :where(body.sa-lesson, #alAsk) .dd__opt:focus-visible { background: color-mix(in srgb, var(--lavender-fill) 22%, #FFFFFF); outline: none; }
-:where(body.sa-lesson, #alAsk) .dd__opt.is-out { opacity: .35; pointer-events: none; text-decoration: line-through; }
+:where(body.sa-lesson, #alAsk) .dd__opt.is-out { opacity: .35; pointer-events: none; }
+/* Struck through the MIDDLE of its letters (user, 2026-10-29): the face's
+   own line-through sits in their top third, so the line is drawn here --
+   laid on the words, its foot on their baseline (grid baseline alignment,
+   whatever the font's metrics), and lifted to half the x-height. */
+:where(body.sa-lesson, #alAsk) .dd__opt.is-out .dd__opt-t {
+  display: inline-grid;
+  align-items: baseline;
+}
+:where(body.sa-lesson, #alAsk) .dd__opt.is-out .dd__opt-t > span,
+:where(body.sa-lesson, #alAsk) .dd__opt.is-out .dd__opt-t::after { grid-area: 1 / 1; }
+:where(body.sa-lesson, #alAsk) .dd__opt.is-out .dd__opt-t::after {
+  content: '';
+  height: .08em;
+  margin: 0 -.08em;
+  border-radius: .04em;
+  background: currentColor;
+  transform: translateY(-.19em);
+}
+:where(body.sa-lesson, #alAsk) .dd__opt.is-out.is-frac .dd__opt-t::after { content: none; }
 
 :where(body.sa-lesson, #alAsk) .dd.is-wrong .dd__face {
   border-style: solid;
@@ -427,7 +446,11 @@ body.sa-lesson .board { --row-bottom: 13% !important; }
   cursor: default;
   padding-right: .6em;
 }
-:where(body.sa-lesson, #alAsk) .dd.is-right .dd__caret { display: none; }
+/* A pick standing in the box -- the right one for good, a wrong one while
+   it is answered -- is no control, so the caret goes (user, 2026-10-29). */
+:where(body.sa-lesson, #alAsk) .dd.is-wrong .dd__face { cursor: default; padding-right: .6em; }
+:where(body.sa-lesson, #alAsk) .dd.is-right .dd__caret,
+:where(body.sa-lesson, #alAsk) .dd.is-wrong .dd__caret { display: none; }
 /* The tick on the box's corner, as on an answered name box. */
 :where(body.sa-lesson, #alAsk) .dd__tick {
   position: absolute;
@@ -449,6 +472,10 @@ body.sa-lesson .board { --row-bottom: 13% !important; }
    ========================================================================== */
 :where(body.sa-lesson) .choice.is-out { opacity: .42 !important; pointer-events: none; }
 :where(body.sa-lesson) .choice.is-done:not(.is-right) { opacity: .55 !important; }
+/* A wrong pick being answered: nothing is a control until the voice has
+   said why (sector-area.js, stepBack) -- not even pressed in. */
+.is-hearing .choice,
+.is-hearing .sa-card { pointer-events: none; }
 
 /* ==========================================================================
    Cards

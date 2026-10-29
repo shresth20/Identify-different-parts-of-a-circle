@@ -366,7 +366,7 @@
      is first -- `spec.auto`, the page's line naming it -- and then why,
      without the "Correct!" a found answer gets (user, 2026-10-29). */
   var PRAISED = ['fbCorrect', 'fbThatsCorrect'];
-  var AUTO_AFTER = 800;   /* ms: the last wrong pill seen refused first */
+  var AUTO_AFTER = 500;   /* ms: the last wrong pill stepped back first */
   function autoLines(spec) {
     var why = [].concat(spec.right).filter(function (l) { return PRAISED.indexOf(l.vo) < 0; });
     return [spec.auto || said('fbAutoRight', T('fbAutoRight'))].concat(why);
@@ -474,7 +474,8 @@
    * Real buttons (see buildChoices in pages.js), so Enter and Space work
    * without a line of code. A wrong press is refused -- the pill shakes,
    * turns red and is spent, `onWrong` is told which one so the box can say
-   * why -- and the learner tries again among the pills that are left. The
+   * why -- and once that has been said the learner tries again among the
+   * pills that are left. The
    * right one turns green and the wait resolves.
    *
    * The wait is the lesson's gate (see #gate in index.html): an ordinary
@@ -485,11 +486,12 @@
    * ====================================================================== */
   function armChoices(spec) {
     var live = true;
+    var busy = false;             /* a wrong pill being answered: none is live */
     var misses = 0;
     var auto = false;             /* only the answer left: put in for the learner */
 
     function onPick(ev) {
-      if (!live) return;
+      if (!live || busy) return;
       var btn = ev.currentTarget;
       if (btn.classList.contains('is-done')) return;
       K.ripple(ev, btn);
@@ -500,24 +502,37 @@
         return;
       }
       misses++;
-      /* Spent: a formula shown wrong is left standing red, so the learner
-         is choosing among the rest rather than pressing the same one. */
+      /* Spent: a formula shown wrong is not pressed again. It stays red,
+         and no pill is live, until `onWrong` -- the saying of why, which
+         it returns -- is over, the last wrong one's too (user, 2026-10-29);
+         then it steps back, and the learner tries again among the rest --
+         or, with only the answer left, the wait ends and the ask puts it
+         in. */
       btn.classList.add('is-done');
-      Beats.choiceWrong(btn);
-      /* Every wrong pill tried: the learner is not asked to press the one
-         that is left -- the wait ends, and the ask puts it in. */
+      busy = true;
+      dom.cfOpts.classList.add('is-hearing');
       var left = opts.filter(function (b) { return !b.classList.contains('is-done'); });
-      if (left.length === 1 && left[0].dataset.name === spec.answer) {
+      var last = left.length === 1 && left[0].dataset.name === spec.answer;
+      K.quiet(Promise.all([
+        Flow.anim(Beats.choiceWrong(btn)),
+        spec.onWrong ? spec.onWrong(btn.dataset.name, misses) : null
+      ]).then(function () {
+        btn.classList.remove('is-wrong');
+        if (!live) return;        /* answered already: a skip, or the scene gone */
+        return Flow.anim(M.to(btn, { opacity: 0.55, duration: M.dur(0.3), ease: 'power2.inOut' }));
+      }).then(function () {
+        busy = false;
+        dom.cfOpts.classList.remove('is-hearing');
+        if (!live || !last) return;
         live = false;
         auto = true;
         dom.gate.dispatchEvent(new MouseEvent('click'));
-        return;
-      }
-      if (spec.onWrong) spec.onWrong(btn.dataset.name, misses);
+      }));
     }
 
     function off() {
       live = false;
+      dom.cfOpts.classList.remove('is-hearing');
       opts.forEach(function (b) {
         b.removeEventListener('click', onPick);
         b.classList.add('is-done');
@@ -646,23 +661,23 @@
       })
 
       /* ---- the press. Every try is answered by the voice, the question
-         left standing in the box: the why for a wrong one -- those verdicts
-         are waits the chain never awaits, so they go through quiet() --
-         and the right answer's verdict is the scene's own beat, once the
-         gate has fired. ---------------------------------------------------- */
+         left standing in the box: the why for a wrong one -- heard to its
+         end before any pill is live again (armChoices) -- and the right
+         answer's verdict is the scene's own beat, once the gate has
+         fired. ------------------------------------------------------------- */
       .then(function () {
         return armChoices({
           answer: spec.answer,
           onWrong: function (name) {
-            K.quiet(verdict(spec.wrong[name], 'confused', 'is-bad'));
+            return verdict(spec.wrong[name], 'confused', 'is-bad');
           }
         });
       })
       /* The answer stands alone: the other pills -- spent, no longer
          controls -- step back to a faint 0.4 while the voice says why, so
          the green one is what the eye is left on. Put in for the learner
-         when it was the only one left: the last wrong pill is seen refused
-         first, and it lights without the chime. */
+         when it was the only one left: once the last wrong pill has been
+         answered and has stepped back, it lights without the chime. */
       .then(function (res) {
         var auto = !!(res && res.auto);
         var right = opts.filter(function (b) { return b.dataset.name === spec.answer; })[0];

@@ -701,7 +701,11 @@
      left -- it is put in for them, and the bird says so first ("Arc is the
      correct answer.") and then why, without the praise a found answer gets.
      `opening` is the page's own line naming the answer; a page that names
-     none gets the general one. */
+     none gets the general one.
+       Every wrong pick is answered IN FULL first, the last one too: it
+     stays shown red while the voice says why, nothing is live until it
+     has, and only then is it taken back -- and the learner asked again,
+     or the answer put in (user, 2026-10-29). */
   var PRAISED = ['fbCorrect', 'fbThatsCorrect', 'praiseWellDone', 'praiseAwesome',
                  's3ThatsRight', 's3GreatJob'];
   function autoLines(opening, yes) {
@@ -713,7 +717,7 @@
   function allTried(list, good) {
     return list.every(function (x) { return x === good || x.__out; });
   }
-  var AUTO_AFTER = 800;     /* ms: the last wrong pick seen refused before the answer goes in */
+  var AUTO_AFTER = 500;     /* ms: the last wrong pick taken back before the answer goes in */
 
   /* The last line taken off the header, the bird left standing: for a
      drawing that is meant to be watched before anything is said about it. */
@@ -864,6 +868,18 @@
       .then(function () { box.setAttribute('hidden', ''); box.textContent = ''; K.choices([]); });
   }
 
+  /* A wrong pick taken back once it has been answered: the red let go and
+     the pick eased down to the faint it is left at (`to`, the opacity
+     `cls` holds it at), and then that class put on to keep it there. */
+  function stepBack(el, cls, to) {
+    el.classList.remove('is-wrong');
+    return anim(M.to(el, { opacity: to, duration: M.dur(0.3), ease: 'power2.inOut' }))
+      .then(function () {
+        el.classList.add(cls);
+        M.set(el, { clearProps: 'opacity' });
+      });
+  }
+
   /* Three (or two) pills -- the first lesson's own .choice, wherever they
      stand; resolves once the right one is pressed. */
   /* `o.host` puts the pills on the page itself, in a row under the
@@ -872,6 +888,7 @@
     o = o || {};
     var box = o.host ? h('div', 'sa-mcq' + (o.tiles ? ' sa-mcq--tiles' : ''), null, o.host) : dom.choices;
     box.textContent = '';
+    box.classList.remove('is-hearing');     /* the footer, left mid-answer */
     var btns = labels.map(function (l, i) {
       var b = h('button', 'choice', l, box);
       b.type = 'button';
@@ -895,23 +912,26 @@
           return tell(o.yes || praise(), 'happy');
         }
         b.__out = true;
-        quiet(anim(Beats.choiceWrong(b)).then(function () {
-          b.classList.remove('is-wrong');
-          b.classList.add('is-out');
-        }));
-        /* only the answer left: put in for the learner, not asked for */
-        if (allTried(btns, good)) {
-          return wait(AUTO_AFTER).then(function () {
-            btns.forEach(function (x) { x.classList.add('is-done'); });
-            good.classList.add('is-right');
-            quiet(anim(M.correct(good)));
-            return tell(autoLines(o.auto, o.yes), 'happy');
-          });
-        }
         var why = o.why && o.why[btns.indexOf(b)];
         if (o.onWrong) o.onWrong(btns.indexOf(b));
-        quiet(tell(why || o.no || oops(), 'confused'));
-        return loop();
+        /* answered in full first (see autoLines): red, and nothing live,
+           while the voice says why -- then it steps back */
+        box.classList.add('is-hearing');
+        return Promise.all([anim(Beats.choiceWrong(b)), tell(why || o.no || oops(), 'confused')])
+          .then(function () {
+            box.classList.remove('is-hearing');
+            return stepBack(b, 'is-out', 0.6);
+          }, function (err) { box.classList.remove('is-hearing'); throw err; })
+          .then(function () {
+            if (!allTried(btns, good)) return loop();
+            /* only the answer left: put in for the learner, not asked for */
+            return wait(AUTO_AFTER).then(function () {
+              btns.forEach(function (x) { x.classList.add('is-done'); });
+              good.classList.add('is-right');
+              quiet(anim(M.correct(good)));
+              return tell(autoLines(o.auto, o.yes), 'happy');
+            });
+          });
       });
     }
     var inOrder = Array.prototype.slice.call(box.children).filter(function (e) { return btns.indexOf(e) >= 0; });
@@ -924,7 +944,7 @@
 
   /* ---- the dropdown blank ---------------------------------------------------
      A dashed slot set into a sentence. Tap it and the choices drop out under
-     it (or over it, `up`); a wrong one shows red in the slot for a moment,
+     it (or over it, `up`); a wrong one shows red in the slot while it is answered,
      shakes, and is struck off the list; the right one stays, green, with a
      tick on the corner. */
   function dropdown(host, opts, right, o) {
@@ -938,10 +958,18 @@
     var menu = h('span', 'dd__menu', null, dd);
     menu.setAttribute('role', 'listbox');
     menu.hidden = true;
+    /* Each choice's words in a span of their own, so a struck-out one can
+       be struck through their middle (sector-area.css); what goes into the
+       box is the words alone. */
     var items = opts.map(function (t) {
-      var b = h('button', 'dd__opt', t, menu);
+      var b = h('button', 'dd__opt', '<span class="dd__opt-t"><span>' + t + '</span></span>', menu);
       b.type = 'button';
       b.setAttribute('role', 'option');
+      b.__html = t;
+      /* a choice that is one fraction and nothing else: struck, its line
+         would lie on the fraction's own bar, so it is only faded */
+      var f = b.querySelector('.frac');
+      if (f && f.textContent === b.textContent) b.classList.add('is-frac');
       return b;
     });
     if (!o.keepOrder) shuffled(items.length).forEach(function (i) { menu.appendChild(items[i]); });
@@ -949,6 +977,7 @@
     svgEl('circle', { cx: 12, cy: 12, r: 10.5 }, tick);
     svgEl('path', { d: 'M7 12.5 10.5 16 17 8.5' }, tick);
     var val = face.querySelector('.dd__val');
+    var caret = face.querySelector('.dd__caret');
     var good = items[right];
 
     /* The row the blank sits in is lifted over its neighbours while the
@@ -970,7 +999,7 @@
     function win(auto) {
       open(false);
       dd.classList.remove('is-asking', 'is-wrong');
-      val.innerHTML = good.innerHTML;
+      val.innerHTML = good.__html;
       dd.classList.add('is-right');
       face.disabled = true;
       if (!auto) Beats.sfx('correct');
@@ -1003,32 +1032,46 @@
             open(false);
             b.__out = true;
             b.classList.add('is-out');
-            val.innerHTML = b.innerHTML;
+            val.innerHTML = b.__html;
+            /* The pick stays in the box, red and not live, until what is
+               said about it is over (see autoLines). q.onWrong(i): the
+               page answers the wrong pick itself (the options' index i),
+               as a page with its own bird lines does, and returns the
+               saying of it. */
+            dd.classList.remove('is-asking');
             dd.classList.add('is-wrong');
+            face.disabled = true;
             Beats.sfx('wrong');
-            quiet(anim(M.incorrect(face)).then(function () {
-              if (dd.classList.contains('is-right')) return;
-              return wait(350).then(function () {
-                if (dd.classList.contains('is-right')) return;
+            var why = q.why && q.why[items.indexOf(b)];
+            var heard = q.onWrong ? q.onWrong(items.indexOf(b))
+                                  : answered(why || q.no || oops(), 'confused');
+            return Promise.all([anim(M.incorrect(face)), heard])
+              .then(function () {
+                /* ...and then it goes: the word first, and then the red,
+                   the box left empty -- with its caret back, eased in, only
+                   if the box is to be asked again. (A pick in the box, wrong
+                   or right, has no caret: sector-area.css.) */
+                return anim(M.to(val, { opacity: 0, duration: M.dur(0.24), ease: 'power2.in' }));
+              })
+              .then(function () {
+                var again = !allTried(items, good);
+                M.set(caret, { opacity: 0 });
                 dd.classList.remove('is-wrong');
                 val.innerHTML = '';
+                M.set(val, { clearProps: 'opacity' });
+                if (again) {
+                  face.disabled = false;
+                  quiet(anim(M.to(caret, { opacity: 1, duration: M.dur(0.24), ease: 'power2.out',
+                                           clearProps: 'opacity' })));
+                  dd.classList.add('is-asking');
+                  return loop();
+                }
+                /* Only the answer left: put in, unasked, with what it is. */
+                return wait(AUTO_AFTER).then(function () { return win(true); }).then(function () {
+                  M.set(caret, { clearProps: 'opacity' });
+                  if (q.yes !== false) return answered(autoLines(q.auto, q.yes), 'happy');
+                }).then(function () { return { auto: true }; });
               });
-            }));
-            /* Only the answer left: the refused pick is seen red and goes,
-               and the answer is put in, unasked, with what it is. */
-            if (allTried(items, good)) {
-              return wait(AUTO_AFTER).then(function () { return win(true); }).then(function () {
-                if (q.yes !== false) return answered(autoLines(q.auto, q.yes), 'happy');
-              }).then(function () { return { auto: true }; });
-            }
-            /* q.onWrong(i): the page answers the wrong pick itself (the
-               options' index i), as a page with its own bird lines does */
-            if (q.onWrong) q.onWrong(items.indexOf(b));
-            else {
-              var why = q.why && q.why[items.indexOf(b)];
-              quiet(answered(why || q.no || oops(), 'confused'));
-            }
-            return loop();
           });
         }
         return loop();
@@ -1519,28 +1562,27 @@
       picked.__out = true;
       picked.classList.add('is-wrong');
       Beats.sfx('wrong');
-      (function (c) {
-        quiet(anim(M.incorrect(c)).then(function () {
-          c.classList.remove('is-wrong');
-          c.classList.add('is-tried');
-        }));
-      })(picked);
-      /* Both wrong cards tried: the answer is shown at once (user,
-         2026-10-29). What was being said about the first is cut off, and
-         as soon as this one is seen refused the sector card goes green for
-         the learner, with what a sector is (autoLines). */
-      if (allTried(cards, right)) {
-        auto = true;
-        cutVoice();
-        await wait(AUTO_AFTER);
-        break;
-      }
       var dw = DEFS[cards.indexOf(picked)];
       sweepGlow(dw.els);
       quiet(beat(dw.els));
-      quiet(answered(picked === cards[0]
+      /* Answered in full first, the second wrong card too (see autoLines):
+         it stays red, and no card is live, while the voice says what it
+         shows instead; then it steps back. */
+      sc.classList.remove('is-live');
+      sc.classList.add('is-hearing');
+      await Promise.all([anim(M.incorrect(picked)), answered(picked === cards[0]
         ? [keyed('fbNotQuite'), keyed('s3PickWrongSeg')]
-        : [keyed('fbNotQuite'), keyed('s3PickWrongArc')], 'confused'));
+        : [keyed('fbNotQuite'), keyed('s3PickWrongArc')], 'confused')]);
+      sc.classList.remove('is-hearing');
+      await stepBack(picked, 'is-tried', 0.65);
+      /* Both wrong cards tried: the sector card goes green for the
+         learner, with what a sector is (autoLines). */
+      if (allTried(cards, right)) {
+        auto = true;
+        await wait(AUTO_AFTER);
+        break;
+      }
+      sc.classList.add('is-live');
     }
     sc.classList.remove('is-live');
     right.classList.add('is-right');

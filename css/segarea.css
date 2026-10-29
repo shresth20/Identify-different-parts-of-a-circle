@@ -119,8 +119,8 @@
   stroke-width: 3.5;
   transition: fill .3s ease, stroke .3s ease;
 }
-/* Answered. The green is a state the card stays in; the red is held for
-   a beat by cardWrong and then taken off again. */
+/* Answered. The green is a state the card stays in; the red is held
+   while the card is answered and then taken off again (armCards). */
 .sa-card.is-right .sa-card__face { fill: var(--sa-card-right); stroke: var(--right-border); }
 .sa-card.is-wrong .sa-card__face { fill: var(--sa-card-wrong); stroke: var(--wrong-border); }
 
