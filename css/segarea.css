@@ -63,17 +63,11 @@
      its own, a warm coral, so it is not read as the sector's tan. */
   --sa-fill-seg:   #FFB27E;
 
-  /* The window: a dark frame round a pale pane, a wooden strip, and the
-     coloured glass in rose. The tabletop: its wood, its edge and its cut
-     in a warm brown, against a stone-grey wall. */
-  --sa-frame:      #4A5568;
-  --sa-pane:       color-mix(in srgb, var(--blue-fill) 26%, #FFFFFF);
-  --sa-glass:      color-mix(in srgb, #FF6FB1 40%, #FFFFFF);
-  --sa-glass-ink:  #D63384;
-  --sa-wood:       #EBCB9C;
-  --sa-wood-edge:  #9A5B26;
-  --sa-wall:       color-mix(in srgb, #A99A86 38%, #FFFFFF);
-  --sa-wall-edge:  #8B7B66;
+  /* The tabletop's wall: a soft stone mixed from the board's own second
+     ink, edged in that ink -- the stories bring no colours of their own
+     into the game (user, 2026-10-30). */
+  --sa-wall:       color-mix(in srgb, var(--text-secondary) 14%, #FFFFFF);
+  --sa-wall-edge:  var(--text-secondary);
 
   /* A card's plate: white on a soft lavender edge, as the activity boxes
      are, with the verdict hues when it has been pressed. */
@@ -417,30 +411,20 @@
    ========================================================================== */
 .sa-lesson .sa-fig .sa-region { --focus: var(--sa-arc); }
 .sa-lesson .sa-fig .sa-region--major { --focus: var(--sa-arc-major); }
-.sa-lesson .sa-fig .sa-region--glass { --focus: var(--sa-glass-ink); }
-.sa-lesson .sa-fig .sa-region--wood { --focus: var(--sa-wood-edge); }
 .sa-lesson .sa-fig .se-tri { --focus: var(--sa-ink-tri); }
 .sa-lesson .sa-fig .se-tri.is-lit { fill: color-mix(in srgb, var(--mint-fill) 70%, #FFFFFF); }
-.sa-region--glass { fill: var(--sa-glass); }
-.sa-region--wood { fill: var(--sa-wood); }
 
-/* The window: a dark frame round a pale pane, the wooden strip across
-   its top, the coloured glass above it in rose under a rose arc. The
-   tabletop: the round edge in pencil until the cut, then the top itself
-   in wood with a wooden edge, the straight cut in the same brown, the
-   piece beyond it gone -- a dashed outline over the wall it now meets. */
-.sa-lesson .sa-fig .sq-frame { stroke: var(--sa-frame); stroke-width: 6; }
-.sa-lesson .sa-fig .sq-pane { fill: var(--sa-pane); }
-.sa-lesson .sa-fig .sq-strip { stroke: var(--sa-wood-edge); stroke-width: 6.5; }
-.sa-lesson .sa-fig .sa-arc--glass { stroke: var(--sa-glass-ink); }
-.sa-lesson .sa-fig .sa-arc--wood { stroke: var(--sa-wood-edge); }
-.sa-lesson .sa-fig .sq-cut { stroke: var(--sa-wood-edge); stroke-width: 5; }
+/* The window and the tabletop are drawn in the colours every other
+   segment is (user, 2026-10-30): the window's glass is the minor segment
+   in its tan under its orange arc, the strip the chord in ink; the
+   tabletop is the major segment in lavender under its violet arc, the cut
+   the chord, and the piece beyond it -- gone -- the minor piece's sky blue,
+   only a faint wash and a dashed outline over the wall it now meets. */
 .sa-lesson .sa-fig .sq-cutoff {
-  fill: color-mix(in srgb, var(--sa-wood) 30%, transparent);
+  fill: color-mix(in srgb, var(--sa-fill-blue) 55%, transparent);
   stroke: none;
 }
 .sa-lesson .sa-fig .sq-cutoff-arc {
-  stroke: var(--sa-wood-edge);
   stroke-width: 2.5;
   stroke-dasharray: 7 7;
 }
@@ -454,10 +438,15 @@
 .sa-lesson .sa-fig .s4-chord-word { font-size: 20px; fill: var(--text-primary); }
 
 /* The formula for any angle (page 10a and the end): its two parts, each
-   lit in turn as the bird names it -- the sector's, then the triangle's. */
+   lit in turn as the bird names it -- the sector's, then the triangle's.
+   Each part is set on the middle of the line, as a fraction is, so the
+   "−" between them sits level with their "×"s -- on its baseline a part
+   dropped to its fraction's foot and left the "−" up by the r² (user,
+   2026-10-30). */
 .sa-lesson .s4-term {
   display: inline-flex;
   align-items: center;
+  vertical-align: middle;
   padding: .05em .2em;
   border-radius: .35em;
   transition: background-color .4s ease;

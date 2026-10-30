@@ -1960,8 +1960,10 @@
      major (the larger piece is the one coloured, the smaller in blue
      beside it), tri (the triangle coloured too), plain (no segment at
      all: the triangle page), r2 (a second length, on the other radius),
-     kind ('glass', 'table': the stories' colours). Everything is built;
-     what is shown, and when, is the page's -- draw() is the usual order. */
+     cutOff (the smaller piece is gone, only its faint wash and a dashed
+     outline left: the tabletop). The stories are drawn in the colours
+     every segment is (user, 2026-10-30). Everything is built; what is
+     shown, and when, is the page's -- draw() is the usual order. */
   function segFigure(host, o) {
     o = o || {};
     var F = SA.figure(host, '34 34 352 352');
@@ -1969,10 +1971,7 @@
     var geo = circleAt(FIG.cx, FIG.cy, FIG.r);
     var a0 = o.at == null ? 0 : o.at, th = o.theta || 90, a1 = a0 + th;
     var pA = geo.pt(a0), pB = geo.pt(a1), centre = { x: geo.cx, y: geo.cy };
-    var g = { F: F, C: C, geo: geo, a0: a0, a1: a1, th: th, pA: pA, pB: pB, kind: o.kind };
-    /* the window: a dark frame round a clear pane (the tabletop's wood and
-       the dashed piece beyond its cut are its regions and arcs, below) */
-    if (o.kind === 'glass') { C.rim.classList.add('sq-frame'); C.disc.classList.add('sq-pane'); }
+    var g = { F: F, C: C, geo: geo, a0: a0, a1: a1, th: th, pA: pA, pB: pB };
 
     g.seg = g.minor = g.arcMinor = null;
     /* the sector a line of working is about -- the minor one, or the major
@@ -1981,13 +1980,11 @@
                                d: o.major ? geo.wedge(a1, 360 - th) : geo.wedge(a0, th) }, C.under);
     if (!o.plain) {
       if (o.major) {
-        g.minor = svgEl('path', { 'class': 'sa-region ' + (o.kind === 'table' ? 'sq-cutoff' : 'sa-region--blue'),
+        g.minor = svgEl('path', { 'class': 'sa-region ' + (o.cutOff ? 'sq-cutoff' : 'sa-region--blue'),
                                   d: geo.seg(a0, th) }, C.under);
-        g.seg = svgEl('path', { 'class': 'sa-region ' + (o.kind === 'table' ? 'sa-region--wood' : 'sa-region--major'),
-                                d: geo.arc(a1, 360 - th) + ' Z' }, C.under);
+        g.seg = svgEl('path', { 'class': 'sa-region sa-region--major', d: geo.arc(a1, 360 - th) + ' Z' }, C.under);
       } else {
-        g.seg = svgEl('path', { 'class': 'sa-region' + (o.kind === 'glass' ? ' sa-region--glass' : ''),
-                                d: geo.seg(a0, th) }, C.under);
+        g.seg = svgEl('path', { 'class': 'sa-region', d: geo.seg(a0, th) }, C.under);
       }
     }
     g.tri = svgEl('path', { 'class': 'se-tri', d: geo.tri(a0, th) }, C.under);
@@ -1995,15 +1992,13 @@
     g.rb = svgEl('path', { 'class': 's-radius pt-end', d: lineD(centre, pB) }, C.over);
     /* the chord's ends on the rim; the arcs over them carry the same two
        points, so the points stay on top of whichever is drawn last */
-    g.chord = svgEl('path', { 'class': 'sa-chord pt-ends' +
-      (o.kind === 'glass' ? ' sq-strip' : o.kind === 'table' ? ' sq-cut' : ''), d: lineD(pB, pA) }, C.over);
+    g.chord = svgEl('path', { 'class': 'sa-chord pt-ends', d: lineD(pB, pA) }, C.over);
     if (!o.plain) {
       if (o.major) {
-        g.arcMinor = svgEl('path', { 'class': 'sa-arc pt-ends ' + (o.kind === 'table' ? 'sq-cutoff-arc' : 'sa-arc--blue'),
+        g.arcMinor = svgEl('path', { 'class': 'sa-arc pt-ends sa-arc--blue' + (o.cutOff ? ' sq-cutoff-arc' : ''),
                                      d: geo.arc(a0, th) }, C.over);
       }
-      g.arc = svgEl('path', { 'class': 'sa-arc pt-ends' +
-        (o.kind === 'table' ? ' sa-arc--wood' : o.major ? ' sa-arc--major' : o.kind === 'glass' ? ' sa-arc--glass' : ''),
+      g.arc = svgEl('path', { 'class': 'sa-arc pt-ends' + (o.major ? ' sa-arc--major' : ''),
                               d: o.major ? geo.arc(a1, 360 - th) : geo.arc(a0, th) }, C.over);
     }
     g.A = SA.angleMark(C, a0, a1, o.deg || (th + '°'), { r: 34 });
@@ -2106,7 +2101,10 @@
      and the answers under it. Every answer is said in that bubble -- red
      for a wrong one, and then the question again; green for the right
      one. `reveal`, if given, is run on the figure as the right answer is
-     praised. Returns the panel, with the bubble, bird and answers gone. */
+     praised. Returns the panel, with the bubble, bird and answers gone.
+     `tag: false` sets the formula under the figure without its "Remember"
+     -- the long ones, from the segment at 60° on, need that room (user,
+     2026-10-30). */
   async function askInPanel(sc, fig, spec) {
     var panel = h('div', 'sa-panel sa-panel--practice', null, sc);
     var P = SA.perchIn(panel);
@@ -2115,7 +2113,7 @@
     var slot = h('div', 'sa-qslot' + (spec.big ? ' sa-qslot--big' : '') + (spec.row ? ' sa-qslot--row' : ''), null, panel);
     var given = null;
     if (spec.rule) {
-      given = SA.ruleCard(sc, spec.tag || T('s3TagRemember'), spec.rule, 'sa-rule--small');
+      given = SA.ruleCard(sc, spec.tag === false ? null : spec.tag || T('s3TagRemember'), spec.rule, 'sa-rule--small');
       M.set(given.el, { opacity: 0 });
     }
     if (spec.onAsk) await spec.onAsk(fig);
@@ -2289,7 +2287,7 @@
           .to(arcs, { strokeWidth: ARC_W, duration: M.dur(0.5), ease: M.POP }, M.gap(at + 0.26));
       }
     });
-    /* back to each line's own weight -- a story's strip or cut is heavier */
+    /* back to each line's own weight */
     tl.set(lines.concat(arcs), { clearProps: 'strokeWidth' });
     return Flow.anim(tl);
   }
@@ -2647,7 +2645,7 @@
     return practice({
       figure: function (host) { return segFigure(host, { theta: 60, deg: T('s4Deg60'), r: T('val21cm') }); },
       prompt: keyed('s4p17Ask'),
-      rule: RULE_THETA(),
+      rule: RULE_THETA(), tag: false,
       options: [T('val4027sq'), T('val231sq'), T('val105sq')], right: 0,
       why: { 1: hint('s4p17Wrong231'), 2: hint('s4p17Wrong105') },
       onWrong: function (i, fig) { K.quiet(i === 1 ? litSector(fig) : litTriangle(fig)); },
@@ -2668,8 +2666,10 @@
     return practice({
       figure: function (host) { return segFigure(host, { theta: 30, deg: T('s4Deg30'), r: T('val21cm'), major: true }); },
       prompt: keyed('s4p14AskFind'),
-      rule: RULE_MAJOR(),
-      options: [T('val138075sq'), T('val12705sq'), T('val116025sq')], right: 0,
+      rule: RULE_MAJOR(), tag: false,
+      /* the three long answers in one row, as the other pages' are, not
+         two and one (user, 2026-10-30) */
+      options: [T('val138075sq'), T('val12705sq'), T('val116025sq')], right: 0, row: true,
       why: { 1: hint('s4p14WrongSector'), 2: hint('s4p14WrongSub') },
       onWrong: function (i, fig) { K.quiet(litSector(fig)); },
       steps: function (fig) {
@@ -2699,7 +2699,7 @@
   function sceneWindow() {
     return story({
       figure: function (host) {
-        return segFigure(host, { theta: 60, at: 60, deg: T('s4Deg60'), r: T('val42cm'), kind: 'glass' });
+        return segFigure(host, { theta: 60, at: 60, deg: T('s4Deg60'), r: T('val42cm') });
       },
       tell: [
         { line: keyed('s4wWindow'), draw: async function (fig) {
@@ -2722,7 +2722,7 @@
         } }
       ],
       prompt: keyed('s4wAsk'),
-      rule: RULE_THETA(),
+      rule: RULE_THETA(), tag: false,
       options: [T('val16107sq'), T('val924sq'), T('val42sq')], right: 0,
       why: { 1: hint('s4wWrong924'), 2: hint('s4wWrong42') },
       reveal: litSegment,
@@ -2748,7 +2748,7 @@
   function sceneTable() {
     return story({
       figure: function (host) {
-        var fig = segFigure(host, { theta: 90, at: -45, deg: T('p21Deg'), r: T('val42cm'), kind: 'table', major: true });
+        var fig = segFigure(host, { theta: 90, at: -45, deg: T('p21Deg'), r: T('val42cm'), major: true, cutOff: true });
         /* the wall, flat against the straight edge, under everything */
         var x = round2(fig.pA.x + 3);
         fig.wall = svgEl('rect', { 'class': 'sq-wall', x: x, y: 34, width: round2(386 - x), height: 352 });
@@ -2757,17 +2757,22 @@
         return fig;
       },
       tell: [
+        /* the long first line in two, each drawn as it is said (user,
+           2026-10-30): the round top and its radius, then the cut and
+           the wall it meets */
         { line: keyed('s4tbTop'), draw: async function (fig) {
           await SA.drawCircle(fig.C, 1.1);
           await Flow.wait(SHORT);
           await grow(fig.ra, 0.6);
           await Flow.anim(SA.fadeIn(fig.R, { y: 0 }));
-          await Flow.wait(SHORT);
+        } },
+        { line: keyed('s4tbCut'), draw: async function (fig) {
           await grow(fig.chord, 0.7);
           await Flow.anim(M.fromTo(fig.wall, { opacity: 0, x: 40 }, { opacity: 1, x: 0, duration: M.dur(0.6), ease: 'power2.out' }));
           await Flow.anim(SA.fadeIn(fig.wallWord, { y: 4 }));
-          /* the piece beyond the cut is gone: only its dashed outline is
-             left, and the top is the wooden piece on this side of it */
+          /* the piece beyond the cut is gone: only its faint wash and
+             dashed outline are left, and the top is the larger piece on
+             this side of it */
           await Promise.all([
             grow(fig.arc, 1.0),
             Flow.anim(discIn(fig.seg)),
@@ -2783,7 +2788,7 @@
         } }
       ],
       prompt: keyed('s4tbAsk'),
-      rule: RULE_MAJOR(),
+      rule: RULE_MAJOR(), tag: false,
       options: [T('val5040sq'), T('val504sq'), T('val4158sq')], right: 0,
       why: { 1: hint('s4tbWrong504'), 2: hint('s4tbWrong4158') },
       reveal: litSegment,
