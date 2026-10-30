@@ -860,43 +860,39 @@
 
             <!-- ---- Skill 4, page 4: sector minus triangle (js/segarea.js)
                  Its own circle, everything on it fixed and written once by
-                 segarea.js: the wash, the sector (whose colour is drawn
-                 back to the chord when the triangle goes), then the piece
-                 that is cut out -- the triangle, its two radii, the angle
-                 with its "θ" and its own copy of the chord, in a group of
-                 their own so the piece is lifted out of the circle as ONE
-                 thing -- the rim and its pen, the arc, the chord, the
-                 dashed cut along the chord (revealed through its mask),
-                 the centre, the two red points, and the two names. Nothing
-                 here is a target. -->
+                 segarea.js, in two groups. The circle itself -- the wash,
+                 the faint shadow left where the sector was, the rim and its
+                 pen, the centre -- which steps to the left once the sector
+                 is taken out; and the minor sector as ONE piece, which is
+                 lifted out to the right: its colour, the minor segment's
+                 own (a different colour, lit once the chord is in), the
+                 triangle, the two radii, the chord, the arc, the angle
+                 with its "θ" and the two red points. Nothing here is a
+                 target. -->
             <g class="figure__se" id="se" hidden>
-              <defs>
-                <mask id="seCutMask" maskUnits="userSpaceOnUse" x="0" y="0" width="1000" height="420">
-                  <path id="seCutPen" d="" fill="none" stroke="#fff" stroke-width="14" stroke-linecap="round" />
-                </mask>
-              </defs>
-              <circle class="sa-disc" id="seDisc" cx="500" cy="210" r="158" />
-              <path class="sa-region" id="seSector" d="" />
+              <defs></defs>
+              <g id="seBody">
+                <circle class="sa-disc" id="seDisc" cx="500" cy="210" r="158" />
+                <path class="s4-shadow" id="seShadow" d="" />
+                <path class="sa-rim" id="seRim"
+                      d="M500 52 A158 158 0 0 1 500 368 A158 158 0 0 1 500 52" />
+                <circle class="rim-tip" id="seTip" cx="500" cy="52" r="7" />
+                <circle class="sa-centre" id="seCentre" cx="500" cy="210" r="6" />
+              </g>
               <g class="se-piece" id="sePiece">
+                <path class="sa-region" id="seSector" d="" />
+                <path class="s4-seg-hi" id="seSegHi" d="" />
                 <path class="se-tri" id="seTri" d="" />
                 <path class="sa-radius" id="seRadA" d="" />
                 <path class="sa-radius" id="seRadB" d="" />
-                <path class="sa-chord" id="sePieceChord" d="" />
+                <path class="sa-chord" id="seChord" d="" />
+                <path class="sa-arc" id="seArc" d="" />
                 <path class="s4-angle" id="seAngle" d="" />
                 <text class="figure-label s4-theta" id="seTheta" x="0" y="0"
                       text-anchor="middle" data-i18n="lblTheta">θ</text>
+                <circle class="arc-dot" id="seDotA" cx="500" cy="52" r="7" />
+                <circle class="arc-dot" id="seDotB" cx="500" cy="52" r="7" />
               </g>
-              <path class="sa-rim" id="seRim"
-                    d="M500 52 A158 158 0 0 1 500 368 A158 158 0 0 1 500 52" />
-              <circle class="rim-tip" id="seTip" cx="500" cy="52" r="7" />
-              <path class="sa-arc" id="seArc" d="" />
-              <path class="sa-chord" id="seChord" d="" />
-              <path class="se-cut" id="seCut" d="" mask="url(#seCutMask)" />
-              <circle class="sa-centre" id="seCentre" cx="500" cy="210" r="6" />
-              <circle class="arc-dot" id="seDotA" cx="500" cy="52" r="7" />
-              <circle class="arc-dot" id="seDotB" cx="500" cy="52" r="7" />
-              <text class="figure-label sc-label sc-label--tri" id="seLblTri" x="0" y="0"
-                    text-anchor="middle" data-i18n="s4p1Triangle">Triangle</text>
             </g>
 
             <!-- ---- Skill 4, page 5: the recap (js/segarea.js). Three
@@ -919,23 +915,41 @@
             </g>
 
             <!-- ---- Skill 4, page 11: the major segment made (js/segarea.js)
-                 Its own circle: the wash, the major segment (whose apex
-                 segarea.js carries from the chord to the centre as it is
-                 drawn back to the major sector), the piece that comes in
-                 from outside and is put back on -- the triangle, its two
-                 sides, its angle with its "θ" and its copy of the chord,
-                 in a group of their own -- the rim and its pen, the major
-                 arc, the two radii, the chord, the centre, the two red
-                 points, and the name. Nothing here is a target. -->
+                 Its own circle, in three groups. The circle itself -- the
+                 wash, the faint shadow left where the major sector was, the
+                 rim and its pen, the chord, the centre, the two red points
+                 -- which steps to the left once the major sector is taken
+                 out; the major sector as ONE piece, lifted out to the right
+                 -- its colour (first the major segment's, its apex then
+                 carried from the chord to the centre), its arc and its two
+                 radii; and the triangle as a piece of its own -- its two
+                 sides, its angle with its "θ" and its copy of the chord --
+                 which is carried across and joined onto the major sector.
+                 Nothing here is a target. -->
             <g class="figure__sj" id="sj" hidden>
               <defs>
                 <clipPath id="sjClip">
                   <circle id="sjClipC" cx="500" cy="210" r="400" />
                 </clipPath>
               </defs>
-              <circle class="sa-disc" id="sjDisc" cx="500" cy="210" r="158" />
-              <path class="sa-region sa-region--major" id="sjMajor" d=""
-                    clip-path="url(#sjClip)" />
+              <g id="sjBody">
+                <circle class="sa-disc" id="sjDisc" cx="500" cy="210" r="158" />
+                <path class="s4-shadow s4-shadow--major" id="sjShadow" d="" />
+                <path class="sa-rim" id="sjRim"
+                      d="M500 52 A158 158 0 0 1 500 368 A158 158 0 0 1 500 52" />
+                <circle class="rim-tip" id="sjTip" cx="500" cy="52" r="7" />
+                <path class="sa-chord" id="sjChord" d="" />
+                <circle class="sa-centre" id="sjCentre" cx="500" cy="210" r="6" />
+                <circle class="arc-dot" id="sjDotA" cx="500" cy="52" r="7" />
+                <circle class="arc-dot" id="sjDotB" cx="500" cy="52" r="7" />
+              </g>
+              <g class="se-piece" id="sjOut">
+                <path class="sa-region sa-region--major" id="sjMajor" d=""
+                      clip-path="url(#sjClip)" />
+                <path class="sa-arc sa-arc--major" id="sjArcMajor" d="" />
+                <path class="sa-radius" id="sjRadA" d="" />
+                <path class="sa-radius" id="sjRadB" d="" />
+              </g>
               <g class="se-piece" id="sjPiece">
                 <path class="se-tri" id="sjTri" d="" />
                 <path class="sa-radius" id="sjTriA" d="" />
@@ -945,16 +959,6 @@
                 <text class="figure-label s4-theta" id="sjTheta" x="0" y="0"
                       text-anchor="middle" data-i18n="lblTheta">θ</text>
               </g>
-              <path class="sa-rim" id="sjRim"
-                    d="M500 52 A158 158 0 0 1 500 368 A158 158 0 0 1 500 52" />
-              <circle class="rim-tip" id="sjTip" cx="500" cy="52" r="7" />
-              <path class="sa-arc sa-arc--major" id="sjArcMajor" d="" />
-              <path class="sa-radius" id="sjRadA" d="" />
-              <path class="sa-radius" id="sjRadB" d="" />
-              <path class="sa-chord" id="sjChord" d="" />
-              <circle class="sa-centre" id="sjCentre" cx="500" cy="210" r="6" />
-              <circle class="arc-dot" id="sjDotA" cx="500" cy="52" r="7" />
-              <circle class="arc-dot" id="sjDotB" cx="500" cy="52" r="7" />
             </g>
 
             <!-- ---- Skill 4, page 12: the major recap (js/segarea.js).

@@ -59,14 +59,21 @@
   --sa-arc-blue:   #38B6F5;
   --sa-fill-blue:  color-mix(in srgb, var(--blue-fill) 24%, #FFFFFF);
 
-  /* The pipe in a dark slate with its water in blue, the flower bed in
-     green with its path in earth brown, as the storyboard draws them. */
-  --sa-pipe-rim:   #3A4A63;
-  --sa-fill-water: color-mix(in srgb, var(--blue-fill) 42%, #FFFFFF);
-  --sa-water-ink:  #1F5F8B;
-  --sa-bed-rim:    #22A34E;
-  --sa-fill-bed:   color-mix(in srgb, var(--mint-fill) 20%, #FFFFFF);
-  --sa-path:       #8B5A2B;
+  /* The minor segment once it is cut off on page 4: lit in a colour of
+     its own, a warm coral, so it is not read as the sector's tan. */
+  --sa-fill-seg:   #FFB27E;
+
+  /* The window: a dark frame round a pale pane, a wooden strip, and the
+     coloured glass in rose. The tabletop: its wood, its edge and its cut
+     in a warm brown, against a stone-grey wall. */
+  --sa-frame:      #4A5568;
+  --sa-pane:       color-mix(in srgb, var(--blue-fill) 26%, #FFFFFF);
+  --sa-glass:      color-mix(in srgb, #FF6FB1 40%, #FFFFFF);
+  --sa-glass-ink:  #D63384;
+  --sa-wood:       #EBCB9C;
+  --sa-wood-edge:  #9A5B26;
+  --sa-wall:       color-mix(in srgb, #A99A86 38%, #FFFFFF);
+  --sa-wall-edge:  #8B7B66;
 
   /* A card's plate: white on a soft lavender edge, as the activity boxes
      are, with the verdict hues when it has been pressed. */
@@ -330,16 +337,41 @@
   transition: fill .55s ease;
 }
 .se-tri.is-merged { fill: var(--sa-fill-major); }
+.se-tri.is-merged.is-deep { fill: color-mix(in srgb, var(--lavender-fill) 62%, #FFFFFF); }
 .se-piece.is-lifted { filter: drop-shadow(0 6px 9px rgba(40, 24, 140, .28)); }
 /* The sector the page is not about, stepped back through its mask (the
    wedge's opacity is how far -- see dimmer in segarea.js), and the faint
    dashed print of the triangle's two sides where it was cut out or put
    back. */
 .s4-dim { opacity: 0; }
-/* page 4's empty room where the triangle was: a light tint of its colour */
-.s4-print-fill {
-  fill: var(--sa-fill-tri);
+/* Where a sector was taken out of its circle (pages 4 and 11): a faint
+   shadow of it -- its colour paler still, its outline dashed -- left in
+   the circle it came from. */
+.s4-shadow {
+  fill: var(--sa-fill);
+  stroke: var(--sa-arc);
+  stroke-width: 2.5;
+  stroke-dasharray: 8 7;
+  stroke-linejoin: round;
   opacity: 0;
+}
+.s4-shadow--major {
+  fill: var(--sa-fill-major);
+  stroke: var(--sa-arc-major);
+}
+/* page 4's minor segment, lit once the chord cuts it off the sector: its
+   own coral, breathing a halo twice when it is the thing named */
+.s4-seg-hi {
+  fill: var(--sa-fill-seg);
+  opacity: 0;
+}
+.s4-seg-hi.is-glow { animation: s4-seg-glow 1.9s ease-in-out 2; }
+@keyframes s4-seg-glow {
+  0%, 100% { filter: drop-shadow(0 0 0 transparent); }
+  50%      { filter: drop-shadow(0 0 8px var(--sa-ink-minor)) drop-shadow(0 0 2px var(--sa-ink-minor)); }
+}
+@media (prefers-reduced-motion: reduce) {
+  .s4-seg-hi.is-glow { animation: none; }
 }
 /* page 11's major segment once it is named: its wash a step deeper */
 .s4-deep {
@@ -352,14 +384,6 @@
   stroke-width: 3;
   stroke-dasharray: 7 7;
   stroke-linecap: butt;
-  opacity: 0;
-}
-.se-cut {
-  fill: none;
-  stroke: var(--board-highlight);
-  stroke-width: 3;
-  stroke-dasharray: 9 7;
-  stroke-linecap: round;
   opacity: 0;
 }
 
@@ -393,22 +417,55 @@
    ========================================================================== */
 .sa-lesson .sa-fig .sa-region { --focus: var(--sa-arc); }
 .sa-lesson .sa-fig .sa-region--major { --focus: var(--sa-arc-major); }
-.sa-lesson .sa-fig .sa-region--water { --focus: var(--sa-arc-blue); }
+.sa-lesson .sa-fig .sa-region--glass { --focus: var(--sa-glass-ink); }
+.sa-lesson .sa-fig .sa-region--wood { --focus: var(--sa-wood-edge); }
 .sa-lesson .sa-fig .se-tri { --focus: var(--sa-ink-tri); }
 .sa-lesson .sa-fig .se-tri.is-lit { fill: color-mix(in srgb, var(--mint-fill) 70%, #FFFFFF); }
-.sa-region--water { fill: var(--sa-fill-water); }
+.sa-region--glass { fill: var(--sa-glass); }
+.sa-region--wood { fill: var(--sa-wood); }
 
-/* The pipe: a dark ring with no wash -- it is a pipe, not a disc -- its
-   water pale blue under a blue surface and a blue arc, named in the
-   water. The bed: a green ring over a pale green wash, cut by a brown
-   path, its smaller piece in the tan of every minor segment here. */
-.sa-lesson .sa-fig .sq-pipe { stroke: var(--sa-pipe-rim); stroke-width: 4.4; }
-.sa-lesson .sa-fig .sq-none { fill: none; }
-.sa-lesson .sa-fig .sq-surface { stroke: var(--sa-arc-blue); }
-.sa-lesson .sa-fig .sq-bed { stroke: var(--sa-bed-rim); stroke-width: 3.6; }
-.sa-lesson .sa-fig .sq-bed-wash { fill: var(--sa-fill-bed); }
-.sa-lesson .sa-fig .sq-path { stroke: var(--sa-path); }
-.sa-lesson .sa-fig .sq-water-word { font-size: 22px; fill: var(--sa-water-ink); }
+/* The window: a dark frame round a pale pane, the wooden strip across
+   its top, the coloured glass above it in rose under a rose arc. The
+   tabletop: the round edge in pencil until the cut, then the top itself
+   in wood with a wooden edge, the straight cut in the same brown, the
+   piece beyond it gone -- a dashed outline over the wall it now meets. */
+.sa-lesson .sa-fig .sq-frame { stroke: var(--sa-frame); stroke-width: 6; }
+.sa-lesson .sa-fig .sq-pane { fill: var(--sa-pane); }
+.sa-lesson .sa-fig .sq-strip { stroke: var(--sa-wood-edge); stroke-width: 6.5; }
+.sa-lesson .sa-fig .sa-arc--glass { stroke: var(--sa-glass-ink); }
+.sa-lesson .sa-fig .sa-arc--wood { stroke: var(--sa-wood-edge); }
+.sa-lesson .sa-fig .sq-cut { stroke: var(--sa-wood-edge); stroke-width: 5; }
+.sa-lesson .sa-fig .sq-cutoff {
+  fill: color-mix(in srgb, var(--sa-wood) 30%, transparent);
+  stroke: none;
+}
+.sa-lesson .sa-fig .sq-cutoff-arc {
+  stroke: var(--sa-wood-edge);
+  stroke-width: 2.5;
+  stroke-dasharray: 7 7;
+}
+.sa-lesson .sa-fig .sq-wall {
+  fill: var(--sa-wall);
+  stroke: var(--sa-wall-edge);
+  stroke-width: 2;
+  opacity: 0;
+}
+.sa-lesson .sa-fig .sq-wall-word { font-size: 20px; fill: var(--sa-wall-edge); }
+.sa-lesson .sa-fig .s4-chord-word { font-size: 20px; fill: var(--text-primary); }
+
+/* The formula for any angle (page 10a and the end): its two parts, each
+   lit in turn as the bird names it -- the sector's, then the triangle's. */
+.sa-lesson .s4-term {
+  display: inline-flex;
+  align-items: center;
+  padding: .05em .2em;
+  border-radius: .35em;
+  transition: background-color .4s ease;
+}
+.sa-lesson .s4-term.is-on { background-color: color-mix(in srgb, var(--yellow-fill) 75%, #FFFFFF); }
+/* the formula for any angle is long: set a step smaller than the other
+   results, so its patch stays inside the board */
+.sa-lesson .sa-rule.sa-rule--hero.s4-result--long { font-size: .98em; padding: .8em 1.2em .9em; }
 
 /* The worked pages: the left side of every step the same width, set to
    the right, so each step's first "=" falls in one column -- the width

@@ -624,7 +624,10 @@
   function voiceAlone(key, along) {
     if (Flow.isFast() || !global.I18n) return Promise.resolve(along ? along() : null);
     var floor = Math.max(VO_MIN, tr(key).length * VO_PACE);
-    return hush().then(function () {
+    /* a bird that is away (a jump from the level bar) comes up onto the
+       header first, so the voice is never heard from nobody */
+    var up = birdOnHeader() || perch ? Promise.resolve() : mascotJumpIn();
+    return up.then(hush).then(function () {
       var from = Date.now();
       var mine = speaking;
       mascot.state('talking');
@@ -678,22 +681,11 @@
       });
     }, Promise.resolve()).then(function () { if (mine === told) mascot.settle(); });
   }
-  /* Where an answer's verdict goes: heard only while the bird is on a
-     perch beside the figure -- and, in skills 3 and 4, from the header
-     too, so a question asked there keeps its words up while it is
-     answered, as skill 2's bubble on the right does (user, 2026-10-29).
-     Skill 2's own header questions, built from this kit, still say theirs. */
-  var section = null;      /* this skill's addSection spec, `first` set there */
-  function hearAll() { return !!section && Pages.level() >= section.first; }
+  /* Where an answer's verdict goes (user, 2026-10-30, game-wide): from
+     the bird's bubble on the right it is heard only, the question left
+     standing in it; from the header it is written AND heard. */
   function answered(lines, mood) {
-    return (perch && perch.open) || hearAll() ? heardOnly(lines, mood) : sayAll(lines, mood);
-  }
-  /* The verdict being heard, cut off where it is -- for a pick that the
-     page answers itself a beat later -- with the words left standing. */
-  function cutVoice() {
-    told++;
-    if (global.I18n) global.I18n.stop();
-    mascot.settle();
+    return perch && perch.open ? heardOnly(lines, mood) : sayAll(lines, mood);
   }
 
   /* The last choice left is the answer (user, 2026-10-29): once every wrong
@@ -856,6 +848,87 @@
     return {
       done: p.then(function () { armed = false; }),
       check: function (ok) { if (armed && ok) dom.gate.click(); }
+    };
+  }
+
+  /* The moving end of a sector's radius as a handle: pressed and dragged
+     round -- or turned with the arrow keys -- it hands the angle, 1° to
+     359°, to `turn`, which redraws whatever reads it (the figure, the
+     working, the caption). The other radius stays at `at`; `deg.v` is the
+     angle it starts from. `done` settles once the learner has turned it
+     far enough to have seen the change (at once under Skip, at `auto` under
+     autoplay); `away()` then fades it off the figure. */
+  function angleHandle(svg, C, at, deg, turn, auto) {
+    var hd = svgEl('g', { 'class': 's-handle', tabindex: 0, role: 'slider',
+      'aria-label': tr('s3A11yHandle'),
+      'aria-valuemin': 1, 'aria-valuemax': 359 }, C.top);
+    svgEl('circle', { 'class': 's-handle__halo', cx: 0, cy: 0, r: 22 }, hd);
+    svgEl('circle', { 'class': 's-handle__ring', cx: 0, cy: 0, r: 12 }, hd);
+    svgEl('circle', { 'class': 's-handle__dot', cx: 0, cy: 0, r: 5 }, hd);
+    svgEl('circle', { cx: 0, cy: 0, r: 28, fill: 'transparent' }, hd);
+    function place() {
+      var q = pt(C, C.r, at - deg.v);
+      hd.setAttribute('transform', 'translate(' + r2(q.x) + ' ' + r2(q.y) + ')');
+      hd.setAttribute('aria-valuenow', Math.round(deg.v));
+    }
+    function set(v) { turn(v); place(); }
+    place();
+    M.set(hd, { opacity: 0 });
+    var live = true, grabbing = false, travelled = 0;
+    var explored = until(function () { set(auto); });
+    function angleOf(ev) {
+      var q = svg.createSVGPoint();
+      q.x = ev.clientX; q.y = ev.clientY;
+      q = q.matrixTransform(svg.getScreenCTM().inverse());
+      var a2 = Math.atan2(C.y - q.y, q.x - C.x) * 180 / Math.PI;
+      var v = ((at - a2) % 360 + 360) % 360;
+      if (deg.v > 300 && v < 60) v = 359;
+      if (deg.v < 60 && v > 300) v = 1;
+      return Math.max(1, Math.min(359, v));
+    }
+    hd.addEventListener('pointerdown', function (ev) {
+      if (!live) return;
+      grabbing = true;
+      hd.classList.add('is-held');
+      try { hd.setPointerCapture(ev.pointerId); } catch (e) {}
+      ev.preventDefault();
+    });
+    hd.addEventListener('pointermove', function (ev) {
+      if (!grabbing) return;
+      var v = angleOf(ev);
+      travelled += Math.abs(v - deg.v);
+      set(v);
+    });
+    function letGo() {
+      if (!grabbing) return;
+      grabbing = false;
+      hd.classList.remove('is-held');
+      explored.check(travelled >= 40);
+    }
+    hd.addEventListener('pointerup', letGo);
+    hd.addEventListener('pointercancel', letGo);
+    hd.addEventListener('keydown', function (ev) {
+      if (!live) return;
+      var step = ev.key === 'ArrowUp' || ev.key === 'ArrowLeft' ? 1 :
+                 ev.key === 'ArrowDown' || ev.key === 'ArrowRight' ? -1 : 0;
+      if (!step) return;
+      ev.preventDefault();
+      set(Math.max(1, Math.min(359, deg.v + step * 5)));
+      travelled += 5;
+      explored.check(travelled >= 40);
+    });
+    return {
+      el: hd,
+      shown: anim(popIn(hd)),
+      done: explored.done.then(function () {
+        live = false;
+        grabbing = false;
+        hd.classList.remove('is-held');
+        hd.classList.add('is-done');
+      }),
+      away: function () {
+        return anim(fadeOut(hd)).then(function () { if (hd.parentNode) hd.parentNode.removeChild(hd); });
+      }
     };
   }
 
@@ -1283,7 +1356,9 @@
      be { merge: [from, upto], into: [term, ...] }: no new line, but the
      terms from..upto of the line above worked out where they stand -- lifted
      once so the eye is on them, then put together into their result
-     (morphBits). Resolves to the last line, which is the answer. */
+     (morphBits). A line's fourth item, if given, is run as the line starts
+     -- the figure lighting the part that line works out. Resolves to the
+     last line, which is the answer. */
   async function writeSteps(host, steps) {
     var work = h('div', 'sa-work', null, host);
     function pulse(el) {
@@ -1302,6 +1377,7 @@
         continue;
       }
       if (steps[i][2]) await say(steps[i][2]);
+      if (steps[i][3]) quiet(Promise.resolve(steps[i][3]()));
       var row = h('div', 'sa-work__row', null, work);
       var l = h('span', 'sa-work__l', steps[i][0], row);
       var eq = h('span', 'sa-work__eq', '=', row);
@@ -1544,11 +1620,10 @@
       { els: [minorArc], name: 'arc' }
     ];
 
-    /* The question, typed in with the bird. Every answer is HEARD, as skill
-       2's bubble on the right answers (user, 2026-10-29): the question
-       stays on the header while the voice says what a wrong card shows
-       instead, or why the right one is right. A wrong card shakes and
-       steps back; the right one goes green. */
+    /* The question, typed in with the bird. Every answer is said on the
+       header, written and heard (user, 2026-10-30): what a wrong card
+       shows instead, or why the right one is right. A wrong card shakes
+       and steps back; the right one goes green. */
     await say(keyed('s3PickWhich'));
     sc.classList.add('is-live');
     /* pressed as the first lesson's pills are: the wall collapses under
@@ -1791,13 +1866,12 @@
     }
 
     /* Answered as skill 1's naming pages are answered (namePair, pages.js):
-       the bird stays on the header and the instruction is said ONCE, and
-       stays up -- every drop is answered by the voice alone, as skill 2's
-       bubble on the right answers (user, 2026-10-29); a wrong drop in one
-       line, the name going home; a right drop "Correct!", but for the one
-       that fills the last box (user, 2026-10-12). The drag, the
-       tap-then-tap and the keyboard are armQuiz's, the box and chip beats
-       are Beats'. */
+       the bird stays on the header and the instruction is said ONCE; a
+       wrong drop is answered on the spot in one line and the name goes
+       home -- the instruction is not said again; a right drop is told
+       "Correct!", but for the one that fills the last box (user,
+       2026-10-12). The drag, the tap-then-tap and the keyboard are
+       armQuiz's, the box and chip beats are Beats'. */
     var WRONG = {};
     WRONG[MINOR] = 's3NameWrongMinor'; WRONG[MAJOR] = 's3NameWrongMajor';
     var placed = 0;
@@ -1810,9 +1884,9 @@
       onRight: function (box) {
         placed++;
         confirm(box.name);
-        if (placed < 2) quiet(answered(keyed('fbCorrect'), 'happy'));
+        if (placed < 2) quiet(say(keyed('fbCorrect'), 'happy'));
       },
-      onWrong: function (box) { quiet(answered(keyed(WRONG[box.name]), 'confused')); }
+      onWrong: function (box) { quiet(say(keyed(WRONG[box.name]), 'confused')); }
     });
     await quiet(said);
     await done;
@@ -1843,12 +1917,10 @@
       y: (stR.top + stR.height / 2) - scR.top - k * cy,
       duration: M.dur(0.9), ease: 'power3.inOut'
     })) : null;
-    /* 5. Both at once: together, the two make the whole circle. The
-       praise and its reason are the last drop's verdict, heard as the
-       others were; the line after it is the lesson's own, and written. */
+    /* 5. Both at once: together, the two make the whole circle. */
     var both = [S.region, T.region];
     await Promise.all([zoom,
-      answered([keyed('s3GreatJob'), keyed('s3NameTwoRadii')], 'happy')]);
+      sayAll([keyed('s3GreatJob'), keyed('s3NameTwoRadii')], 'happy')]);
     both.forEach(function (r) { r.classList.remove('is-flash2', 'is-lit'); r.classList.add('is-flash2'); });
     await say(keyed('s3NameWhole'), 'happy');
     await wait(BEAT);
@@ -1948,6 +2020,7 @@
      seconds the major sector -- region and edge -- steps back so the minor
      sector and its angle are all there is to look at; then the circle is
      whole again. */
+  var HOLD_AT = 244;         /* θ the whole turn stops at: 70 + 29 ticks of 6 */
   async function sCentralTerm() {
     var sc = await stage('solo');
     var F = figure(sc);
@@ -2016,8 +2089,11 @@
     /* What if the angle went all the way round? One radius is walked
        round like a clock's second hand -- clockwise, in ticks of 6°, each
        a quick step that overshoots a hair and settles -- and the minor
-       sector opens with it until it is the whole circle. The angle is
-       read out as it goes. */
+       sector opens with it until it is the whole circle: held at 244°
+       while the bird says the sector has grown with the angle, then on
+       (user, 2026-10-30 -- as skill 2's whole turn, the words no longer
+       running over the turn). The angle is read out as it goes, its
+       measure kept off the radii as skill 2 keeps it. */
     await say(keyed('s3Central360Q'));
     await wait(BEAT);
     await say(keyed('s3FindOut'));
@@ -2028,6 +2104,7 @@
     await say(keyed('s3CentralHere', { deg: a1 - a0 }));
     await wait(SHORT);
     var hand = { a: a0 };
+    var clear = global.ArcFormula && global.ArcFormula.clearOfRadii;
     function place() {
       var cur = hand.a;
       var deg = Math.round(a1 - cur);
@@ -2039,18 +2116,36 @@
       ends[0].setAttribute('cx', r2(p.x));
       ends[0].setAttribute('cy', r2(p.y));
       A.set(cur, a1, 'θ = ' + deg + '°');
+      if (clear) clear(C, A, cur, a1);
     }
     place();
+    /* The radius walked round from where it stands to `to`, a tick of
+       STEP at a time, and set exactly there at the end. */
     var STEP = 6;
-    var tl = M.timeline();
-    for (var at = a0 - STEP; at >= a1 - 360 - 0.01; at -= STEP) {
-      tl.to(hand, { a: at, duration: M.dur(0.075), ease: 'back.out(3)', onUpdate: place });
-      tl.call(Beats.pop);
-      tl.to({}, { duration: M.dur(0.045) });
+    function tickTo(to) {
+      var tl = M.timeline();
+      for (var t = hand.a - STEP; t >= to - 0.01; t -= STEP) {
+        tl.to(hand, { a: t, duration: M.dur(0.075), ease: 'back.out(3)', onUpdate: place });
+        tl.call(Beats.pop);
+        tl.to({}, { duration: M.dur(0.045) });
+      }
+      return anim(tl).then(function () {
+        hand.a = to;
+        place();
+      });
     }
-    await anim(tl);
-    hand.a = a1 - 360;
-    place();
+
+    /* Held at 244°: the sector, lit twice, has grown with the angle --
+       then the turn goes on. */
+    await tickTo(a1 - HOLD_AT);
+    await wait(SHORT);
+    S.region.classList.add('is-flash2');
+    await say(keyed('s3ThetaGrows'));
+    await wait(BEAT);
+    S.region.classList.remove('is-flash2');
+    await say(keyed('s2IncreaseMore'));
+    await wait(SHORT);
+    await tickTo(a1 - 360);
 
     /* The full turn: the sector is the whole circle, lit twice and then
        left at rest. */
@@ -2361,12 +2456,18 @@
       }
     }
     var ONE = fr('1', '360', 'c-ang');
+    /* A line the card on the right already reads out is HEARD, not
+       written: the header stays clear while the voice says it and the
+       card is written alongside (user, 2026-10-30 -- "twice we are saying
+       the same things"). */
+    var s1, s2, s3;
 
     /* ---- 1. The whole circle ---------------------------------------------- */
-    await say(keyed('s3DeriveWhole'));
-    var s1 = await addStep(tr('s3DeriveWhole'),
-      [[c('a', 'A')], [EQ], [PIR2]]);
-    await writeBits(s1);
+    await voiceAlone('s3DeriveWhole', async function () {
+      s1 = await addStep(tr('s3DeriveWhole'),
+        [[c('a', 'A')], [EQ], [PIR2]]);
+      await writeBits(s1);
+    });
     S.region.classList.add('is-flash2');
     await wait(LOOK);
 
@@ -2380,40 +2481,42 @@
     var dd0 = '';
     for (var k = 0; k < 360; k++) dd0 += segD(C, pt(C, C.r, k)) + ' ';
     svgEl('path', { 'class': 's-fine', d: dd0 }, spokes);
-    await say(keyed('s3DeriveCut'));
-    var s2 = await addStep(tr('s3DeriveMadeOf'),
-      [['<span class="c-ang" data-fly>360</span>', 'n360'], [X], [tr('s3DeriveOneDeg')], [EQ], [PIR2]]);
-    await Promise.all([
-      anim(Beats.secFill(clipD, function (t) { return wedgeD(C, C.r + 2, at - 360 * t, at); }, 2.2)),
-      writeBits(s2)
-    ]);
-    await say(keyed('s3DeriveTogether'));
+    await voiceAlone('s3DeriveCut', async function () {
+      s2 = await addStep(tr('s3DeriveMadeOf'),
+        [['<span class="c-ang" data-fly>360</span>', 'n360'], [X], [tr('s3DeriveOneDeg')], [EQ], [PIR2]]);
+      await Promise.all([
+        anim(Beats.secFill(clipD, function (t) { return wedgeD(C, C.r + 2, at - 360 * t, at); }, 2.2)),
+        writeBits(s2)
+      ]);
+    });
+    await voiceAlone('s3DeriveTogether');
     await wait(SHORT);
 
     /* ---- 3. One sector of 1° ------------------------------------------------
        The 360 is carried down to divide, and the sector closes to 1°. */
-    await say(keyed('s3DeriveOne'));
-    var s3 = await addStep(tr('s3StepAreaAngle', { a: '<span class="c-val"><span data-k="c1">1</span>°</span>' }),
-      [[c('a', 'A')], [EQ], [PIR2], ['<span class="op">÷</span>'], ['<span class="c-ang">360</span>', 'to360'],
-       [EQ], ['<span class="frac c-ang"><span class="frac__n c-val"><span data-k="n1">1</span></span><span class="frac__d">360</span></span>'],
-       [X], [PIR2]]);
-    var tail = s3.bits.slice(5);
-    await writeBits(s3, [s3.keys.to360].concat(tail));
-    await Promise.all([
-      flyNumber(s2.keys.n360, s3.keys.to360, 1.1).then(function () {
-        M.set(s3.keys.to360, { opacity: 1 });
-        Beats.pop();
-        return anim(M.fromTo(s3.keys.to360, { scale: 1.35 }, { scale: 1, duration: M.dur(0.35), ease: M.POP }));
-      }),
-      anim(M.to(spokes, { opacity: 0, duration: M.dur(0.9), delay: M.dur(0.3) })),
-      anim(M.to(deg, { v: 1, duration: M.dur(1.4), ease: 'power2.inOut', onUpdate: function () { turnTo(deg.v); } }))
-    ]);
-    turnTo(1);
-    for (var t2 = 0; t2 < tail.length; t2++) {
-      await anim(M.fromTo(tail[t2], { opacity: 0, y: 8, scale: 0.88 },
-        { opacity: 1, y: 0, scale: 1, duration: M.dur(0.34), ease: 'back.out(1.6)' }));
-      await wait(200);
-    }
+    await voiceAlone('s3DeriveOne', async function () {
+      s3 = await addStep(tr('s3StepAreaAngle', { a: '<span class="c-val"><span data-k="c1">1</span>°</span>' }),
+        [[c('a', 'A')], [EQ], [PIR2], ['<span class="op">÷</span>'], ['<span class="c-ang">360</span>', 'to360'],
+         [EQ], ['<span class="frac c-ang"><span class="frac__n c-val"><span data-k="n1">1</span></span><span class="frac__d">360</span></span>'],
+         [X], [PIR2]]);
+      var tail = s3.bits.slice(5);
+      await writeBits(s3, [s3.keys.to360].concat(tail));
+      await Promise.all([
+        flyNumber(s2.keys.n360, s3.keys.to360, 1.1).then(function () {
+          M.set(s3.keys.to360, { opacity: 1 });
+          Beats.pop();
+          return anim(M.fromTo(s3.keys.to360, { scale: 1.35 }, { scale: 1, duration: M.dur(0.35), ease: M.POP }));
+        }),
+        anim(M.to(spokes, { opacity: 0, duration: M.dur(0.9), delay: M.dur(0.3) })),
+        anim(M.to(deg, { v: 1, duration: M.dur(1.4), ease: 'power2.inOut', onUpdate: function () { turnTo(deg.v); } }))
+      ]);
+      turnTo(1);
+      for (var t2 = 0; t2 < tail.length; t2++) {
+        await anim(M.fromTo(tail[t2], { opacity: 0, y: 8, scale: 0.88 },
+          { opacity: 1, y: 0, scale: 1, duration: M.dur(0.34), ease: 'back.out(1.6)' }));
+        await wait(200);
+      }
+    });
     await wait(SHORT);
 
     /* 1° is a hair at this size: a glass over the spot where it meets the
@@ -2454,7 +2557,6 @@
     var state = FlipK && !Flow.isFast() ? FlipK.getState(s3.bits) : null;
     gone.forEach(function (g) { g.style.display = 'none'; });
     if (state) await anim(FlipK.from(state, { duration: M.dur(0.45), ease: 'power2.inOut' }));
-    await say(keyed('s3DeriveTen'));
     var zeros = [s3.el.querySelector('[data-k="c1"]'), s3.el.querySelector('[data-k="n1"]')].map(function (one) {
       var z = document.createElement('span');
       z.textContent = '0';
@@ -2462,43 +2564,42 @@
       M.set(z, { opacity: 0, filter: 'blur(6px)' });
       return z;
     });
-    await Promise.all([
-      anim(M.to(zeros, { opacity: 1, filter: 'blur(0px)', duration: M.dur(0.7), ease: 'power2.out', stagger: M.gap(0.15) })),
-      anim(M.to(deg, { v: 10, duration: M.dur(1.2), ease: 'power2.inOut', onUpdate: function () { turnTo(deg.v); } }))
-    ]);
+    await voiceAlone('s3DeriveTen', function () {
+      return Promise.all([
+        anim(M.to(zeros, { opacity: 1, filter: 'blur(0px)', duration: M.dur(0.7), ease: 'power2.out', stagger: M.gap(0.15) })),
+        anim(M.to(deg, { v: 10, duration: M.dur(1.2), ease: 'power2.inOut', onUpdate: function () { turnTo(deg.v); } }))
+      ]);
+    });
     turnTo(10);
     Beats.pop();
     await wait(LOOK);
 
-    /* A few more angles, chosen at random: each one dissolves into the card
-       and the sector turns to it, so the learner sees that only the number
-       on top changes. */
+    /* Any angle, in the learner's own hands (user, 2026-10-30): the end of
+       the moving radius becomes a handle, and as it is dragged forward or
+       back the sector, its "θ = …°" and the number on top of the card --
+       in the caption and in the fraction -- all follow it, so the learner
+       sees that only that number changes. */
     var c1 = s3.el.querySelector('[data-k="c1"]'), n1 = s3.el.querySelector('[data-k="n1"]');
     zeros.forEach(function (z) { z.parentNode.removeChild(z); });
     c1.textContent = '10';
     n1.textContent = '10';
     A.lbl.classList.add('is-val');
-    var pool = [25, 40, 55, 80, 100, 120, 135, 150, 170, 200, 225, 250, 280, 300];
-    var picks = [];
-    while (picks.length < 5) {
-      var v = pool[Math.floor(Math.random() * pool.length)];
-      if (picks.indexOf(v) < 0) picks.push(v);
-    }
-    await say(keyed('s3DeriveMore'));
-    for (var pi = 0; pi < picks.length; pi++) {
-      var val = picks[pi];
-      await anim(M.to([c1, n1], { opacity: 0, filter: 'blur(5px)', duration: M.dur(0.25), ease: 'power2.in' }));
-      c1.textContent = val;
-      n1.textContent = val;
-      await Promise.all([
-        anim(M.to([c1, n1], { opacity: 1, filter: 'blur(0px)', duration: M.dur(0.35), ease: 'power2.out' })),
-        anim(M.to(deg, { v: val, duration: M.dur(0.9), ease: 'power2.inOut', onUpdate: function () { turnTo(deg.v); } }))
-      ]);
-      turnTo(val);
-      Beats.pop();
-      await wait(1100);
-    }
-    await say(keyed('s3DeriveOnlyTop'));
+    var drag = angleHandle(svg, C, at, deg, function (v) {
+      turnTo(v);
+      c1.textContent = Math.round(v);
+      n1.textContent = Math.round(v);
+    }, 120);
+    await drag.shown;
+    await say(keyed('s3DeriveDrag'));
+    await drag.done;
+    await wait(600);
+    await drag.away();
+    /* what stays the same, lit as the voice names it */
+    await voiceAlone('s3DeriveOnlyTop', function () {
+      return anim(M.fromTo([s3.el.querySelector('.frac__d'), s3.bits[s3.bits.length - 1]], { scale: 1 },
+        { scale: 1.25, transformOrigin: '50% 50%', duration: M.dur(0.3), ease: 'power2.out',
+          yoyo: true, repeat: 3, stagger: M.gap(0.15) }));
+    });
     await wait(SHORT);
     A.lbl.classList.remove('is-val');
 
@@ -2536,90 +2637,9 @@
     Beats.sfx('correct');
     await wait(LOOK);
 
-    /* ---- Try it ------------------------------------------------------------------
-       The end of the moving radius becomes a handle; dragged, the sector
-       follows the finger and a line of its own under the formula reads the
-       angle and its fraction. The derivation is not touched. */
-    var tryLine = h('p', 'sa-try', '<span class="sa-try__tag">' + tr('s3TryIt') + '</span>' +
-      '<span class="sa-try__eq"><span class="c-val" data-k="tdeg">θ</span><span class="op">→</span>' +
-      c('a', 'A') + EQ + '<span class="frac c-ang"><span class="frac__n c-val" data-k="tnum">θ</span><span class="frac__d">360</span></span>' +
-      X + PIR2 + '</span>', panel);
-    var tDeg = tryLine.querySelector('[data-k="tdeg"]'), tNum = tryLine.querySelector('[data-k="tnum"]');
-    M.set(tryLine, { opacity: 0 });
-    var hd = svgEl('g', { 'class': 's-handle', tabindex: 0, role: 'slider',
-      'aria-label': tr('s3A11yHandle'),
-      'aria-valuemin': 1, 'aria-valuemax': 359 }, C.top);
-    svgEl('circle', { 'class': 's-handle__halo', cx: 0, cy: 0, r: 22 }, hd);
-    svgEl('circle', { 'class': 's-handle__ring', cx: 0, cy: 0, r: 12 }, hd);
-    svgEl('circle', { 'class': 's-handle__dot', cx: 0, cy: 0, r: 5 }, hd);
-    svgEl('circle', { cx: 0, cy: 0, r: 28, fill: 'transparent' }, hd);
-    function placeHandle() {
-      var q = pt(C, C.r, at - deg.v);
-      hd.setAttribute('transform', 'translate(' + r2(q.x) + ' ' + r2(q.y) + ')');
-      hd.setAttribute('aria-valuenow', Math.round(deg.v));
-    }
-    function setDeg(v) {
-      turnTo(v);
-      placeHandle();
-      var n = Math.round(v);
-      tDeg.textContent = 'θ = ' + n + '°';
-      tNum.textContent = n;
-      A.lbl.classList.add('is-val');
-    }
-    placeHandle();
-    M.set(hd, { opacity: 0 });
-    var grabbing = false, travelled = 0;
-    var explored = until(function () { setDeg(120); });
-    function angleOf(ev) {
-      var q = svg.createSVGPoint();
-      q.x = ev.clientX; q.y = ev.clientY;
-      q = q.matrixTransform(svg.getScreenCTM().inverse());
-      var a2 = Math.atan2(C.y - q.y, q.x - C.x) * 180 / Math.PI;
-      var v = ((at - a2) % 360 + 360) % 360;
-      if (deg.v > 300 && v < 60) v = 359;
-      if (deg.v < 60 && v > 300) v = 1;
-      return Math.max(1, Math.min(359, v));
-    }
-    hd.addEventListener('pointerdown', function (ev) {
-      if (!hd.__live) return;
-      grabbing = true;
-      hd.classList.add('is-held');
-      try { hd.setPointerCapture(ev.pointerId); } catch (e) {}
-      ev.preventDefault();
-    });
-    hd.addEventListener('pointermove', function (ev) {
-      if (!grabbing) return;
-      var v = angleOf(ev);
-      travelled += Math.abs(v - deg.v);
-      setDeg(v);
-    });
-    function letGo() {
-      if (!grabbing) return;
-      grabbing = false;
-      hd.classList.remove('is-held');
-      explored.check(travelled >= 40);
-    }
-    hd.addEventListener('pointerup', letGo);
-    hd.addEventListener('pointercancel', letGo);
-    hd.addEventListener('keydown', function (ev) {
-      if (!hd.__live) return;
-      var step = ev.key === 'ArrowUp' || ev.key === 'ArrowLeft' ? 1 :
-                 ev.key === 'ArrowDown' || ev.key === 'ArrowRight' ? -1 : 0;
-      if (!step) return;
-      ev.preventDefault();
-      setDeg(Math.max(1, Math.min(359, deg.v + step * 5)));
-      travelled += 5;
-      explored.check(travelled >= 40);
-    });
-    rule.el.classList.remove('is-glow');
-    A.set(at - deg.v, at, 'θ');
-    hd.__live = true;
-    await Promise.all([anim(fadeIn(tryLine, { y: 10 })), anim(popIn(hd))]);
-    await say(keyed('s3DeriveDrag'));
-    await explored.done;
-    hd.__live = false;
-    hd.classList.add('is-done');
-    await wait(600);
+    /* No "Try it" here any more (user, 2026-10-30): the learner has turned
+       the angle in step 3 already, so the formula is shown and lit, and
+       that is all. */
     await say(keyed('s3DeriveWorks'), 'happy');
     await wait(BEAT);
     await handOver();
@@ -2668,9 +2688,10 @@
     await anim(fadeIn(formula, { y: 6 }));
     await wait(LOOK);
 
-    /* 1. θ into the formula. */
+    /* 1. θ into the formula -- asked for by name, not by value (user,
+       2026-10-30): the value is the learner's to read off the figure. */
     await stepIn(s1);
-    await say(keyed('s3WkPutTheta'));
+    await say(keyed('s3WkPutAngle'));
     pulse(fig.A.lbl);
     await d1.ask({
       yes: [keyed('fbThatsCorrect'), keyed('s3WkThetaRight')],
@@ -2681,9 +2702,10 @@
     });
     stepDone(s1);
 
-    /* 2. r into the formula, with π = 22/7 said first. */
+    /* 2. r into the formula, asked for by name as θ was; 22/7 is already
+       written in the row. */
     await stepIn(s2);
-    await say(keyed('s3WkPutR'));
+    await say(keyed('s3PutRadius'));
     pulse(fig.R);
     await d2.ask({
       yes: [keyed('fbThatsCorrect'), keyed('s3WkRRight')],
@@ -3013,8 +3035,9 @@
     }
     var l2 = eqRow('<span class="c-ang">100°</span> <span class="op">+</span> <span class="c-maj">?</span>',
                    '<span class="c-ang">360°</span>');
-    var l3 = eqRow('<span class="c-maj">?</span>',
-                   '<span class="c-ang">360°</span> ' + MINUS + ' <span class="c-ang">100°</span> ' + EQ + ' ' + DD);
+    /* ? asked for straight, with no 360° − 100° written in between to
+       read it off (user, 2026-10-30) */
+    var l3 = eqRow('<span class="c-maj">?</span>', DD);
     var D = dropdown(ddIn(l3), ['280°', '270°', '260°'], 2, { keepOrder: true });
 
     /* The circle is drawn whole, with nothing said. */
@@ -3062,8 +3085,10 @@
     /* The term, and the rule. */
     await say(keyed('s3RefReflex'));
     await wait(SHORT);
+    /* on the pink plate the formula cards wear, so the rule stands out as
+       one to remember (user, 2026-10-30) */
     var rule = ruleCard(panel, tr('s3RuleInGeneral'), tr('s3LblCentralMajor') + ' ' + EQ + ' ' +
-      '<span class="c-ang">360° − θ</span>', 'sa-rule--small');
+      '<span class="c-ang">360° − θ</span>', 'sa-rule--small sa-patch');
     await Promise.all([say(keyed('s3RefGeneral'), 'happy'), rule.shown]);
     rule.el.classList.add('is-glow');
     fig.T.region.classList.remove('is-lit');
@@ -3147,7 +3172,8 @@
       { scale: 1.35, duration: M.dur(0.28), ease: 'power2.out', yoyo: true, repeat: 1 })));
     rule.el.classList.add('is-glow');
     await wait(SHORT);
-    await say(keyed('s3MaSo'), 'happy');
+    /* heard only: the bubble keeps its question (user, 2026-10-30) */
+    await heardOnly(keyed('s3MaSo'), 'happy');
     await wait(BEAT);
     await handOver();
   }
@@ -3172,7 +3198,9 @@
       M.set(r.__bits, { opacity: 0 });
       return r;
     }
-    var s1 = stepRow(list, 1, c('ang', '360° − θ') + EQ + c('ang', '360° − 45°') + EQ + DD);
+    /* 360° − θ asked for straight, with no 360° − 45° written in between
+       to read it off (user, 2026-10-30) */
+    var s1 = stepRow(list, 1, c('ang', '360° − θ') + EQ + DD);
     var s2 = stepRow(list, 2, c('a', 'A') + EQ + fr('315', '360', 'c-ang') + X + fr('22', '7', 'c-pi') + X + DD);
     var s3 = bitsRow(3, [c('a', 'A'), EQ, fr('7', '8', 'c-ang'), X, c('pi', '22'), X, c('r', '2'), X, c('r', '14')]);
     var s4 = stepRow(list, 4, c('a', 'A') + EQ + DD);
@@ -3223,9 +3251,10 @@
     fig.B.set(fig.T.a0, fig.T.a1, '360° − θ = 315°');
     await anim(popIn(fig.B.lbl, { from: 0.8 }));
 
-    /* 2. r into the formula, with π = 22/7 said first. */
+    /* 2. r into the formula, asked for by name (user, 2026-10-30); 22/7
+       is already written in the row. */
     await stepIn(s2);
-    await say(keyed('s3WmPutR'));
+    await say(keyed('s3PutRadius'));
     pulse(fig.R);
     await d2.ask({
       yes: [keyed('fbThatsCorrect'), keyed('s3WmRRight')],
@@ -3283,7 +3312,8 @@
     var P = perchIn(panel);
     P.row.classList.add('sa-speak--above');
     P.bubble.classList.add('sa-bubble--sun');
-    var slot = h('div', 'sa-qslot', null, panel);
+    /* each question's three answers on one row (user, 2026-10-30) */
+    var slot = h('div', 'sa-qslot sa-qslot--row', null, panel);
     var found = h('div', 'sa-found', null, panel);
 
     async function ask(q, opts, why, yesNote, first) {
@@ -3417,32 +3447,6 @@
     }).then(handOver);
   }
 
-  function sPractice4() {
-    var RULE = [keyed('fbNotQuite'), keyed('s3MajorByDiff')];
-    return practice({
-      theta: 90, r: tr('s3LblR28'), major: true, majorLabel: '?',
-      given: keyed('s3P4Given'),
-      prompt: keyed('s3FindMajor'),
-      tag: tr('s3TagRemember'),
-      rule: c('a', tr('s3WordMajor')) + EQ + PIR2 + MINUS + c('a', tr('s3WordMinor')),
-      options: [tr('s3Val1848sq'), tr('s3Val1232sq'), tr('val616sq')], right: 0,
-      why: { 1: RULE, 2: RULE },
-      lit: litMajor,
-      steps: function (fig) {
-        return [
-          [c('a', tr('s3LblMajorSector')), [[tr('s3WordCircleCap')], [MINUS], [tr('s3LblMinorSector')]]],
-          ['', [[c('pi', '2464'), fig.C.disc], [MINUS], [c('ang', '616'), fig.S.region]]],
-          ['', [[c('ans', tr('s3Val1848sq'))]]]
-        ];
-      },
-      found: {
-        label: tr('s3Val1848sq'),
-        at: function (fig) { return pt(fig.C, 112, 270); },
-        region: function (fig) { return fig.T.region; },
-        say: keyed('s3P4Found')
-      }
-    }).then(handOver);
-  }
 
 
   /* ---- 23. Find the angle (slides 60-63) -------------------------------------------
@@ -3814,7 +3818,6 @@
     { name: 'Another way',        play: own(sAnotherWay) },
     { name: 'Major formulas',     play: own(sMajorRules) },
     { name: 'Practice 3',         play: own(sPractice3) },
-    { name: 'Practice 4',         play: own(sPractice4) },
     { name: 'Paper fan',          play: own(sFan) },
     { name: 'Radar',              play: own(sRadar) },
     { name: 'Well done!',         play: own(sFinish) }
@@ -3893,7 +3896,7 @@
     }
   }
 
-  section = {
+  Pages.addSection({
     name: 'Sector area',
     skill: 'Skill 3 · Area of a sector',
     scenes: SCENES,
@@ -3902,8 +3905,7 @@
     wipe: wipe,
     reset: reset,
     stage: stageAt
-  };
-  Pages.addSection(section);
+  });
 
   /* ---- the kit, handed over ----------------------------------------------
      Skill 2's formula and practice pages (js/arc-formula.js) are built
@@ -3933,11 +3935,11 @@
     perchIn: perchIn, perchSay: perchSay, perchOut: perchOut, say: say, bubbleSay: bubbleSay,
     sayTop: sayTop, sayAll: sayAll, sayWith: sayWith, morphBits: morphBits, voiceAlone: voiceAlone, hush: hush, leaveHeader: leaveHeader, handOver: handOver,
     ripple: ripple, burstAt: burstAt,
-    waitPick: waitPick, until: until, clearChoices: clearChoices, askChoice: askChoice,
+    waitPick: waitPick, until: until, angleHandle: angleHandle, clearChoices: clearChoices, askChoice: askChoice,
     dropdown: dropdown, stepRow: stepRow, stepIn: stepIn, stepDone: stepDone, ddIn: ddIn,
     noteCard: noteCard, ruleCard: ruleCard, lineIn: lineIn, clearStage: clearStage, stage: stage,
     bubbleVoice: bubbleVoice, writeSteps: writeSteps, fieldTalk: fieldTalk, keyWord: keyWord,
-    answered: answered, heardOnly: heardOnly, autoLines: autoLines, cutVoice: cutVoice,
+    answered: answered, heardOnly: heardOnly, autoLines: autoLines,
     flyNumber: flyNumber, magnifier: magnifier,
     boxLeader: boxLeader, figToScene: figToScene
   };

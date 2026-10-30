@@ -476,9 +476,10 @@
   /* ---- 3. From the whole rim to any angle ------------------------------------
      The same circle again, still a full turn. Beside it the length is
      worked down from 360° to 1°: the 360 of "1 × 360" is lifted out of its
-     line and flown down under the 1 as the arc closes to a hair of 1°;
-     then the 1 becomes 10, in place, as the arc opens to 10°; then the
-     learner says what the length is for any angle θ. */
+     line and flown down under the 1 while the circle stays whole; then the
+     1 becomes 10, in place, as the arc turns to 10°; then the learner
+     drags the arc's end to any angle and watches only the top number
+     change; then says what the length is for any angle θ. */
   async function sArcDerive() {
     var H = arcFig;
     arcFig = null;
@@ -569,10 +570,17 @@
     }
     var X = S.X, EQ = S.EQ, DD = S.DD;
 
+    /* A line the card on the right already reads out is HEARD, not
+       written: the header stays clear while the voice says it and the
+       card is written alongside (user, 2026-10-30 -- "twice we are saying
+       the same things"). */
+    var s1, s2, s3;
+
     /* ---- 1. The whole circle ---------------------------------------------- */
-    await S.say(keyed('s2DeriveWhole'));
-    var s1 = await addStep(tr('s2DeriveWhole'), [[SS()], [EQ], [TWO_PI_R()]]);
-    await writeBits(s1);
+    await S.voiceAlone('s2DeriveWhole', async function () {
+      s1 = await addStep(tr('s2DeriveWhole'), [[SS()], [EQ], [TWO_PI_R()]]);
+      await writeBits(s1);
+    });
     Sec.arc.classList.add('is-flash2');
     await wait(LOOK);
 
@@ -586,77 +594,53 @@
     var dd0 = '';
     for (var k = 0; k < 360; k++) dd0 += S.segD(pt(C, C.r - 12, k), pt(C, C.r + 6, k)) + ' ';
     S.svgEl('path', { 'class': 's-fine', d: dd0 }, ticks);
-    await S.say(keyed('s2DeriveCut'));
-    var s2 = await addStep(tr('s2DeriveMadeOf'),
-      [['<span class="c-ang" data-fly>360</span>', 'n360'], [X], [tr('s2DeriveOneDeg')], [EQ], [TWO_PI_R()]]);
-    await Promise.all([
-      anim(Beats.secFill(clipD, function (t) { return S.wedgeD(C, C.r + 10, at - 360 * t, at); }, 2.2)),
-      writeBits(s2)
-    ]);
-    await S.say(keyed('s2DeriveTogether'));
+    await S.voiceAlone('s2DeriveCut', async function () {
+      s2 = await addStep(tr('s2DeriveMadeOf'),
+        [['<span class="c-ang" data-fly>360</span>', 'n360'], [X], [tr('s2DeriveOneDeg')], [EQ], [TWO_PI_R()]]);
+      await Promise.all([
+        anim(Beats.secFill(clipD, function (t) { return S.wedgeD(C, C.r + 10, at - 360 * t, at); }, 2.2)),
+        writeBits(s2)
+      ]);
+    });
+    await S.voiceAlone('s2DeriveTogether');
     await wait(SHORT);
 
     /* ---- 3. One arc of 1° ------------------------------------------------------
-       The 360 is carried down to divide, and the arc closes to 1°. */
-    await S.say(keyed('s2DeriveOne'));
-    var s3 = await addStep(tr('s2StepArcAngle', { a: '<span class="c-val"><span data-k="c1">1</span>°</span>' }),
-      [[SS()], [EQ], [TWO_PI_R()], ['<span class="op">÷</span>'], ['<span class="c-ang">360</span>', 'to360'],
-       [EQ], ['<span class="frac c-ang"><span class="frac__n c-val"><span data-k="n1">1</span></span><span class="frac__d">360</span></span>'],
-       [X], [TWO_PI_R()]]);
-    var tail = s3.bits.slice(5);
-    await writeBits(s3, [s3.keys.to360].concat(tail));
-    await Promise.all([
-      S.flyNumber(s2.keys.n360, s3.keys.to360, 1.1).then(function () {
-        M.set(s3.keys.to360, { opacity: 1 });
-        Beats.pop();
-        return anim(M.fromTo(s3.keys.to360, { scale: 1.35 }, { scale: 1, duration: M.dur(0.35), ease: M.POP }));
-      }),
-      anim(M.to(ticks, { opacity: 0, duration: M.dur(0.9), delay: M.dur(0.3) })),
-      anim(M.to(deg, { v: 1, duration: M.dur(1.4), ease: 'power2.inOut', onUpdate: function () { turnTo(deg.v); } }))
-    ]);
-    turnTo(1);
-    for (var t2 = 0; t2 < tail.length; t2++) {
-      await anim(M.fromTo(tail[t2], { opacity: 0, y: 8, scale: 0.88 },
-        { opacity: 1, y: 0, scale: 1, duration: M.dur(0.34), ease: 'back.out(1.6)' }));
-      await wait(200);
-    }
-    await wait(SHORT);
-
-    /* 1° is a hair at this size: a glass over the spot where the two radii
-       meet the rim shows the little arc between them. */
-    var LK = 6;
-    var lens = S.magnifier(svg, pt(C, 142, at - 0.5), pt(C, 76, at + 82), LK, function (mp, gl) {
-      var Cm = mp(C);
-      S.svgEl('circle', { 'class': 's-lens__disc', cx: r2(Cm.x), cy: r2(Cm.y), r: r2(C.r * LK) }, gl);
-      S.svgEl('circle', { 'class': 's-lens__edge', cx: r2(Cm.x), cy: r2(Cm.y), r: r2(C.r * LK) }, gl);
-      [at - 1, at].forEach(function (a2) {
-        S.svgEl('path', { 'class': 's-lens__radius', d: S.segD(Cm, mp(pt(C, C.r, a2))) }, gl);
-      });
-      var w0 = mp(pt(C, C.r, at - 1)), w1 = mp(pt(C, C.r, at));
-      S.svgEl('path', { 'class': 's-lens__arc',
-        d: 'M' + r2(w0.x) + ' ' + r2(w0.y) + ' A' + r2(C.r * LK) + ' ' + r2(C.r * LK) + ' 0 0 0 ' + r2(w1.x) + ' ' + r2(w1.y) }, gl);
-      var m0 = mp(pt(C, 137, at - 1)), m1 = mp(pt(C, 137, at));
-      S.svgEl('path', { 'class': 's-lens__angle',
-        d: 'M' + r2(m0.x) + ' ' + r2(m0.y) + ' A' + r2(137 * LK) + ' ' + r2(137 * LK) + ' 0 0 0 ' + r2(m1.x) + ' ' + r2(m1.y) }, gl);
-      var lp = mp(pt(C, 138.5, at + 1.9));
-      var tt = S.text(gl, lp.x, lp.y, '1°', 'lbl lbl--angle s-lens__lbl');
-      M.set(tt, { opacity: 1 });
+       The 360 is carried down to divide. The figure is NOT closed down to
+       1° -- a hair at this size, and no help (user, 2026-10-30): it stays
+       whole while the card works the 1° out, and the ticks go. */
+    await S.voiceAlone('s2DeriveOne', async function () {
+      s3 = await addStep(tr('s2StepArcAngle', { a: '<span class="c-val"><span data-k="c1">1</span>°</span>' }),
+        [[SS()], [EQ], [TWO_PI_R()], ['<span class="op">÷</span>'], ['<span class="c-ang">360</span>', 'to360'],
+         [EQ], ['<span class="frac c-ang"><span class="frac__n c-val"><span data-k="n1">1</span></span><span class="frac__d">360</span></span>'],
+         [X], [TWO_PI_R()]]);
+      var tail = s3.bits.slice(5);
+      await writeBits(s3, [s3.keys.to360].concat(tail));
+      await Promise.all([
+        S.flyNumber(s2.keys.n360, s3.keys.to360, 1.1).then(function () {
+          M.set(s3.keys.to360, { opacity: 1 });
+          Beats.pop();
+          return anim(M.fromTo(s3.keys.to360, { scale: 1.35 }, { scale: 1, duration: M.dur(0.35), ease: M.POP }));
+        }),
+        anim(M.to(ticks, { opacity: 0, duration: M.dur(0.9), delay: M.dur(0.3) }))
+      ]);
+      for (var t2 = 0; t2 < tail.length; t2++) {
+        await anim(M.fromTo(tail[t2], { opacity: 0, y: 8, scale: 0.88 },
+          { opacity: 1, y: 0, scale: 1, duration: M.dur(0.34), ease: 'back.out(1.6)' }));
+        await wait(200);
+      }
     });
-    await S.say(keyed('s3DeriveZoom'));
-    await lens.show();
-    await wait(2400);
-    await lens.hide();
-    await wait(SHORT);
+    await wait(LOOK);
 
-    /* ---- 3, continued: from 1° to 10°, on the same card ----------------------- */
-    await wait(2500);
+    /* ---- 3, continued: from 1° to 10°, on the same card -----------------------
+       The figure moves for the first time here: from the whole circle
+       straight to 10°, as the 1 on the card becomes 10. */
     var gone = s3.bits.slice(2, 6);
     await anim(M.to(gone, { opacity: 0, filter: 'blur(4px)', duration: M.dur(0.4), ease: 'power2.in' }));
     var FlipK = global.Flip;
     var state = FlipK && !Flow.isFast() ? FlipK.getState(s3.bits) : null;
     gone.forEach(function (g) { g.style.display = 'none'; });
     if (state) await anim(FlipK.from(state, { duration: M.dur(0.45), ease: 'power2.inOut' }));
-    await S.say(keyed('s2DeriveTen'));
     var zeros = [s3.el.querySelector('[data-k="c1"]'), s3.el.querySelector('[data-k="n1"]')].map(function (one) {
       var z = document.createElement('span');
       z.textContent = '0';
@@ -664,43 +648,42 @@
       M.set(z, { opacity: 0, filter: 'blur(6px)' });
       return z;
     });
-    await Promise.all([
-      anim(M.to(zeros, { opacity: 1, filter: 'blur(0px)', duration: M.dur(0.7), ease: 'power2.out', stagger: M.gap(0.15) })),
-      anim(M.to(deg, { v: 10, duration: M.dur(1.2), ease: 'power2.inOut', onUpdate: function () { turnTo(deg.v); } }))
-    ]);
+    await S.voiceAlone('s2DeriveTen', function () {
+      return Promise.all([
+        anim(M.to(zeros, { opacity: 1, filter: 'blur(0px)', duration: M.dur(0.7), ease: 'power2.out', stagger: M.gap(0.15) })),
+        anim(M.to(deg, { v: 10, duration: M.dur(1.6), ease: 'power2.inOut', onUpdate: function () { turnTo(deg.v); } }))
+      ]);
+    });
     turnTo(10);
     Beats.pop();
     await wait(LOOK);
 
-    /* A few more angles, chosen at random: each one dissolves into the card
-       and the arc turns to it, so the learner sees that only the number on
-       top changes. */
+    /* Any angle, in the learner's own hands (user, 2026-10-30): the end of
+       the moving radius becomes a handle, and as it is dragged forward or
+       back the arc, its "θ = …°" and the number on top of the card -- in
+       the caption and in the fraction -- all follow it, so the learner sees
+       that only that number changes. */
     var c1 = s3.el.querySelector('[data-k="c1"]'), n1 = s3.el.querySelector('[data-k="n1"]');
     zeros.forEach(function (z) { z.parentNode.removeChild(z); });
     c1.textContent = '10';
     n1.textContent = '10';
     A.lbl.classList.add('is-val');
-    var pool = [25, 40, 55, 80, 100, 120, 135, 150, 170, 200, 225, 250, 280, 300];
-    var picks = [];
-    while (picks.length < 5) {
-      var v = pool[Math.floor(Math.random() * pool.length)];
-      if (picks.indexOf(v) < 0) picks.push(v);
-    }
-    await S.say(keyed('s3DeriveMore'));
-    for (var pi = 0; pi < picks.length; pi++) {
-      var val = picks[pi];
-      await anim(M.to([c1, n1], { opacity: 0, filter: 'blur(5px)', duration: M.dur(0.25), ease: 'power2.in' }));
-      c1.textContent = val;
-      n1.textContent = val;
-      await Promise.all([
-        anim(M.to([c1, n1], { opacity: 1, filter: 'blur(0px)', duration: M.dur(0.35), ease: 'power2.out' })),
-        anim(M.to(deg, { v: val, duration: M.dur(0.9), ease: 'power2.inOut', onUpdate: function () { turnTo(deg.v); } }))
-      ]);
-      turnTo(val);
-      Beats.pop();
-      await wait(1100);
-    }
-    await S.say(keyed('s2DeriveOnlyTop'));
+    var drag = S.angleHandle(svg, C, at, deg, function (v) {
+      turnTo(v);
+      c1.textContent = Math.round(v);
+      n1.textContent = Math.round(v);
+    }, 120);
+    await drag.shown;
+    await S.say(keyed('s3DeriveDrag'));
+    await drag.done;
+    await wait(600);
+    await drag.away();
+    /* what stays the same, lit as the voice names it */
+    await S.voiceAlone('s2DeriveOnlyTop', function () {
+      return anim(M.fromTo([s3.el.querySelector('.frac__d'), s3.bits[s3.bits.length - 1]], { scale: 1 },
+        { scale: 1.25, transformOrigin: '50% 50%', duration: M.dur(0.3), ease: 'power2.out',
+          yoyo: true, repeat: 3, stagger: M.gap(0.15) }));
+    });
     await wait(SHORT);
     A.lbl.classList.remove('is-val');
 
@@ -737,90 +720,9 @@
     Beats.sfx('correct');
     await wait(LOOK);
 
-    /* ---- Try it --------------------------------------------------------------------
-       The end of the moving radius becomes a handle; dragged, the arc
-       follows the finger and a line of its own under the formula reads the
-       angle and its fraction. */
-    var tryLine = S.h('p', 'sa-try', '<span class="sa-try__tag">' + tr('s3TryIt') + '</span>' +
-      '<span class="sa-try__eq"><span class="c-val" data-k="tdeg">θ</span><span class="op">→</span>' +
-      SS() + EQ + '<span class="frac c-ang"><span class="frac__n c-val" data-k="tnum">θ</span><span class="frac__d">360</span></span>' +
-      X + TWO_PI_R() + '</span>', panel);
-    var tDeg = tryLine.querySelector('[data-k="tdeg"]'), tNum = tryLine.querySelector('[data-k="tnum"]');
-    M.set(tryLine, { opacity: 0 });
-    var hd = S.svgEl('g', { 'class': 's-handle', tabindex: 0, role: 'slider',
-      'aria-label': tr('s3A11yHandle'),
-      'aria-valuemin': 1, 'aria-valuemax': 359 }, C.top);
-    S.svgEl('circle', { 'class': 's-handle__halo', cx: 0, cy: 0, r: 22 }, hd);
-    S.svgEl('circle', { 'class': 's-handle__ring', cx: 0, cy: 0, r: 12 }, hd);
-    S.svgEl('circle', { 'class': 's-handle__dot', cx: 0, cy: 0, r: 5 }, hd);
-    S.svgEl('circle', { cx: 0, cy: 0, r: 28, fill: 'transparent' }, hd);
-    function placeHandle() {
-      var q = pt(C, C.r, at - deg.v);
-      hd.setAttribute('transform', 'translate(' + r2(q.x) + ' ' + r2(q.y) + ')');
-      hd.setAttribute('aria-valuenow', Math.round(deg.v));
-    }
-    function setDeg(v) {
-      turnTo(v);
-      placeHandle();
-      var n = Math.round(v);
-      tDeg.textContent = 'θ = ' + n + '°';
-      tNum.textContent = n;
-      A.lbl.classList.add('is-val');
-    }
-    placeHandle();
-    M.set(hd, { opacity: 0 });
-    var grabbing = false, travelled = 0;
-    var explored = S.until(function () { setDeg(120); });
-    function angleOf(ev) {
-      var q = svg.createSVGPoint();
-      q.x = ev.clientX; q.y = ev.clientY;
-      q = q.matrixTransform(svg.getScreenCTM().inverse());
-      var a2 = Math.atan2(C.y - q.y, q.x - C.x) * 180 / Math.PI;
-      var v = ((at - a2) % 360 + 360) % 360;
-      if (deg.v > 300 && v < 60) v = 359;
-      if (deg.v < 60 && v > 300) v = 1;
-      return Math.max(1, Math.min(359, v));
-    }
-    hd.addEventListener('pointerdown', function (ev) {
-      if (!hd.__live) return;
-      grabbing = true;
-      hd.classList.add('is-held');
-      try { hd.setPointerCapture(ev.pointerId); } catch (e) {}
-      ev.preventDefault();
-    });
-    hd.addEventListener('pointermove', function (ev) {
-      if (!grabbing) return;
-      var v = angleOf(ev);
-      travelled += Math.abs(v - deg.v);
-      setDeg(v);
-    });
-    function letGo() {
-      if (!grabbing) return;
-      grabbing = false;
-      hd.classList.remove('is-held');
-      explored.check(travelled >= 40);
-    }
-    hd.addEventListener('pointerup', letGo);
-    hd.addEventListener('pointercancel', letGo);
-    hd.addEventListener('keydown', function (ev) {
-      if (!hd.__live) return;
-      var step = ev.key === 'ArrowUp' || ev.key === 'ArrowLeft' ? 1 :
-                 ev.key === 'ArrowDown' || ev.key === 'ArrowRight' ? -1 : 0;
-      if (!step) return;
-      ev.preventDefault();
-      setDeg(Math.max(1, Math.min(359, deg.v + step * 5)));
-      travelled += 5;
-      explored.check(travelled >= 40);
-    });
-    rule.el.classList.remove('is-glow');
-    A.set(at - deg.v, at, 'θ');
-    hd.__live = true;
-    await Promise.all([anim(S.fadeIn(tryLine, { y: 10 })), anim(S.popIn(hd))]);
-    await S.say(keyed('s3DeriveDrag'));
-    await explored.done;
-    hd.__live = false;
-    hd.classList.add('is-done');
-    await wait(600);
+    /* No "Try it" here any more (user, 2026-10-30): the learner has turned
+       the angle in step 3 already, so the formula is shown and lit, and
+       that is all. */
     await S.say(keyed('s2DeriveWorks'), 'happy');
     await wait(BEAT);
     await S.handOver();
@@ -911,7 +813,7 @@
     var s3 = bitsRow(list, 3, [SS(), EQ, fr('1', '4', 'c-ang'), X, c('pi', '2'), X, c('pi', '22')]);
     var s4 = S.stepRow(list, 4, SS() + EQ + DD);
     var d1 = S.dropdown(S.ddIn(s1), [fr('90', '360', 'c-ang'), fr('360', '90', 'c-ang'), fr('90', '180', 'c-ang')], 0);
-    var d2 = S.dropdown(S.ddIn(s2), [c('r', '7'), c('r', '14'), c('ang', '90°')], 0);
+    var d2 = S.dropdown(S.ddIn(s2), [c('r', '7'), c('r', '14'), c('r', '7²')], 0);
     var d4 = S.dropdown(S.ddIn(s4), [tr('val11cm'), tr('val44cm'), tr('val22cm')], 0, { up: true });
 
     /* The figure first, with nothing said; then the problem. */
@@ -926,9 +828,10 @@
     await anim(S.fadeIn(formula, { y: 6 }));
     await wait(LOOK);
 
-    /* 1. θ into the formula. */
+    /* 1. θ into the formula -- asked for by name, not by value (user,
+       2026-10-30): the value is the learner's to read off the figure. */
     await S.stepIn(s1);
-    await S.say(keyed('s2WkPutTheta'));
+    await S.say(keyed('s2WkPutAngle'));
     pulse(fig.A.lbl);
     await d1.ask({
       auto: keyed('s2WkThetaAuto'),
@@ -940,16 +843,17 @@
     });
     S.stepDone(s1);
 
-    /* 2. r into the formula, with π = 22/7 said first. */
+    /* 2. r into the formula, asked for by name as θ was; 22/7 is already
+       written in the row. */
     await S.stepIn(s2);
-    await S.say(keyed('s2WkPutR'));
+    await S.say(keyed('s2WkPutRadius'));
     pulse(fig.R);
     await d2.ask({
       auto: keyed('s2WkRAuto'),
       yes: [keyed('fbThatsCorrect'), keyed('s2WkRRight')],
       why: {
         1: [keyed('fbNotQuite'), keyed('p29Wrong14')],
-        2: [keyed('fbNotQuite'), keyed('p29Wrong90')]
+        2: [keyed('fbNotQuite'), keyed('s2WkRWrongSq')]
       }
     });
     S.stepDone(s2);
@@ -1471,4 +1375,8 @@
     reset: reset,
     stage: stage
   });
+
+  /* Lent to skill 3, whose whole turn keeps its measure off the radii the
+     same way (sCentralTerm, sector-area.js); read when a scene plays. */
+  global.ArcFormula = { clearOfRadii: clearOfRadii };
 })(window);
