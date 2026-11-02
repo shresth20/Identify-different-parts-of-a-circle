@@ -2209,8 +2209,9 @@
     var sc = await openStage('work');
     var col = h('div', 'sa-wk sa-wk--align ' + (spec.cls || 'sa-wk--s4'), null, sc);
     var fig = spec.figure(sc);
+    /* on the pink plate skill 3's worked formulas wear (user, 2026-11-02) */
     var head = h('div', 'sa-wk__head',
-      '<p class="sa-wk__formula"><b>' + T('s3Formula') + '</b> ' + spec.formula + '</p>', col);
+      '<p class="sa-wk__formula sa-patch"><b>' + T('s3Formula') + '</b> ' + spec.formula + '</p>', col);
     var formula = head.querySelector('.sa-wk__formula');
     M.set(formula, { opacity: 0 });
     var list = h('div', 'steps', null, col);
@@ -2317,7 +2318,7 @@
   var RULE_MAJOR = function () { return word('s4WordMajorSegment') + EQ + word('s4WordMajorSector') + PLUS + word('s4WordTriangle'); };
   /* For any angle θ: the sector's (θ⁄360) × πr², less the triangle's
      ½ × r² × sin θ. Each part in a span of its own, so the page that
-     builds it can light one part at a time. */
+     builds it can pulse one part at a time. */
   var RULE_THETA = function () {
     return word('s4WordArea') + EQ +
       '<span class="s4-term" data-part="sector">' + ANG('θ', '360') + X + c('pi', 'πr²') + '</span>' + MINUS +
@@ -2619,17 +2620,16 @@
     await rule.shown;
     var terms = rule.el.querySelectorAll('.s4-term');
 
-    /* each part named, lit in the formula and on the figure together */
-    function lightTerm(i) {
-      Array.prototype.forEach.call(terms, function (t, j) { t.classList.toggle('is-on', j === i); });
+    /* each part named, pulsed in the formula and lit on the figure together
+       -- no patch behind it (user, 2026-11-02) */
+    function pulseTerm(i) {
       return Flow.anim(M.fromTo(terms[i], { scale: 1, transformOrigin: '50% 50%' },
         { scale: 1.08, duration: M.dur(0.3), ease: 'power2.out', yoyo: true, repeat: 1 }));
     }
-    await Promise.all([SA.say(keyed('s4tSectorPart')), focus('sector'), lightTerm(0)]);
+    await Promise.all([SA.say(keyed('s4tSectorPart')), focus('sector'), pulseTerm(0)]);
     await Flow.wait(LOOK);
-    await Promise.all([SA.say(keyed('s4tTriPart')), focus('triangle'), lightTerm(1)]);
+    await Promise.all([SA.say(keyed('s4tTriPart')), focus('triangle'), pulseTerm(1)]);
     await Flow.wait(LOOK);
-    Array.prototype.forEach.call(terms, function (t) { t.classList.remove('is-on'); });
     await Promise.all([focus('segment'), spotlight([chord], [arc])]);
     seg.classList.add('is-focus');
     rule.el.classList.remove('is-glow');
