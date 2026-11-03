@@ -6,7 +6,7 @@ window.GAME_LOCALES_S3={
   "voiceOver": {
     "en": {
       "dir": "assets/",
-      "rev": "2",
+      "rev": "3",
       "files": {
         "s3AwSame": "VO-skill 3/En/s3AwSame.webm",
         "s3Central360Q": "VO-skill 3/En/s3Central360Q.webm",
@@ -122,7 +122,12 @@ window.GAME_LOCALES_S3={
         "s3WmRight": "VO-skill 3/En/s3WmRight.webm",
         "s3WmWrong45": "VO-skill 3/En/s3WmWrong45.webm",
         "s3WmWrongMinor": "VO-skill 3/En/s3WmWrongMinor.webm",
-        "s3WmWrongWhole": "VO-skill 3/En/s3WmWrongWhole.webm"
+        "s3WmWrongWhole": "VO-skill 3/En/s3WmWrongWhole.webm",
+        "s3PickWhich": "VO-skill 3/En/s3PickWhich.webm",
+        "s3PickAuto": "VO-skill 3/En/s3PickAuto.webm",
+        "s3ThetaGrows": "VO-skill 3/En/s3ThetaGrows.webm",
+        "s3WkPutAngle": "VO-skill 3/En/s3WkPutAngle.webm",
+        "s3PutRadius": "VO-skill 3/En/s3PutRadius.webm"
       },
       "cues": {
         "s3AwSame": [60, 160, 320, 570, 700, 1540, 2680],
@@ -239,7 +244,12 @@ window.GAME_LOCALES_S3={
         "s3WmRight": [30, 160, 500, 820, 1040, 1150, 1440, 1820, 2180],
         "s3WmWrong45": [60, 980, 1380, 1540, 1900, 2480],
         "s3WmWrongMinor": [60, 400, 500, 660, 1000, 2020, 2540, 2660],
-        "s3WmWrongWhole": [50, 180, 320, 480, 720, 2060, 2460, 2660]
+        "s3WmWrongWhole": [50, 180, 320, 480, 720, 2060, 2460, 2660],
+        "s3PickWhich": [60, 330, 650, 1010, 1270, 1610, 1890, 2070],
+        "s3PickAuto": [60, 550, 1050, 1210, 1620],
+        "s3ThetaGrows": [60, 360, 1340, 1510, 1990, 3110, 3190, 3610, 4030, 4570],
+        "s3WkPutAngle": [60, 800, 970, 1370, 1750, 2150, 2430, 2570],
+        "s3PutRadius": [60, 710, 1170, 1530, 1850, 2190]
       }
     }
   },

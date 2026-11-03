@@ -6,7 +6,7 @@ window.GAME_LOCALES_S1={
   "voiceOver": {
     "en": {
       "dir": "assets/",
-      "rev": "2",
+      "rev": "3",
       "files": {
         "arcEach": "VO-skill 1/En/arcEach.webm",
         "arcEachSemi": "VO-skill 1/En/arcEachSemi.webm",
@@ -80,7 +80,9 @@ window.GAME_LOCALES_S1={
         "secWrongMajor": "VO-skill 1/En/secWrongMajor.webm",
         "secWrongMinor": "VO-skill 1/En/secWrongMinor.webm",
         "segWrongMajor": "VO-skill 1/En/segWrongMajor.webm",
-        "segWrongMinor": "VO-skill 1/En/segWrongMinor.webm"
+        "segWrongMinor": "VO-skill 1/En/segWrongMinor.webm",
+        "s1DiaTwice": "VO-skill 1/En/s1DiaTwice.webm",
+        "s1QzFinalDone": "VO-skill 1/En/s1QzFinalDone.webm"
       },
       "cues": {
         "arcEach": [60, 240, 520, 780, 980, 1180],
@@ -155,7 +157,9 @@ window.GAME_LOCALES_S1={
         "secWrongMajor": [60, 240, 850, 1000, 1400, 1780, 2140, 2290, 2600],
         "secWrongMinor": [60, 240, 990, 1130, 1500, 1850, 2160, 2310, 2660],
         "segWrongMajor": [60, 260, 930, 1060, 1420, 1820, 2160, 2340, 2640],
-        "segWrongMinor": [60, 260, 950, 1120, 1500, 1900, 2270, 2560, 2840]
+        "segWrongMinor": [60, 260, 950, 1120, 1500, 1900, 2270, 2560, 2840],
+        "s1DiaTwice": [60, 900, 1070, 1710, 2130, 2570, 2870],
+        "s1QzFinalDone": [60, 430, 1430, 1620, 1800, 2340, 2800, 3030, 3300, 3500, 3640]
       }
     }
   },
