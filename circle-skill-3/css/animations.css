@@ -1,0 +1,335 @@
+/* ==========================================================================
+   Motion layer. Transform/opacity/filter only -- never width, height, top or
+   left, with one deliberate exception: the speech bubble's box morph, which
+   is a Flip and so is measured rather than guessed.
+
+   The board's entrance is a GSAP tween in pages.js, not a keyframe: the class
+   alone must always leave the board visible, so a tween that never runs can
+   never strand it at opacity 0.
+   ========================================================================== */
+
+/* Compositor hint, added for the length of a move and dropped after. */
+.is-animating { will-change: transform, opacity; }
+
+/* While GSAP drives opacity frame by frame, a CSS transition on the same
+   property would re-transition every one of those writes and smear the move. */
+.board.is-animating { transition: none; }
+
+/* ==========================================================================
+   Words ease in -- the text reveal
+   --------------------------------------------------------------------------
+   A typewriter in PACING only. It lands a word at a time, and each word fades
+   up and unblurs exactly where it already sits. Three things make it smooth:
+
+     1. Layout first, reveal second. The whole line is written into the DOM up
+        front, one span per word, all at opacity 0. Revealing only adds a
+        class, so no word ever pushes another sideways as it appears.
+     2. A hidden ghost reserves the width. The ghost sits in normal flow and
+        gives the wrapper its final box; the live line is absolute on top of
+        it. A centred or wrapping line therefore never shifts.
+     3. Paced against a wall clock. Each word is due at
+        start + charsBefore * perChar, and typer.js sleeps only the remaining
+        time to that moment -- a dropped frame costs nothing and drift never
+        accumulates.
+   ========================================================================== */
+
+.type-wrap  { position: relative; display: inline-block; }
+.type-ghost { visibility: hidden; }
+.type {
+  position: absolute;
+  inset: 0;
+  text-align: left;
+  /* Each word span carries its own trailing spaces (see wordCuts in
+     typer.js), and they must not collapse. */
+  white-space: nowrap;
+}
+/* A centred heading centres both of its rows; a bubble's rows are set
+   left, in every bubble of the game (user, 2026-10-09). */
+.heading .type { text-align: center; }
+.bubble  .type { text-align: left; }
+
+/* The reveal itself. `both` holds the end state after the animation has
+   finished, so a word never snaps back to opacity 0. */
+.wd { opacity: 0; }
+.wd.in { animation: wd-in .46s cubic-bezier(.2, .7, .3, 1) both; }
+@keyframes wd-in {
+  from { opacity: 0; filter: blur(4px); }
+  to   { opacity: 1; filter: blur(0); }
+}
+
+/* ==========================================================================
+   Scene motion
+   ========================================================================== */
+
+/* The Start button, breathing. It owns the glow layers only, and carries the
+   wall and the ambient through unchanged so they stay driven by --edge. */
+@keyframes start-pulse {
+  0%, 100% {
+    box-shadow: 0 var(--edge) 0 var(--horizon),
+                0 0 14px 2px var(--glow-board-soft),
+                0 0 36px 12px var(--glow-board-dim),
+                0 calc(var(--edge) + 1px) 2px var(--shadow-soft),
+                0 calc(var(--edge) + 5px) calc(var(--edge) * 2 + 16px) var(--shadow-deep);
+  }
+  50% {
+    box-shadow: 0 var(--edge) 0 var(--horizon),
+                0 0 26px 8px var(--glow-board),
+                0 0 62px 24px var(--glow-board-soft),
+                0 calc(var(--edge) + 1px) 2px var(--shadow-soft),
+                0 calc(var(--edge) + 5px) calc(var(--edge) * 2 + 16px) var(--shadow-deep);
+  }
+}
+
+/* The centre dot, asking to be tapped. Opacity and transform only, so the
+   whole loop runs off the main thread; the halo is a separate circle under
+   the dot, so the dot itself never softens.
+     The halo rests at nothing and every breath starts and ends there: it
+   comes on slowly, goes all the way out, and comes again, so no lead-in
+   fade is needed -- the loop's own first frame IS the light coming on. */
+.figure__centre.is-calling .centre__glow {
+  animation: dot-glow 1.8s ease-in-out infinite;
+}
+@keyframes dot-glow {
+  0%, 100% { opacity: 0;   transform: scale(.72); }
+  50%      { opacity: .85; transform: scale(1.22); }
+}
+/* Named by the voice, not asked for: the same halo held small and soft
+   round the dot, so the dot keeps its size and the light stays thin. It
+   breathes in opacity only; centreUnglow (animations.js) fades it out at
+   the same size (.is-glow-out). */
+.figure__centre.is-glowing .centre__glow,
+.figure__centre.is-glow-out .centre__glow {
+  transform: scale(.5);
+}
+.figure__centre.is-glowing .centre__glow {
+  animation: dot-glow-soft 1.6s ease-in-out infinite;
+}
+@keyframes dot-glow-soft {
+  0%, 100% { opacity: 0; }
+  50%      { opacity: .55; }
+}
+/* Answered: the halo settles to a quiet ring instead of stopping dead. It
+   is then faded off by quietCentre in animations.js. */
+.figure__centre.is-found .centre__glow {
+  animation: none;
+  opacity: .42;
+  transform: scale(1);
+  transition: opacity .3s ease, transform .3s ease;
+}
+
+/* ==========================================================================
+   The pulse -- a part, picked out while it is being named
+   --------------------------------------------------------------------------
+   Every time the lesson says what a part IS, that part itself is lit: the
+   mark blooms in its own ink and breathes three times under the arrow, so
+   the word, the arrow and the thing on the circle are read as one event
+   rather than as a label landing near some lines.
+     Two flavours, because the parts are two kinds of mark. A LINE -- the
+   rim, a radius, a chord -- swells and settles, the way a hand goes back
+   over a stroke to press it home. A POINT has no width to swell, so it
+   pings instead: a ring in its own ink opens out of it and fades. Both wear
+   the same bloom (#partGlow in index.html), which is a blurred copy of the
+   mark itself and therefore always in the mark's own colour.
+     This is the motion layer's second deliberate exception to
+   transform/opacity/filter only: stroke-width. A stroke is the only thing a
+   line HAS, and swelling one costs no layout -- the picture is an SVG, so
+   nothing reflows. Beats.partPulse in animations.js turns the class on and
+   takes it off again (Beats.pulseHold leaves it on, --pulse-times infinite,
+   until Beats.pulseRelease); the period below and PULSE_SECS there are the same
+   number stated in the two places that need it, so they move together. */
+.is-pulsing {
+  filter: url(#partGlow);
+  animation: part-pulse-line 1.05s ease-in-out var(--pulse-times, 3);
+  /* How far a line swells, and back to what. Every line on the circle rests
+     at --part-weight; the ones that do not -- the rim, and the arcs'
+     pieces (--arc-weight, arcs.css) -- say so below.
+       All are plain numbers, and the wide ones are written out rather than
+     worked out: a keyframe interpolates two lengths of the same KIND, and
+     `calc(4 * 1.75)` is not the same kind of value as `4` -- the pair would
+     be stepped between instead of eased, which is a flicker rather than a
+     swell. */
+  --pulse-w0: var(--part-weight);
+  --pulse-w1: 7;
+}
+.figure__rim.is-pulsing { --pulse-w0: 2.6; --pulse-w1: 5.4; }
+/* The arc pieces swell by the same ratio their own one-shot swell uses
+   (swellTo in animations.js: 1.6 of their rest). */
+.arc-piece.is-pulsing { --pulse-w0: 7; --pulse-w1: 11; }
+
+@keyframes part-pulse-line {
+  0%, 100% { stroke-width: var(--pulse-w0); }
+  50%      { stroke-width: var(--pulse-w1); }
+}
+
+/* The points: a ring opening out of the mark and fading, drawn as the mark's
+   own stroke so nothing has to be added to the picture to make it. Neither
+   dot has a stroke at rest, so there is nothing to put back. */
+.centre__dot.is-pulsing,
+.end-dot.is-pulsing {
+  stroke: var(--pulse-ink);
+  animation-name: part-pulse-ring;
+}
+@keyframes part-pulse-ring {
+  0%   { stroke-width: 0;  stroke-opacity: .72; }
+  70%  { stroke-width: 15; stroke-opacity: 0; }
+  100% { stroke-width: 0;  stroke-opacity: 0; }
+}
+.centre__dot.is-pulsing { --pulse-ink: var(--part-centre); }
+.end-dot.is-pulsing     { --pulse-ink: var(--part-point); }
+
+/* The circumference, held lit. Not the pulse above: the rim stays lit from
+   the moment it is named until the callout on it has been looked at, which
+   is longer than three breaths and not known in advance, so the light is a
+   loop of its own that runs while .is-lit is on. Slower than the pulse, and
+   it comes from nothing and goes all the way out again between breaths --
+   a light slowly switched on and off, not a nudge. Opacity only, on the blurred circle
+   inside the group; the group's own opacity is the beats' to fade, which is
+   what lets the light go out gently whatever point of a breath it is at. */
+.rim-light.is-lit .rim-light__glow {
+  animation: rim-breathe 2s ease-in-out infinite;
+}
+@keyframes rim-breathe {
+  0%, 100% { opacity: 0; }
+  50%      { opacity: .85; }
+}
+
+/* A name picked up by a tap, waiting for its box: it breathes so it is
+   plainly the one in hand. */
+.chip.is-picked { animation: chip-pick 1.3s ease-in-out infinite; }
+@keyframes chip-pick {
+  0%, 100% { transform: translateY(0); }
+  50%      { transform: translateY(-4px); }
+}
+
+/* The ripple motion.js draws where a finger landed. Fixed to the viewport,
+   and removed from the tree when it has gone. */
+.mo-ripple {
+  position: fixed;
+  z-index: 999;
+  width: 84px;
+  height: 84px;
+  margin: -42px 0 0 -42px;
+  border-radius: 50%;
+  background: radial-gradient(circle,
+              color-mix(in srgb, var(--blue-fill) 70%, transparent) 0%,
+              transparent 68%);
+  pointer-events: none;
+}
+
+/* The band motion.js sweeps behind a highlighted term. */
+.mo-highlight {
+  position: absolute;
+  inset: -.08em -.22em;
+  z-index: -1;
+  border-radius: .3em;
+  background: color-mix(in srgb, var(--yellow-fill) 80%, transparent);
+  transform-origin: left center;
+  pointer-events: none;
+}
+
+/* The light shower an activity ends on (confettiRain, animations.js): a
+   layer over the whole board, clipped to its rounded edge, that nothing can
+   be pressed through -- the pieces are on it only while they fall. */
+.confetti {
+  position: absolute;
+  inset: 0;
+  z-index: 5;
+  overflow: hidden;
+  border-radius: inherit;
+  pointer-events: none;
+}
+.confetti__bit {
+  position: absolute;
+  left: 0;
+  top: 0;
+  width: 9px;
+  height: 5px;
+  border-radius: 1.5px;
+  opacity: 0;
+}
+.confetti__bit--round { width: 6px; height: 6px; border-radius: 50%; }
+.confetti__bit--blue     { background: var(--blue-fill); }
+.confetti__bit--mint     { background: var(--mint-fill); }
+.confetti__bit--lavender { background: var(--lavender-fill); }
+.confetti__bit--coral    { background: var(--coral-fill); }
+.confetti__bit--yellow   { background: var(--yellow-fill); }
+
+/* ==========================================================================
+   Reduced motion
+   Words still arrive in order -- that is the reading aid, not the decoration
+   -- but near-instantly, and pages.js drops the tail pause to match.
+   ========================================================================== */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: .01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: .01ms !important;
+  }
+  .wd.in {
+    animation: wd-in .08s linear both !important;
+  }
+  /* The blanket rule above would run the halo's loop once, in a hundredth of
+     a second, and leave it back at opacity 0 -- an invisible halo. Stated
+     outright instead: the dot is marked, it just does not breathe. */
+  .figure__centre.is-calling .centre__glow {
+    animation: none !important;
+    opacity: .6;
+    transform: scale(1);
+  }
+  /* ...and the soft glow the voice names it under: lit, small, steady. */
+  .figure__centre.is-glowing .centre__glow {
+    animation: none !important;
+    opacity: .45;
+  }
+  /* The same for the lit rim: lit, steadily. */
+  .rim-light.is-lit .rim-light__glow { animation: none !important; }
+  .chip.is-picked { animation: none !important; }
+  /* The pulse is a highlight before it is a motion: the part still has to be
+     picked out, so the bloom is left standing for as long as the beat holds
+     the class on, and only the breathing is dropped. */
+  .is-pulsing {
+    animation: none !important;
+    stroke-width: var(--pulse-w1);
+  }
+  .centre__dot.is-pulsing,
+  .end-dot.is-pulsing { stroke-width: 0; }
+}
+
+/* ---- The drag, shown (dragGuide in pages.js) ----------------------------
+   A blank card the size of a name, and a hand on it, carried from the tray
+   to a box while the instruction is said. Laid over the board in the
+   viewport's own units, never a target; the timeline moves and fades the
+   whole of it, and presses the card. It rests at nothing. */
+.drag-guide {
+  position: fixed;
+  left: 0;
+  top: 0;
+  z-index: var(--z-next);
+  pointer-events: none;
+  opacity: 0;
+}
+.drag-guide__card {
+  position: absolute;
+  border-radius: 999px;
+  background: #fff;
+  border: 3px solid var(--lavender-border);
+  box-shadow: 0 6px 14px var(--shadow-soft);
+}
+/* the fingertip (the path's origin) set just below the card's middle */
+.drag-guide__hand {
+  position: absolute;
+  left: -13px;
+  top: 4px;
+  width: 36px;
+  height: 43px;
+  overflow: visible;
+}
+.drag-guide__hand path {
+  fill: #fff;
+  stroke: var(--text-secondary);
+  stroke-width: 2.2;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}

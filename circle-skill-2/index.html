@@ -1,0 +1,770 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+  <title data-i18n="uiTitle">Identify Different Parts of a Circle</title>
+
+  <link rel="stylesheet" href="css/style.css" />
+  <link rel="stylesheet" href="css/arcs.css" />
+  <link rel="stylesheet" href="css/arclen.css" />
+  <link rel="stylesheet" href="css/circum.css" />
+  <link rel="stylesheet" href="css/central.css" />
+  <link rel="stylesheet" href="css/animations.css" />
+  <link rel="stylesheet" href="css/responsive.css" />
+  <link rel="stylesheet" href="css/sector-area.css" />
+  <link rel="stylesheet" href="css/arc-formula.css" />
+</head>
+<body>
+  <!-- The point every line end on a rim wears where the figure has no point
+       of its own: one marker, referenced by the .pt-end / .pt-ends classes
+       (style.css), so it shows, moves and fades with its line. -->
+  <svg class="pt-defs" width="0" height="0" aria-hidden="true" focusable="false">
+    <defs>
+      <marker id="ptMark" viewBox="-6 -6 12 12" refX="0" refY="0"
+              markerWidth="12" markerHeight="12" markerUnits="userSpaceOnUse"
+              overflow="visible">
+        <circle class="pt-mark" r="5.5" />
+      </marker>
+    </defs>
+  </svg>
+  <!-- One screen at a time lives inside #app. The background art is painted on
+       body, so a screen swap never re-decodes it. -->
+  <main id="app">
+
+    <!-- The 16:9 box the whole lesson is staged in. The board, the mascot and
+         the Next control are all positioned against THIS, not against the
+         board, so Next sits in the board's bottom-right corner from beat 1 --
+         before the board itself has arrived, and without moving when it does. -->
+    <div class="frame" id="frame">
+
+      <!-- The mascot's centre-stage slot. It sits BEHIND the board on purpose:
+           when the board arrives it covers the mascot, and the mascot's next
+           entrance rises back out of the board's own surface. -->
+      <div class="slot slot--hero" id="slotHero">
+        <div class="bubble" id="bubble" hidden>
+          <span class="type-wrap" id="bubbleType">
+            <span class="type-ghost"></span>
+            <span class="type" aria-live="polite"><span class="txt"></span></span>
+          </span>
+          <!-- The tail. Two paths, in this order for a reason: the filled
+               one goes down first so it covers the box's border where the
+               tail joins it, and the stroke then draws the tail's two FREE
+               edges only -- which is how the tail and the box read as one
+               outline rather than as a box with a triangle under it. -->
+          <svg class="bubble-tail" viewBox="0 0 44 42" aria-hidden="true">
+            <path d="M4 0 H42 V8 C36 20 24 30 2 42 C8 32 8 20 4 8 Z"
+                  fill="var(--bubble-bg)" />
+            <path d="M42 8 C36 20 24 30 2 42 C8 32 8 20 4 8" fill="none"
+                  stroke="var(--note-edge)" stroke-width="4"
+                  stroke-linecap="round" stroke-linejoin="round"
+                  vector-effect="non-scaling-stroke" />
+          </svg>
+        </div>
+      </div>
+
+      <!-- The bird's stand-in for the half of every jump that happens BEHIND
+           the board. Fixed to the screen and pegged to the hero rung of the
+           --z ladder -- under the board -- so the spot it waits on, just
+           below the board's top edge, is genuinely out of sight. pages.js
+           sizes and places it from the bird's own box; see mascotJumpIn()
+           there for why one element cannot do this on its own. -->
+      <div class="hopper" id="hopper" aria-hidden="true"></div>
+
+      <section class="board" id="board" aria-hidden="true">
+        <!-- Three bands, three stacking levels (see --z-* in style.css): the
+             header is above the footer, and both are above the stage, so the
+             mascot standing on the header overlaps the figure behind it. -->
+        <header class="board__top" id="boardTop">
+          <div class="prompt" id="prompt">
+            <div class="prompt__mascot" id="slotHeader"></div>
+            <p class="prompt__line">
+              <span class="type-wrap" id="promptType">
+                <span class="type-ghost"></span>
+                <span class="type" aria-live="polite"><span class="txt"></span></span>
+              </span>
+            </p>
+          </div>
+        </header>
+
+        <div class="board__stage" id="boardStage">
+          <!-- The whole section is drawn in ONE picture. The view box is wide
+               rather than square -- 1000 x 420 with the circle in the middle
+               -- because the last activity hangs five name boxes off the
+               circle, and they need the room either side of it. The stage is
+               wider still (about 2.5:1 at every board size), so the picture is
+               always letterboxed by its HEIGHT and the circle comes out the
+               same size a square picture would have given it. -->
+          <svg class="figure" id="figure" viewBox="0 0 1000 420"
+               role="img" data-i18n-attr="aria-label:a11yFigure" aria-label="A circle">
+            <defs>
+              <!-- The bloom under a part while it is being named. A blurred
+                   copy of the mark itself, laid twice under the mark, so the
+                   glow is always in the part's OWN ink -- nothing here names
+                   a colour, which is what lets one filter serve the rim, the
+                   lines and the dots alike.
+                     Measured in the picture's own units, over the whole view
+                   box: the radius, the diameter and the level chord are
+                   horizontal, so their boxes have no height, and a region
+                   measured against one would collapse to nothing and take
+                   the line with it. -->
+              <filter id="partGlow" filterUnits="userSpaceOnUse"
+                      x="0" y="0" width="1000" height="420">
+                <feGaussianBlur in="SourceGraphic" stdDeviation="6" result="bloom" />
+                <feMerge>
+                  <feMergeNode in="bloom" />
+                  <feMergeNode in="bloom" />
+                  <feMergeNode in="SourceGraphic" />
+                </feMerge>
+              </filter>
+
+              <!-- The soft light on the circumference while it is being
+                   named, and the halo of the light that runs round it. Both
+                   are the rim's own circle, so the region can be measured
+                   against a real box, as #arcGlowBlur's is. -->
+              <filter id="rimGlowBlur" x="-12%" y="-12%" width="124%" height="124%">
+                <feGaussianBlur stdDeviation="5" />
+              </filter>
+            </defs>
+
+            <!-- The colour inside the circle, poured in once the rim is
+                 drawn. First in document order so the rim always draws on
+                 top of it. -->
+            <circle class="figure__disc" id="disc" cx="500" cy="210" r="158" />
+
+            <!-- The rim held lit while it is named: a wide stroke of its own
+                 ink, blurred away, under the line. The group is what fades in
+                 and out; the circle inside it breathes for as long as the
+                 light is on (see .rim-light in animations.css). -->
+            <g class="rim-light" id="rimLight" aria-hidden="true">
+              <circle class="rim-light__glow" cx="500" cy="210" r="158" />
+            </g>
+
+            <!-- The rim is a path, not a <circle>, for one reason: a stroke
+                 unrolls from wherever its path starts, and a circle's starts
+                 at three o'clock. This one starts at twelve and runs
+                 clockwise -- the way a hand draws one -- as two semicircular
+                 arcs, so no rotation is needed to get it there. -->
+            <path class="figure__rim" id="rim"
+                  d="M500 52 A158 158 0 0 1 500 368 A158 158 0 0 1 500 52" />
+
+            <!-- The light that runs once round the rim as the bird says what
+                 a circumference is: the rim's own path again, five times,
+                 each shown as ONE dash that rides round it (see rimRun in
+                 animations.js). Every dash ends at the same point -- the head
+                 of the light -- and `data-tail` is how far back along the rim
+                 that layer reaches, so the longer layers, fainter and
+                 thinner, are the trail it leaves. The blurred halo is first,
+                 so the bright core is drawn over it. -->
+            <g class="rim-run" id="rimRun" aria-hidden="true">
+              <path class="rim-run__halo" data-tail="70"
+                    d="M500 52 A158 158 0 0 1 500 368 A158 158 0 0 1 500 52" />
+              <path class="rim-run__trail rim-run__trail--far" data-tail="210"
+                    d="M500 52 A158 158 0 0 1 500 368 A158 158 0 0 1 500 52" />
+              <path class="rim-run__trail rim-run__trail--mid" data-tail="120"
+                    d="M500 52 A158 158 0 0 1 500 368 A158 158 0 0 1 500 52" />
+              <path class="rim-run__trail" data-tail="50"
+                    d="M500 52 A158 158 0 0 1 500 368 A158 158 0 0 1 500 52" />
+              <path class="rim-run__head" data-tail="1"
+                    d="M500 52 A158 158 0 0 1 500 368 A158 158 0 0 1 500 52" />
+            </g>
+            <!-- The pen. A dot that pops in at twelve o'clock and rides the
+                 tip of the stroke all the way round, so the circle is seen
+                 to be drawn FROM a point rather than to appear along a line.
+                 animations.js moves it from the rim's own geometry. -->
+            <circle class="rim-tip" id="rimTip" cx="500" cy="52" r="7" />
+
+            <!-- The radius, and the diameter it becomes. The line is TWO
+                 halves that both start at the centre: the right one is drawn
+                 first and taught as the radius; the left one is not drawn at
+                 all but COPIED -- a faint copy of the radius is lifted off it,
+                 carried across the centre and set down on the other side, and
+                 the left half comes up solid underneath it. The learner sees
+                 the very same length moved over, not a second line grown to
+                 match. Because they are two paths, each half can then be lit
+                 and named on its own before the pair is recoloured as one
+                 line. -->
+            <g class="figure__dia" id="dia" hidden>
+              <!-- The radius swept once round the centre as the bird says
+                   what a radius is, and the faint radii it leaves at the
+                   points it passes. Built by pages.js (see buildSweep);
+                   under the halves, so the named radius hides the arm where
+                   the two lie on each other. -->
+              <g class="rad-sweep" id="radSweep" aria-hidden="true"></g>
+              <path class="dia__half" id="halfRight" d="M500 210 L658 210" />
+              <path class="dia__half" id="halfLeft"  d="M500 210 L342 210" />
+              <!-- The copy: the right half's own path once more, faint, and
+                   moved by exactly one radius to the left (see copyRadius in
+                   animations.js). It is above the halves in document order so
+                   it is seen to be lifted OFF the radius rather than out from
+                   under it. -->
+              <path class="dia__ghost" id="halfGhost" d="M500 210 L658 210" />
+              <!-- The two radii joined: the whole diameter in its own
+                   colour, run from end to end over the halves (see
+                   joinDiameter in animations.js). -->
+              <path class="dia__join" id="diaJoin" d="M342 210 L658 210" />
+              <circle class="end-dot" id="endRight" cx="658" cy="210" r="4.4" />
+              <circle class="end-dot" id="endLeft"  cx="342" cy="210" r="4.4" />
+              <text class="figure-label dia__r" id="rLabelRight"
+                    x="579" y="246" text-anchor="middle" data-i18n="lblRadius">Radius</text>
+              <text class="figure-label dia__r" id="rLabelLeft"
+                    x="421" y="246" text-anchor="middle" data-i18n="lblRadius">Radius</text>
+              <!-- The diameter's name, written under the line it names
+                   once the voice has said it (sceneParts, page 4). -->
+              <text class="figure-label dia__name" id="diaName"
+                    x="500" y="246" text-anchor="middle"
+                    data-i18n="s1LblDiameter">Diameter</text>
+              <!-- The rule the merge has just shown, set under the circle
+                   once the halves are one line. Each name in the colour of
+                   the line it names -- the diameter's blue, the radius's
+                   orange -- so the sentence points back at the picture. -->
+              <rect class="dia__plate" id="diaPlate" x="0" y="0" width="0" height="0" />
+              <text class="figure-label dia__rule" id="diaRule"
+                    x="500" y="428" text-anchor="middle"><tspan class="rule__dia" data-i18n="s1LblDiameter">Diameter</tspan><tspan class="rule__eq"> = 2 × </tspan><tspan class="rule__rad" data-i18n="lblRadius">Radius</tspan></text>
+            </g>
+
+            <!-- The chords: the one that is taught and the three that follow
+                 it. Built by pages.js from the circle's own geometry. -->
+            <g class="figure__chords" id="chords" hidden></g>
+
+            <!-- The activity: the parts laid on the circle, the five boxes
+                 round it and the dashed leaders that tie each box to its
+                 part. Built by pages.js -- see buildQuiz there. Before the
+                 centre in document order so the centre dot paints over the
+                 lines that meet at it. -->
+            <g class="figure__quiz" id="quiz" hidden></g>
+
+            <g class="figure__centre" id="centre" hidden>
+              <circle class="centre__glow" cx="500" cy="210" r="22" />
+              <circle class="centre__dot"  cx="500" cy="210" r="5" />
+              <!-- A finger-sized hit area over a 10px dot. -->
+              <circle class="centre__hit"  id="centreHit" cx="500" cy="210" r="34"
+                      role="button" tabindex="0"
+                      data-i18n-attr="aria-label:a11yCentreHit"
+                      aria-label="Tap the dot at the centre of the circle" />
+            </g>
+
+            <!-- The one callout: an arrow and the word at its tail. Every
+                 part is named with this same group -- pages.js aims it at
+                 the part in hand and writes the word -- because only one
+                 thing is ever being named at a time. The head is one
+                 polyline, barb-tip-barb, so the join at the tip is the pen's
+                 own. -->
+            <g class="figure__mark" id="mark" hidden>
+              <path class="mark__arrow" id="markArrow" d="" />
+              <path class="mark__head"  id="markHead"  d="" />
+              <text class="figure-label mark__label" id="markLabel" x="0" y="0"></text>
+            </g>
+
+            <!-- ---- Section 2: arcs (js/arcs.js) ----------------------------
+                 Its own circle, not the one above. Everything this section
+                 does to the circle -- slides it aside, turns the marks on
+                 it, recolours its rim as two pieces -- is done to this group
+                 as ONE thing, and section 1's beats hold the circle above by
+                 name and must never find it moved. What depends on the two
+                 points the learner picks is written by arcs.js; what is
+                 fixed is here. After section 1's marks in the picture, so
+                 it paints over whatever the section before left -- though
+                 nothing of that is on the board by the time this is shown. -->
+            <g class="figure__arcs" id="arcs" hidden>
+              <defs id="arcDefs">
+                <!-- The soft light behind the rim while a point is being
+                     picked: a wide coral stroke blurred away (see .arc-glow
+                     in arcs.css). A circle has a proper box, so the filter
+                     region can be measured against it. -->
+                <filter id="arcGlowBlur" x="-12%" y="-12%" width="124%" height="124%">
+                  <feGaussianBlur stdDeviation="5" />
+                </filter>
+              </defs>
+              <circle class="arc-glow" id="arcGlow" cx="500" cy="210" r="158" />
+              <!-- No disc here, unlike the lesson's circle: this section is
+                   about the circumference, and an open ring keeps the eye on
+                   the line rather than on the shape it closes. -->
+              <path class="figure__rim" id="arcRim"
+                    d="M500 52 A158 158 0 0 1 500 368 A158 158 0 0 1 500 52" />
+              <circle class="rim-tip" id="arcTip" cx="500" cy="52" r="7" />
+              <!-- A finger-wide, invisible band over the rim: where a press
+                   has to land to put a point on the circle, and what the
+                   keyboard holds while it places one. -->
+              <circle class="arc-band" id="arcBand" cx="500" cy="210" r="158"
+                      tabindex="-1" role="button"
+                      data-i18n-attr="aria-label:a11yBand"
+                      aria-label="The edge of the circle. Tap it to place a point." />
+              <!-- The diameter, dashed: the line the two points are moved
+                   onto in the third scene. Shown through a mask that arcs.js
+                   builds and dashedIn strokes, as the activity's leaders
+                   are. -->
+              <path class="arc-dia" id="arcDia" d="M342 210 L658 210" mask="url(#arcDiaMask)" />
+              <!-- The two pieces. Both are written to start at the point
+                   the learner placed LAST and run to the first, one each
+                   way round, so that when the circumference is recoloured
+                   each colour sets off from the point just put down -- the
+                   smaller piece first, then the larger -- and both end at
+                   the other. The minor one is on top: where the two share
+                   an end, the smaller piece's round cap is the one seen. -->
+              <path class="arc-piece arc-piece--major" id="arcMajor" d="" />
+              <path class="arc-piece arc-piece--minor" id="arcMinor" d="" />
+              <!-- The name boxes, and the callouts and labels -- built by
+                   arcs.js. -->
+              <g class="arc-boxes" id="arcBoxes" hidden></g>
+              <g class="arc-marks" id="arcMarks" hidden></g>
+              <g class="figure__centre is-quiet" id="arcCentre" hidden>
+                <circle class="centre__dot" cx="500" cy="210" r="7" />
+              </g>
+              <!-- The ghost: the mark that rides the rim under the finger
+                   before a point is placed. -->
+              <circle class="arc-ghost" id="arcGhost" cx="500" cy="52" r="7" />
+              <!-- The two points, each with a finger-sized hit area for the
+                   scene in which they are dragged. Placed by cx/cy, never by
+                   a transform, so a pop on one can never fight the drag. -->
+              <g class="arc-point" id="arcPointA">
+                <circle class="arc-dot" cx="500" cy="52" r="6.5" />
+                <circle class="arc-dot__hit" cx="500" cy="52" r="30" tabindex="-1" role="button"
+                        data-i18n-attr="aria-label:a11yPointDrag"
+                        aria-label="A point on the circle. Drag it along the edge." />
+              </g>
+              <g class="arc-point" id="arcPointB">
+                <circle class="arc-dot" cx="500" cy="52" r="6.5" />
+                <circle class="arc-dot__hit" cx="500" cy="52" r="30" tabindex="-1" role="button"
+                        data-i18n-attr="aria-label:a11yPointDrag"
+                        aria-label="A point on the circle. Drag it along the edge." />
+              </g>
+              <!-- The hands: two pointing hands drawn in line, faint, that
+                   show the learner the gesture being asked for -- a tap on
+                   the rim, or a point slid along it. Built by arcs.js; last,
+                   so they are over the points they are about. -->
+              <g class="arc-nudges" id="arcNudges" hidden aria-hidden="true"></g>
+            </g>
+
+            <!-- ---- Skill 2, section 1: identify the arcs (js/arclen.js) --
+                 The second skill's own circle, for the reason every section
+                 has one: what this skill does to it is done to this group,
+                 and the sections before hold their circles by name. Nothing
+                 on it is picked by the learner -- the two points are fixed
+                 -- so the group carries only the marks: the rim, its pen,
+                 the two pieces of the circumference and the two points,
+                 all wearing section 2's classes so they are visibly the
+                 same marks. What depends on the cut is written by
+                 arclen.js. -->
+            <g class="figure__arclen" id="arclen" hidden>
+              <path class="figure__rim" id="alRim"
+                    d="M500 52 A158 158 0 0 1 500 368 A158 158 0 0 1 500 52" />
+              <circle class="rim-tip" id="alTip" cx="500" cy="52" r="7" />
+              <path class="arc-piece arc-piece--major" id="alMajor" d="" />
+              <path class="arc-piece arc-piece--minor" id="alMinor" d="" />
+              <circle class="arc-dot" id="alDotA" cx="500" cy="52" r="6.5" />
+              <circle class="arc-dot" id="alDotB" cx="500" cy="52" r="6.5" />
+            </g>
+
+            <!-- ---- Skill 2, section 2: circumference formula (js/circum.js)
+                 Its own circle, for the reason every section has one. Nothing
+                 on it is picked by the learner and nothing hangs off it: the
+                 question stands in the right pane (see #cfPane below), so the
+                 group carries only the drawing itself -- the wash, the rim and
+                 its pen, all wearing section 1's classes so they are visibly
+                 the same circle. -->
+            <g class="figure__cf" id="cf" hidden>
+              <circle class="figure__disc" id="cfDisc" cx="500" cy="210" r="158" />
+              <path class="figure__rim" id="cfRim"
+                    d="M500 52 A158 158 0 0 1 500 368 A158 158 0 0 1 500 52" />
+              <circle class="rim-tip" id="cfTip" cx="500" cy="52" r="7" />
+              <!-- A radius out of the centre to the upper right, and its
+                   name along it: the formulas asked for are written in
+                   terms of it (user, 2026-10-09). -->
+              <path class="cq-radius pt-end" id="cfRadius" d="M500 210 L621.08 108.42" />
+              <circle class="cs-centre" id="cfCentre" cx="500" cy="210" r="5" />
+              <!-- The turn is on a group of its own, so the label's pop --
+                   a transform the motion library writes -- can never undo
+                   it. -->
+              <g transform="rotate(-40 545 141)">
+                <text class="figure-label cs-deg cf-radlbl" id="cfRadLbl" x="545" y="141"
+                      text-anchor="middle" data-i18n="s2LblRadius">radius</text>
+              </g>
+            </g>
+
+            <!-- ---- Skill 2, section 2, page 2: the semicircle's arc length
+                 (js/circum.js). Its own circle again -- an outline only, no
+                 wash, so nothing competes with the rim: the rim and its pen,
+                 the small dot at the centre, the thin dashed diameter that
+                 cuts it in two, the upper half lit as the semicircle while
+                 the lower half goes soft -- and, once the formula is
+                 answered, the straight angle at the centre with its "180°".
+                 Dashed line, angle and "180°" share one ink -- the text's
+                 dark blue (--cs-ink, circum.css); the dot keeps the centre's
+                 pink. Nothing here is a target; the answer is a press on a
+                 pill in #cfPane. -->
+            <g class="figure__cf" id="cs" hidden>
+              <defs>
+                <!-- The blur the lower half of the rim is put behind once
+                     the upper half is lit. Measured in the picture's own
+                     units, over the circle. -->
+                <filter id="csSoft" filterUnits="userSpaceOnUse"
+                        x="300" y="30" width="400" height="360">
+                  <feGaussianBlur stdDeviation="2.4" />
+                </filter>
+                <!-- The upper half's halo, for its two glows while it is
+                     named: a wide soft blur, fixed -- only its opacity is
+                     animated (glowTwice, circum.js). -->
+                <filter id="csGlowBlur" filterUnits="userSpaceOnUse"
+                        x="300" y="10" width="400" height="240">
+                  <feGaussianBlur stdDeviation="6" />
+                </filter>
+                <!-- The mask the dashed diameter is drawn through: the same
+                     line, solid and wider, grown out from the centre by
+                     circum.js -- the dash trick cannot draw a dashed line
+                     (see boxIn in animations.js). The whole picture is its
+                     region: a level line's own box has no height. -->
+                <mask id="csDiaMask" maskUnits="userSpaceOnUse"
+                      x="0" y="0" width="1000" height="420">
+                  <path class="cs-dia-mask" id="csDiaPen" d="M342 210 L658 210" />
+                </mask>
+              </defs>
+              <!-- The lower half, from nine o'clock under the bottom to
+                   three: the rim's own line, blurred. It takes over from
+                   the rim below the diameter once the upper half is lit. -->
+              <path class="cs-lower" id="csLower" d="M342 210 A158 158 0 0 0 658 210" />
+              <path class="figure__rim" id="csRim"
+                    d="M500 52 A158 158 0 0 1 500 368 A158 158 0 0 1 500 52" />
+              <circle class="rim-tip" id="csTip" cx="500" cy="52" r="7" />
+              <path class="cs-dia pt-ends" id="csDia" d="M342 210 L658 210" mask="url(#csDiaMask)" />
+              <!-- The upper half's halo, under it: unseen until it glows. -->
+              <path class="cs-glow" id="csGlow" d="M658 210 A158 158 0 0 0 342 210" />
+              <!-- The upper half, from three o'clock over the top to nine. -->
+              <path class="arc-piece arc-piece--minor pt-ends" id="csArc"
+                    d="M658 210 A158 158 0 0 0 342 210" />
+              <path class="cs-angle" id="csAngle" d="M542 210 A42 42 0 0 0 458 210" />
+              <circle class="cs-centre" id="csCentre" cx="500" cy="210" r="5" />
+              <text class="figure-label cs-deg" id="csDeg" x="500" y="152"
+                    text-anchor="middle">180°</text>
+            </g>
+
+            <!-- ---- Skill 2, section 2, page 3: the quadrant's arc length
+                 (js/circum.js). Its own circle once more, outlined as the
+                 semicircle's was: the rim and its pen, the small dot at the
+                 centre, the vertical radius up to twelve o'clock and the
+                 horizontal one out to three, the quarter's own piece of the
+                 rim lit -- the region inside left clear -- and the rest of
+                 the rim, the major arc, then put behind a blur; and the right
+                 angle at the centre marked with its square. Radii and angle
+                 share page 2's ink (--cs-ink, circum.css); the dot keeps the
+                 centre's pink. The burst goes up off the lit quarter when
+                 the right formula is pressed. Nothing here is a target; the
+                 answer is a press on a pill in #cfPane. -->
+            <g class="figure__cf" id="cq" hidden>
+              <defs>
+                <!-- The blur the major arc is put behind once the quarter
+                     is lit, as the semicircle's lower half is (#csSoft). -->
+                <filter id="cqSoft" filterUnits="userSpaceOnUse"
+                        x="300" y="30" width="400" height="360">
+                  <feGaussianBlur stdDeviation="2.4" />
+                </filter>
+              </defs>
+              <!-- The major arc, from three o'clock round under the bottom
+                   and up to twelve: the rim's own line, blurred. It takes
+                   over from the rim outside the quarter once the quarter's
+                   arc is lit. -->
+              <path class="cs-lower cq-lower" id="cqLower" d="M658 210 A158 158 0 1 1 500 52" />
+              <path class="figure__rim" id="cqRim"
+                    d="M500 52 A158 158 0 0 1 500 368 A158 158 0 0 1 500 52" />
+              <circle class="rim-tip" id="cqTip" cx="500" cy="52" r="7" />
+              <!-- The quarter of the rim, from twelve o'clock round to three. -->
+              <path class="arc-piece arc-piece--minor" id="cqArc"
+                    d="M500 52 A158 158 0 0 1 658 210" />
+              <!-- Both radii grow out of the centre. -->
+              <path class="cq-radius pt-end" id="cqRadV" d="M500 210 L500 52" />
+              <path class="cq-radius pt-end" id="cqRadH" d="M500 210 L658 210" />
+              <!-- The right angle marked as one: a small square in the
+                   corner, which says 90° by itself (user, 2026-10-09). -->
+              <path class="cs-angle" id="cqAngle" d="M500 180 L530 180 L530 210" />
+              <circle class="cs-centre" id="cqCentre" cx="500" cy="210" r="5" />
+              <g class="qz-burst" id="cqBurst" aria-hidden="true"></g>
+            </g>
+
+            <!-- ---- Skill 2, section 3: the central angle (js/central.js)
+                 ONE circle for the whole section -- the learner makes the
+                 angle on it, the protractor is laid on it, its fraction is
+                 asked about and its parts are named, so nothing is drawn
+                 twice. The rim and its pen, the small dot at the centre, and
+                 the two points the learner puts on the rim -- section 2's
+                 own marks (the band, the ghost, the points, the hand),
+                 wearing its classes, but the points in red: the ends of two
+                 radii, not a piece of the rim. What depends on the two
+                 points -- a radius to each, the piece of the rim between
+                 them, the angle at the centre, and where "θ", "r", "s" and
+                 the measure sit -- is written by central.js; what is fixed
+                 is here. The protractor comes first, under everything, so
+                 every mark paints over it. Radii, arc, angle and the words
+                 share the skill's ink, the text's dark blue (--ca-ink,
+                 central.css); the dot keeps the centre's pink. Nothing but
+                 the rim is ever a target, and only while a point is being
+                 picked. -->
+            <g class="figure__ca" id="ca" hidden>
+              <defs id="caDefs">
+                <filter id="caGlowBlur" x="-12%" y="-12%" width="124%" height="124%">
+                  <feGaussianBlur stdDeviation="5" />
+                </filter>
+              </defs>
+              <image class="cm-protractor" id="caProt" href="assets/image/protractor.webp"
+                     x="0" y="0" width="0" height="0" preserveAspectRatio="xMidYMid meet"
+                     role="img" data-i18n-attr="aria-label:a11yProtractor"
+                     aria-label="A protractor laid on the circle, its centre on the centre of the circle." />
+              <circle class="ca-glow" id="caGlow" cx="500" cy="210" r="158" />
+              <path class="figure__rim" id="caRim"
+                    d="M500 52 A158 158 0 0 1 500 368 A158 158 0 0 1 500 52" />
+              <circle class="rim-tip" id="caTip" cx="500" cy="52" r="7" />
+              <circle class="arc-band" id="caBand" cx="500" cy="210" r="158"
+                      tabindex="-1" role="button"
+                      data-i18n-attr="aria-label:a11yBand"
+                      aria-label="The edge of the circle. Tap it to place a point." />
+              <!-- The piece of the rim between the two points, picked out
+                   on the protractor page. -->
+              <path class="cm-arc" id="caArc" d="" />
+              <!-- Both radii grow out of the centre; the angle is drawn
+                   from one to the other. -->
+              <path class="ca-radius" id="caRadA" d="" />
+              <path class="ca-radius" id="caRadB" d="" />
+              <path class="ca-angle" id="caAngle" d="" />
+              <circle class="ca-centre" id="caCentre" cx="500" cy="210" r="5" />
+              <text class="figure-label cm-label ca-theta" id="caTheta" x="0" y="0"
+                    text-anchor="middle" data-i18n="lblTheta">θ</text>
+              <text class="figure-label cm-label cm-r" id="caR" x="0" y="0"
+                    text-anchor="middle" data-i18n="lblR">r</text>
+              <!-- "s", beside the middle of the arc, for the page that
+                   names the three: it rests unseen until then. -->
+              <text class="figure-label cm-label cm-s" id="caS" x="0" y="0"
+                    text-anchor="middle" data-i18n="lblS">s</text>
+              <!-- The measure that takes θ's place once the angle has been
+                   read: "θ = 80°", written by central.js. -->
+              <text class="figure-label cm-label" id="caMeasure" x="0" y="0"
+                    text-anchor="middle"></text>
+              <circle class="arc-ghost" id="caGhost" cx="500" cy="52" r="7" />
+              <g class="arc-point" id="caPointA">
+                <circle class="arc-dot" cx="500" cy="52" r="6.5" />
+                <circle class="arc-dot__hit" cx="500" cy="52" r="30" tabindex="-1" role="button"
+                        data-i18n-attr="aria-label:a11yPoint"
+                        aria-label="A point on the circle." />
+              </g>
+              <g class="arc-point" id="caPointB">
+                <circle class="arc-dot" cx="500" cy="52" r="6.5" />
+                <circle class="arc-dot__hit" cx="500" cy="52" r="30" tabindex="-1" role="button"
+                        data-i18n-attr="aria-label:a11yPoint"
+                        aria-label="A point on the circle." />
+              </g>
+              <g class="arc-nudges" id="caNudges" hidden aria-hidden="true"></g>
+            </g>
+              <g class="arc-point" id="caPointB">
+                <circle class="arc-dot" cx="500" cy="52" r="6.5" />
+                <circle class="arc-dot__hit" cx="500" cy="52" r="30" tabindex="-1" role="button"
+                        data-i18n-attr="aria-label:a11yPoint"
+                        aria-label="A point on the circle." />
+              </g>
+              <g class="arc-nudges" id="caNudges" hidden aria-hidden="true"></g>
+            </g>
+
+          </svg>
+
+          <!-- The right half of the board, for the beats where the circle
+               stands aside and the bird speaks beside it -- what a
+               circumference, a radius and a diameter are, in section 1,
+               and the arcs, in section 2. Its own
+               bubble, because the hero one is parked on the field outside
+               the board. Sized as a container so the bird and its bubble are
+               measured against THIS half and not the viewport -- see .aside
+               in css/arcs.css. -->
+          <div class="aside" id="aside" hidden>
+            <div class="slot slot--aside" id="slotAside">
+              <div class="bubble bubble--aside" id="bubbleAside" hidden>
+                <span class="type-wrap" id="asideType">
+                  <span class="type-ghost"></span>
+                  <span class="type" aria-live="polite"><span class="txt"></span></span>
+                </span>
+                <!-- A second line under the first, for a note that is added
+                   to rather than replaced (the diameter's). Out of the
+                   layout until a line is reserved in it. -->
+                <span class="type-wrap type-wrap--more" id="asideMore" hidden>
+                  <span class="type-ghost"></span>
+                  <span class="type" aria-live="polite"><span class="txt"></span></span>
+                </span>
+                <svg class="bubble-tail" viewBox="0 0 44 42" aria-hidden="true">
+                  <path d="M4 0 H42 V8 C36 20 24 30 2 42 C8 32 8 20 4 8 Z"
+                        fill="var(--bubble-bg)" />
+                  <path d="M42 8 C36 20 24 30 2 42 C8 32 8 20 4 8" fill="none"
+                        stroke="var(--note-edge)" stroke-width="4"
+                        stroke-linecap="round" stroke-linejoin="round"
+                        vector-effect="non-scaling-stroke" />
+                </svg>
+              </div>
+            </div>
+          </div>
+
+          <!-- The fill-the-blank card (js/arclen.js): the right half of the
+               stage while skill 2's circle stands left, one sentence with an
+               empty slot in it and the names in a row beneath. The name is
+               dragged into the slot, so the slot and the names are the only
+               live things in the pane -- and only while a round is open
+               (see .is-live in arclen.css). -->
+          <!-- The words either side of the slot are in spans of their own,
+               not bare text, on purpose: GSAP measures the slot while the
+               pane is display:none by re-parenting it and putting it back
+               before its next ELEMENT sibling -- a slot followed by bare
+               text would be put back at the end of the sentence. -->
+          <div class="ask-pane" id="alAsk" hidden>
+            <p class="ask-line" id="alLine"><span data-i18n="askThisIsThe">This is the</span>
+              <span class="ask-slot" id="alSlot" role="button" tabindex="-1"
+                    data-i18n-attr="aria-label:a11yDropSlot"
+                    aria-label="Empty slot. Drop a name here."><span
+                    class="ask-slot__text" id="alSlotText"></span></span>
+              <span data-i18n="askOfTheCircle">of the circle.</span></p>
+            <!-- The names, under the sentence they answer: the tray's own
+                 pills (see .chip in style.css), built here by arclen.js. -->
+            <div class="ask-opts" id="alOpts" data-i18n-attr="aria-label:a11yNamesTray" aria-label="Names to drag"></div>
+          </div>
+
+          <!-- Skill 2, section 2 (js/circum.js): the right half of the stage
+               while the circle stands left. The bird lands in the pane and
+               asks from the box above its head -- bubble-02, drawn as the
+               definition card is (rim, face, shadows, tail), recoloured green
+               for a right answer and red for a wrong one. It is its OWN
+               element: bubble-01 -- the definition card on #bubbleAside -- is
+               another section's and is not touched. The three answers stand
+               in a row beneath. -->
+          <div class="cf-pane" id="cfPane" hidden>
+            <div class="slot slot--cf" id="slotCf">
+              <div class="bubble bubble--cf" id="bubbleCf" hidden>
+                <span class="type-wrap" id="cfType">
+                  <span class="type-ghost"></span>
+                  <span class="type" aria-live="polite"><span class="txt"></span></span>
+                </span>
+                <!-- The tail: the hero bubble's drawing, stamped again, so the
+                     box reads as the same object wherever the bird speaks. -->
+                <svg class="bubble-tail" viewBox="0 0 44 42" aria-hidden="true">
+                  <path d="M4 0 H42 V8 C36 20 24 30 2 42 C8 32 8 20 4 8 Z"
+                        fill="var(--bubble-bg)" />
+                  <path d="M42 8 C36 20 24 30 2 42 C8 32 8 20 4 8" fill="none"
+                        stroke="var(--note-edge)" stroke-width="4"
+                        stroke-linecap="round" stroke-linejoin="round"
+                        vector-effect="non-scaling-stroke" />
+                </svg>
+              </div>
+            </div>
+            <div class="cf-opts" id="cfOpts" role="group"
+                 data-i18n-attr="aria-label:a11yFormulas"
+                 aria-label="Choose the correct formula"></div>
+          </div>
+
+          <!-- Skill 2, section 3 (js/central.js): the legend of the
+               naming page. The right half of the stage, as #cfPane is:
+               the three names arrive one by one under the bird, where the
+               answers usually stand, each in the colour of the mark it
+               names, and move to the middle of the half once the bird has
+               gone. Glass throughout -- nothing here is a control. -->
+          <div class="cl-pane" id="clPane" hidden>
+            <ul class="cl-legend" id="clLegend">
+              <li class="cl-item cl-item--s" id="clS" data-i18n="p25LegendS">s = Arc Length</li>
+              <li class="cl-item cl-item--r" id="clR" data-i18n="p25LegendR">r = Radius</li>
+              <li class="cl-item cl-item--th" id="clTh" data-i18n="p25LegendTheta">θ = Central Angle</li>
+            </ul>
+          </div>
+
+          <!-- Skill 3 (js/sector-area.js): every scene builds its own
+               picture and panel in here, and the scene after it clears it
+               away. Last in the stage, so it is over the (empty) figure;
+               shown only while body.sa-lesson is on (sector-area.css). -->
+          <div class="sa-stage" id="saStage"></div>
+        </div>
+
+        <!-- The footer holds the five names the learner drags onto the
+             boxes, and nothing else, and only in the last activity. -->
+        <!-- The footer holds whatever the learner has to reach for: the five
+             names they drag onto the boxes in the last activity, and the two
+             answers to the yes/no question before it. Never both at once, so
+             they share the band. -->
+        <footer class="board__bottom" id="boardBottom">
+          <div class="tray" id="tray" hidden data-i18n-attr="aria-label:a11yNamesTray" aria-label="Names to drag"></div>
+          <div class="tray tray--choice" id="choices" hidden
+               role="group" data-i18n-attr="aria-label:a11yAnswers" aria-label="Choose your answer"></div>
+        </footer>
+      </section>
+
+      <!-- Not drawn, not focusable, and not a control. It exists so a beat
+           that is finished by SEVERAL actions -- five names dropped into five
+           boxes -- has one element to announce itself on: Flow.once is the
+           lesson's one way to wait for a person and it waits on an element,
+           so routing the activity through one means the wait is cancelled
+           with the rest of the chain when a scene is retired. -->
+      <span id="gate" hidden></span>
+
+      <!-- Skill 3 (js/sector-area.js): where a burst of confetti is thrown,
+           over everything in the frame. -->
+      <svg class="sa-burst" id="saBurst" aria-hidden="true"></svg>
+
+      <!-- The round Next disc, as drawn in the spacecraft game: a rim set a
+           little low so it reads as the thickness of a disc, a face lit from
+           the top, and an arrow grown back by a round stroke so every corner
+           of it is rounded evenly. Its colours are the --next-* tokens in
+           style.css, so it is re-skinned with the rest of the palette. -->
+      <button class="next-btn" id="nextBtn" type="button" hidden data-i18n-attr="aria-label:a11yNext" aria-label="Next">
+        <svg viewBox="0 0 100 100" aria-hidden="true" focusable="false">
+          <defs>
+            <linearGradient id="icoNextFace" x1="50" y1="8" x2="50" y2="92" gradientUnits="userSpaceOnUse">
+              <stop offset="0" stop-color="var(--next-face-1)" />
+              <stop offset=".55" stop-color="var(--next-face-2)" />
+              <stop offset="1" stop-color="var(--next-face-3)" />
+            </linearGradient>
+          </defs>
+          <circle cx="50" cy="51.5" r="45" fill="var(--next-rim)" />
+          <circle cx="50" cy="50" r="41.5" fill="url(#icoNextFace)" />
+          <path d="M31.25 43.125 H52.5 V31.25 L77.5 50 L52.5 68.75 V56.875 H31.25 Z"
+                fill="var(--next-arrow)" stroke="var(--next-arrow)" stroke-width="8.75"
+                stroke-linejoin="round" stroke-linecap="round" />
+        </svg>
+      </button>
+    </div>
+
+    <!-- Welcome, over everything until Start is pressed. The title and the
+         bird are painted into the artwork (welcome-page.webp), so the heading
+         is there for screen readers only. -->
+    <section class="welcome" id="welcome">
+      <h1 class="welcome__title" data-i18n="uiTitle">Identify Different Parts of a Circle</h1>
+      <!-- Where Start will stand: every picture, font and clip is fetched
+           behind this line first (js/loader.js), then Start takes its place. -->
+      <div class="loader" id="loader" role="progressbar" aria-valuemin="0" aria-valuemax="100"
+           aria-valuenow="0" data-i18n-attr="aria-label:loadingAria">
+        <span class="loader__body">
+          <span class="loader__text"><span data-i18n="loadingLabel"></span><span class="loader__pct" id="loaderPct"></span></span>
+          <span class="loader__line"><span class="loader__fill" id="loaderFill"></span></span>
+        </span>
+      </div>
+      <button class="start-btn" id="startBtn" type="button" hidden data-i18n="btnStart">Start</button>
+    </section>
+  </main>
+
+  <script src="libs/gsap.min.js"></script>
+  <script src="libs/Flip.min.js"></script>
+  <!-- This folder is Skill 2 · Length of an arc on its own: pages.js keeps this skill's
+       scenes only, and i18n.js reads the one locale in locales/ (its .js
+       copy is read first so file:// works too). -->
+  <script>window.GAME_SKILL = 2;</script>
+  <script src="locales/locales.js"></script>
+  <script src="js/audio.js"></script>
+  <script src="js/i18n.js"></script>
+  <script src="js/motion.js"></script>
+  <script src="js/flow.js"></script>
+  <script src="js/mathtext.js"></script>
+  <script src="js/typer.js"></script>
+  <script src="js/mascot.js"></script>
+  <script src="js/animations.js"></script>
+  <script src="js/pages.js"></script>
+  <script src="js/arcs.js"></script>
+  <script src="js/arclen.js"></script>
+  <script src="js/circum.js"></script>
+  <script src="js/central.js"></script>
+  <script src="js/arc-formula.js"></script>
+  <script src="js/sector-area.js"></script>
+  <script src="js/loader.js"></script>
+  <script src="js/script.js"></script>
+  <!-- TEMPORARY: the Back / Skip / Replay level bar. Delete this line
+       and js/devnav.js to remove it; nothing else refers to it. -->
+  <script src="js/devnav.js"></script>
+</body>
+</html>

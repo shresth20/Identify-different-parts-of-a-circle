@@ -1,0 +1,408 @@
+/* ==========================================================================
+   Section 2 -- arcs
+   The second section's own marks: the two pieces of the circumference, the
+   points that cut it, the ghost that rides the rim under the finger, the
+   dashed diameter, the nudges, the labels -- and the right half of the
+   board the bird speaks from. Everything is picked out of the palette in
+   style.css. The two part colours declared here belong to this section
+   alone, which is why they are here and not there.
+   ========================================================================== */
+:root {
+  /* The two pieces. Gold for the smaller, the palette's lavender for the
+     larger: neither is the indigo the circle is drawn in, so a recoloured
+     rim reads as two NEW things and not as the circle changing its mind.
+     The word that names a piece is set in the piece's own colour, so the
+     two read as one thing. */
+  --part-arc-minor: #FFC542;
+  --part-arc-major: #8A84FF;
+  --part-arc-minor-ink: var(--part-arc-minor);
+  --part-arc-major-ink: var(--part-arc-major);
+  /* The activity's pair: two colours the lesson never used, so the names
+     have to be given for the pieces' sizes and not matched to the colours
+     the lesson taught them in. Berry for the smaller, indigo for the larger,
+     each lifted towards white so it sits as light on the pale board rather
+     than as a dark ring around it. */
+  --part-arc-minor-quiz: color-mix(in srgb, #B72D72 72%, #FFFFFF);
+  --part-arc-major-quiz: color-mix(in srgb, #443FC4 72%, #FFFFFF);
+  /* The weight of a piece: heavier than the rim it replaces, so each
+     piece reads as a length of something and not as an outline. Mirrored
+     by ARC_W in animations.js, which every swell returns to. */
+  --arc-weight: 7;
+}
+
+/* Skill 1's own arcs wear the major segment's pair from skill 4 (--sa-arc-
+   major and --sa-arc-blue in segarea.css): violet for the larger, sky blue
+   for the smaller. Scoped to this section's figure, because skill 2's arcs
+   (arclen, circum, central, practice) read the same variables and keep
+   theirs. The words are set a step deeper than the strokes, to read as
+   text on the pale board. */
+.figure__arcs {
+  --part-arc-minor: #38B6F5;
+  --part-arc-major: #A35CF0;
+  --part-arc-minor-ink: #1E96D8;
+  --part-arc-major-ink: #9B51F5;
+  /* Name the arcs (page 7) wears the same pair as the page before it,
+     rather than a pair of its own. */
+  --part-arc-minor-quiz: var(--part-arc-minor);
+  --part-arc-major-quiz: var(--part-arc-major);
+}
+
+/* The figure is pressed and dragged on in this section -- points placed on
+   the rim, points slid along it -- and a browser that takes a finger on it
+   for a scroll cancels the pointer mid-gesture. The page never scrolls, so
+   nothing is lost. */
+.figure { touch-action: none; }
+
+/* ---- The band -----------------------------------------------------------
+   A wide, unpainted stroke laid over the rim. It is not a target the
+   learner has to hit -- a press anywhere near the rim is taken by arcs.js
+   from the picture itself -- but it is where the cursor becomes a hand,
+   and what the keyboard holds while it walks the ghost round. Live only
+   while a point is being picked. */
+.arc-band {
+  fill: none;
+  stroke: transparent;
+  stroke-width: 92;
+  pointer-events: none;
+  outline: none;
+}
+.figure__arcs.is-picking .arc-band {
+  pointer-events: stroke;
+  cursor: pointer;
+}
+
+/* ---- The glow -----------------------------------------------------------
+   Off in this section: the arcs' circle does not glow at all while its
+   points are picked -- the plain rim and the instruction are the cue. The
+   element stays at rest at nothing. The keyframes below are still the ones
+   the later sections' rims breathe with (central, segments, sectors,
+   segarea). */
+.arc-glow {
+  fill: none;
+  stroke: var(--part-circle);
+  stroke-width: 18;
+  opacity: 0;
+  filter: url(#arcGlowBlur);
+  pointer-events: none;
+}
+@keyframes arc-glow {
+  0%, 100% { opacity: .14; }
+  50%      { opacity: .55; }
+}
+.arc-band:focus-visible {
+  stroke: color-mix(in srgb, var(--lavender-fill) 14%, transparent);
+}
+
+/* ---- The pieces ---------------------------------------------------------
+   Both rest invisible; arcSweep and growLine reveal them. The colour is
+   transitioned rather than tweened, as the diameter's is in style.css: it
+   is the one property in the figure GSAP does not drive, and the activity
+   changes it with a class -- and takes the class off again after. */
+.arc-piece {
+  fill: none;
+  stroke-width: var(--arc-weight);
+  stroke-linecap: round;
+  opacity: 0;
+  transition: stroke .6s ease;
+}
+.arc-piece--minor { stroke: var(--part-arc-minor); }
+.arc-piece--major { stroke: var(--part-arc-major); }
+.figure__arcs.is-quiz .arc-piece--minor { stroke: var(--part-arc-minor-quiz); }
+.figure__arcs.is-quiz .arc-piece--major { stroke: var(--part-arc-major-quiz); }
+
+/* ---- The points ---------------------------------------------------------
+   The board's own ink with a white edge, as the pen that draws the rim
+   has: they sit ON a coloured stroke, and a plain dot the size of the
+   stroke would sink into it. The ghost is the same mark, translucent. */
+.arc-ghost {
+  fill: color-mix(in srgb, var(--text-primary) 72%, transparent);
+  stroke: var(--board-highlight);
+  stroke-width: 2.4;
+  opacity: 0;
+  pointer-events: none;
+}
+/* A point on the rim, in the same ink section 1's points wear. */
+.arc-dot {
+  fill: var(--part-point);
+  stroke: var(--board-highlight);
+  stroke-width: 2.2;
+  opacity: 0;
+  transition: stroke-width .15s ease;
+}
+/* A finger-sized hit area over a 13px dot, live only in the scene where
+   the points are dragged -- and spent once a point has found its mark. */
+.arc-dot__hit {
+  fill: transparent;
+  pointer-events: none;
+  outline: none;
+}
+.figure__arcs.is-sliding .arc-dot__hit {
+  pointer-events: all;
+  cursor: grab;
+}
+.figure__arcs.is-sliding .arc-point.is-held .arc-dot__hit { cursor: grabbing; }
+.figure__arcs.is-sliding .arc-point.is-set .arc-dot__hit {
+  pointer-events: none;
+  cursor: default;
+}
+.arc-point.is-held .arc-dot { stroke-width: 3.2; }
+.arc-dot__hit:focus-visible {
+  stroke: var(--lavender-border);
+  stroke-width: 3;
+  stroke-dasharray: 5 5;
+}
+
+/* ---- The diameter, dashed -----------------------------------------------
+   The softer ink and a dash: a line the learner is measuring against, not
+   a part of the circle being taught. Shown through a mask that is drawn
+   with the dash trick (see dashedIn in animations.js), so the mask path is
+   solid, white and wider than the line it reveals. */
+.arc-dia {
+  fill: none;
+  stroke: var(--text-secondary);
+  stroke-width: 2.4;
+  stroke-dasharray: 7 8;
+  stroke-linecap: butt;
+  opacity: 0;
+}
+.arc-dia-mask {
+  fill: none;
+  stroke: #FFFFFF;
+  stroke-width: 10;
+}
+
+/* ---- The hands ----------------------------------------------------------
+   A pointing hand drawn in line -- one stroke and no fill, as the tap icon
+   on a phone is drawn -- in the lavender every annotation in the lesson
+   wears, so it reads as part of the interface and not of the figure. It
+   stands upright with its fingertip on the spot, which is the group's
+   origin. Its opacity is the beat's (nudgeTap and nudgeSlide in
+   animations.js); it rests at nothing. The stroke is in the hand's own
+   units, so it scales with the hand. */
+.arc-nudge {
+  opacity: 0;
+  pointer-events: none;
+}
+.arc-nudge__hand {
+  fill: none;
+  stroke: var(--lavender-border);
+  stroke-width: 2.1;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+/* the thin ring round the fingertip: the nudge's beat sends it outward
+   and fades it with each tap, so it rests at nothing */
+.arc-nudge__ring {
+  fill: none;
+  stroke: var(--text-secondary);
+  stroke-width: 1.1;
+  opacity: 0;
+}
+
+
+/* ---- Labels and callouts ------------------------------------------------
+   "Arc" set beside a piece, and the callouts that name the two pieces at
+   the end. A word set on its own, with no arrow, takes the colour of the
+   piece it names, as "Diameter = 2 x Radius" did for its lines. A callout
+   -- arrow and word -- keeps the one ink every callout in the game has, so
+   the annotations read as one voice from section to section. */
+.arc-label {
+  font-size: 24px;
+  opacity: 0;
+}
+.arc-label--minor { fill: var(--part-arc-minor-ink); }
+.arc-label--major { fill: var(--part-arc-major-ink); }
+
+/* ==========================================================================
+   The aside -- the right half of the board
+   For the one beat where the circle stands to the left and the bird lands
+   beside it to name what it sees. A container, so the bird and its bubble
+   are measured against THIS half of the stage (cqw / cqh) and not against
+   the viewport: the stage is a different height with the header open and
+   closed, and on every screen size, and the pair has to fit it every time.
+   ========================================================================== */
+.aside {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  left: 50%;
+  width: 50%;
+  z-index: 2;                        /* over the figure, which has no level */
+  pointer-events: none;
+  container-type: size;
+}
+.aside[hidden] { display: none; }
+
+/* The bird's spot: standing near the pane's left edge, on its floor, and
+   well under half the size it is on the field -- here it is beside the
+   lesson, not the whole of it -- so the line above it has the room and the
+   circle stays the biggest thing on the board. */
+.slot--aside {
+  left: 3cqw;
+  bottom: 4cqh;
+  height: 30cqh;
+  aspect-ratio: 1;
+}
+
+/* The line in the pane. The same box as the hero bubble, so the typer and
+   the beats that open and close it are the ones the welcome uses -- but
+   with none of the bubble about it: no panel, no rim, no tail, no marks.
+   Plain type at the board's own size, set left, starting above the bird's
+   head and running to the pane's edge. What is said here is a line of the
+   lesson beside the figure, not a character talking. */
+.bubble--aside {
+  left: 0;
+  bottom: 98%;
+  max-width: 92cqw;
+  padding: 0;
+  border: 0;
+  border-radius: 0;
+  background: none;
+  box-shadow: none;
+  font-size: clamp(16px, 3.1vh, 30px);
+  line-height: 1.25;
+  text-align: left;
+}
+.bubble--aside::before,
+.bubble--aside .bubble-tail { display: none; }
+/* Three classes deep: animations.css centres `.bubble .type` and is loaded
+   after this file, so the plainer selector would lose. */
+.bubble.bubble--aside .type,
+.bubble.bubble--aside .type-ghost { text-align: left; }
+/* And allowed to wrap. The header's line is held to one row (nowrap on
+   .type, animations.css), but a line in the pane is a sentence set beside
+   the figure and has only half the stage: held to one row it runs off the
+   board. pre-wrap rather than normal because each word carries its own
+   trailing spaces (see wordCuts in typer.js), and the ghost underneath
+   breaks at the same words. */
+.bubble.bubble--aside .type { white-space: pre-wrap; }
+/* The second line, under the first: a block of its own, a little apart, so
+   a note added to reads as two sentences rather than one run-on. Its
+   [hidden] is restated because the block rule would otherwise outrank the
+   browser's own. */
+.bubble--aside .type-wrap--more { display: block; margin-top: .55em; }
+.bubble--aside .type-wrap--more[hidden] { display: none; }
+
+/* Opt-in speech card, first used by the Circumference explanation.
+   All dimensions follow the aside so the card and bird stay together. */
+.aside--message .slot--aside {
+  left: 12cqw;
+  bottom: var(--message-bottom, 15cqh);
+  height: 36cqh;
+}
+.aside--message .bubble--aside {
+  /* Cool indigo, the circle's own family, rather than the board's
+     lavender: in the board's colour the card sank into the wash behind it. */
+  --bubble-bg: #e3e8ff;              /* the fill at the foot, and the tail's */
+  --message-rim: #a9b3fb;
+  --message-rim-low: #6a66ef;
+  --message-lip: #4c46d9a6;          /* the rounded underside */
+  --message-shade: #7d88f040;        /* the shade drawn in at either side */
+  --message-border: .075em;
+  --note-edge: var(--message-rim-low);
+  /* Its left edge level with the bird's, as every perch's card is (user,
+     2026-10-12: a little to the right of where it stood, 7cqw out). */
+  left: 0;
+  /* Set by the tail's tip, 21% down the bird (36cqh): the tip sits
+     1.4em * 34/44 under the card's foot (see the tail below). */
+  bottom: calc(100% - 36cqh * .21 + 1.4em * 34 / 44);
+  /* Sized by its own sentence: a short rule gets a snug card, a long
+     definition the full measure, and the card always lies WIDE -- a line
+     first, a box second. max-content, not fit-content: the card hangs off
+     a slot much narrower than itself, and a fit-content box is clamped to
+     that slot's width, which stacks the sentence into a tall column.
+     max-content measures the unwrapped line alone, and the max-width is
+     what breaks it. Never narrower than the stretch of foot the tail sits
+     on -- its left offset plus its width plus the corner's radius. */
+  width: max-content;
+  min-width: calc(36cqh * .66 + 1.5em);
+  /* its right edge where it always reached: 93cqw of the aside */
+  max-width: 81cqw;
+  /* Snug round the words (user, 2026-10-09), the corner stepping down with
+     the padding so a one-row card keeps a straight foot for the tail. */
+  padding: .5em .8em .58em;
+  border: var(--message-border) solid transparent;
+  border-radius: 1.1em;
+  /* An indigo rim, deepening toward the foot, drawn round a white card --
+     so the card holds its edge against the pale board instead of fading
+     into it. The fill is flat at the tail's colour for its last stretch,
+     because the tail's top reaches up into it and has to vanish there. */
+  background:
+    linear-gradient(180deg, #ffffff 0%, #f6f8ff 40%, var(--bubble-bg) 84%) padding-box,
+    linear-gradient(180deg, var(--message-rim) 0%, var(--message-rim-low) 100%) border-box;
+  /* A white bevel just inside the rim, a gloss across the top, and a little
+     shade drawn in at either side, so the face reads as curved rather than
+     flat. No shade at the foot, for the tail's sake. */
+  box-shadow: inset 0 0 0 .05em #ffffffe6,
+              inset 0 .22em .3em -.12em #ffffff,
+              inset .16em 0 .26em -.12em var(--message-shade),
+              inset -.16em 0 .26em -.12em var(--message-shade);
+  /* Lifted off the board in three soft layers, none with a hard edge: a
+     blurred underside that rounds the card's edge over, a contact shadow
+     just beneath it, and a wide one cast well below. drop-shadow rather than
+     box-shadow, so all three follow the card-and-tail silhouette and the
+     pointer belongs to the same raised surface. */
+  filter: drop-shadow(0 .1em .07em var(--message-lip))
+          drop-shadow(0 .25em .22em #2f2aa54d)
+          drop-shadow(0 .75em .9em #231f8a52);
+  font-size: 5.3cqw;
+  line-height: 1.38;
+  letter-spacing: 0;
+  text-align: left;
+}
+/* A card carrying two sentences at once (the diameter's notes): at the
+   one-line size the pair would crowd the pane's top, so the type steps
+   down a little and the card keeps its air. */
+.aside--message .bubble--aside.msg-two { font-size: 4.4cqw; }
+/* The tail's stroke starts 8 of its 44 units down (index.html), so the tail
+   is lifted until that point sits on the rim's outer edge: the fill closes
+   the rim across the opening and the stroke carries it on down the sides
+   with no break. 8 units of a 1.4em tail is .2545em. */
+.aside--message .bubble-tail {
+  display: block;
+  /* Leaning the way every other bubble's tail leans, its tip 2/44 in from
+     its left edge, on the head's outline above the right eyebrow: 66%
+     across the bird, where every bubble lands (user, 2026-10-12). The
+     card's left edge is the bird's; the tail is placed inside its border. */
+  left: calc(36cqh * .66 - var(--message-border) - 1.4em * 2 / 44);
+  top: calc(100% + var(--message-border) - .2545em);
+  width: 1.4em;
+}
+/* As thick as the card's border, in the tail's own units (44 across 1.4em),
+   and scaled with it, so the rim keeps one weight through the pop-in. */
+.aside--message .bubble-tail path:last-child {
+  stroke-width: 2.36;
+  vector-effect: none;
+}
+/* Apply the same keyword metrics to the invisible layout copy. The more
+   line's ghost wraps too, so the two-line card is laid out whole. */
+.aside--message #asideType .type-ghost,
+.aside--message #asideMore .type-ghost { white-space: pre-wrap; }
+/* The key word: the one that names the part, wherever it falls in the
+   line. pillKey (pages.js) tags it in the type and in the ghost alike, so
+   the words land where the layout was reserved. No plate behind it -- a
+   pill reads as a button -- just the heaviest weight, thickened a touch
+   further by a stroke of its own ink, in the rim's orange, so it is the
+   first word the eye finds and plainly the name of the line it matches. */
+.aside--message #asideType .wd.wd--key {
+  font-weight: 800;
+  color: var(--part-circle);
+  -webkit-text-stroke: .025em currentColor;
+  paint-order: stroke fill;
+}
+
+/* ---- The semicircle's central angle ------------------------------------
+   A small arc round the centre over the diameter, and "180°" above it.
+   Both rest invisible; growLine and labelIn bring them in. */
+.arc-angle {
+  fill: none;
+  stroke: var(--text-primary);
+  stroke-width: 2.6;
+  stroke-linecap: round;
+  opacity: 0;
+}
+.arc-angle__label {
+  fill: var(--text-primary);
+  font-size: 22px;
+  opacity: 0;
+}
