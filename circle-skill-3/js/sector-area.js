@@ -387,6 +387,48 @@
     A.set(a0, a1, s);
     return A;
   }
+  /* The angle's name kept off both radii and off its own arc as the angle
+     turns: walked out along the middle of the sector, 4 px at a time, until
+     clear -- never past the rim. (Was ArcFormula.clearOfRadii, lost when
+     the skills were split into folders; the label sat on the arc at 245°
+     on a tablet -- user, 2026-11-05.) */
+  function crosses(b, p, q) {
+    /* does the segment p-q pass through the box b (Liang-Barsky)? */
+    var t0 = 0, t1 = 1, dx = q.x - p.x, dy = q.y - p.y;
+    var e = [[-dx, p.x - b.x], [dx, b.x + b.width - p.x], [-dy, p.y - b.y], [dy, b.y + b.height - p.y]];
+    for (var i = 0; i < 4; i++) {
+      var pp = e[i][0], qq = e[i][1];
+      if (pp === 0) { if (qq < 0) return false; continue; }
+      var t = qq / pp;
+      if (pp < 0) { if (t > t1) return false; if (t > t0) t0 = t; }
+      else { if (t < t0) return false; if (t < t1) t1 = t; }
+    }
+    return true;
+  }
+  function clearOfRadii(C, A, b0, b1) {
+    if (b1 - b0 >= 300) return;                 /* set below the ring: clear */
+    var ends = [pt(C, C.r, b0), pt(C, C.r, b1)];
+    var x0 = +A.lbl.getAttribute('x'), y0 = +A.lbl.getAttribute('y');
+    var dir = pt({ x: 0, y: 0 }, 1, (b0 + b1) / 2);
+    for (var k = 0; k < 30; k++) {
+      var b;
+      try { b = A.lbl.getBBox(); } catch (e) { return; }
+      if (!b.width) return;
+      var box = { x: b.x - 5, y: b.y - 3, width: b.width + 10, height: b.height + 6 };
+      var nearX = Math.max(box.x - C.x, 0, C.x - (box.x + box.width));
+      var nearY = Math.max(box.y - C.y, 0, C.y - (box.y + box.height));
+      var onArc = Math.hypot(nearX, nearY) < A.r + 4;
+      if (!onArc && !crosses(box, C, ends[0]) && !crosses(box, C, ends[1])) return;
+      var nx = b.x + dir.x * 4, ny = b.y + dir.y * 4, far = 0;
+      [[nx, ny], [nx + b.width, ny], [nx, ny + b.height], [nx + b.width, ny + b.height]]
+        .forEach(function (c) { far = Math.max(far, Math.hypot(c[0] - C.x, c[1] - C.y)); });
+      if (far > C.r - 6) return;
+      x0 += dir.x * 4; y0 += dir.y * 4;
+      A.lbl.setAttribute('x', r2(x0));
+      A.lbl.setAttribute('y', r2(y0));
+    }
+  }
+
   function angleIn(A) {
     /* measured again now the name is laid out, so the fit is exact */
     if (A.set && A.b0 != null) A.set(A.b0, A.b1);
@@ -2100,11 +2142,11 @@
     await wait(SHORT);
     A.lbl.classList.remove('lbl--big');
     A.set(a0, a1, 'θ = ' + (a1 - a0) + '°');
+    clearOfRadii(C, A, a0, a1);
     await anim(popIn(A.lbl, { from: 0.7 }));
     await say(keyed('s3CentralHere', { deg: a1 - a0 }));
     await wait(SHORT);
     var hand = { a: a0 };
-    var clear = global.ArcFormula && global.ArcFormula.clearOfRadii;
     function place() {
       var cur = hand.a;
       var deg = Math.round(a1 - cur);
@@ -2116,7 +2158,7 @@
       ends[0].setAttribute('cx', r2(p.x));
       ends[0].setAttribute('cy', r2(p.y));
       A.set(cur, a1, 'θ = ' + deg + '°');
-      if (clear) clear(C, A, cur, a1);
+      clearOfRadii(C, A, cur, a1);
     }
     place();
     /* The radius walked round from where it stands to `to`, a tick of

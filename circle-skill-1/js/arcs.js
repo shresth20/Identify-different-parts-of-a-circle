@@ -514,6 +514,7 @@
     var live = true;
     var nudge = null;               /* the hand's loop, while it is showing */
     var idle = 0;                   /* which wait for the hand is the current one */
+    var TOUCH_OPTS = { passive: false };
     var minSpan = c.minSpan != null ? c.minSpan : MIN_SPAN;
     var maxSpan = c.maxSpan != null ? c.maxSpan : MAX_SPAN;
 
@@ -584,28 +585,51 @@
       if (ev.pointerType === 'touch' && !press) return;
       if (press && ev.pointerId !== press.id) return;
       var q = polar(group, ev);
-      if (nearRim(q)) showGhost(allowed(q.deg)); else hideGhost();
+      if (nearRim(q)) showGhost(allowed(q.deg));
+      else if (!(press && press.touch && nearRelease(q))) hideGhost();
     }
+    /* Tablets (user, 2026-11-05: the first point went down, the second
+       never did). A press is never left standing: a new finger on the rim
+       takes over from one whose lift the browser never delivered, instead
+       of being turned away for good. The press is captured on the picture,
+       so its lift and its cancel always come back here; and its default is
+       stopped, so the tap is not also a mouse click that focuses the band
+       (which left the ghost lying on the rim) or a gesture the browser
+       claims for itself. */
     function onDown(ev) {
-      if (!live || press) return;
+      if (!live) return;
+      if (ev.button > 0) return;
       var q = polar(group, ev);
       if (!nearRim(q)) return;
-      press = { id: ev.pointerId };
+      if (ev.cancelable) ev.preventDefault();
+      press = { id: ev.pointerId, touch: ev.pointerType !== 'mouse' };
+      try { svg.setPointerCapture(ev.pointerId); } catch (e) { /* fine */ }
       showGhost(allowed(q.deg));
     }
+    /* A finger is wider than a cursor and drifts as it lifts: a press that
+       began on the rim still counts if it ends a little way off it. */
+    function nearRelease(q) { return Math.abs(q.dist - RR) <= BAND * 2; }
     function onUp(ev) {
       if (!live || !press || ev.pointerId !== press.id) return;
+      var touch = press.touch;
       press = null;
       var q = polar(group, ev);
-      if (!nearRim(q)) { hideGhost(); return; }
-      put(allowed(q.deg), ev);
-      if (ev.pointerType === 'touch') hideGhost();
+      if (nearRim(q)) put(allowed(q.deg), ev);
+      else if (touch && ghostOn && nearRelease(q)) put(ghostAt, ev);
+      else { hideGhost(); return; }
+      if (touch) hideGhost();
     }
     function onCancel(ev) {
       if (!press || ev.pointerId !== press.id) return;
       press = null;
       hideGhost();
     }
+    /* Safari takes a finger on the picture for its own gestures (double-tap
+       zoom, the press-and-hold magnifier) unless the touch itself is
+       stopped, whatever touch-action says -- and a gesture it claims ends
+       the press with a cancel, so the point is never put down. Only while
+       a point is wanted, and only on the picture. */
+    function onTouch(ev) { if (live && ev.cancelable) ev.preventDefault(); }
     function onKey(ev) {
       if (!live) return;
       var step = ev.shiftKey ? 15 : 5;
@@ -658,6 +682,7 @@
       live = false;
       restHand();
       svg.removeEventListener('pointerdown', onDown);
+      svg.removeEventListener('touchstart', onTouch, TOUCH_OPTS);
       document.removeEventListener('pointermove', onMove);
       document.removeEventListener('pointerup', onUp);
       document.removeEventListener('pointercancel', onCancel);
@@ -672,6 +697,7 @@
     }
 
     svg.addEventListener('pointerdown', onDown);
+    svg.addEventListener('touchstart', onTouch, TOUCH_OPTS);
     document.addEventListener('pointermove', onMove);
     document.addEventListener('pointerup', onUp);
     document.addEventListener('pointercancel', onCancel);

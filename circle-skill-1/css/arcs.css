@@ -51,7 +51,15 @@
    the rim, points slid along it -- and a browser that takes a finger on it
    for a scroll cancels the pointer mid-gesture. The page never scrolls, so
    nothing is lost. */
-.figure { touch-action: none; }
+.figure {
+  touch-action: none;
+  /* a finger held on the rim is a press, not a selection or a callout
+     (Safari on a tablet) */
+  -webkit-user-select: none;
+  user-select: none;
+  -webkit-touch-callout: none;
+  -webkit-tap-highlight-color: transparent;
+}
 
 /* ---- The band -----------------------------------------------------------
    A wide, unpainted stroke laid over the rim. It is not a target the
