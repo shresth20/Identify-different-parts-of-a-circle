@@ -2837,8 +2837,6 @@
   }
 
 
-
-
   /* ---- 14. Which covers more (slide 39) ----------------------------------------
      Two circles drawn to scale -- one twice the other's radius -- each with
      a minor sector, and the surprise that the two are the same size. */
@@ -2958,7 +2956,6 @@
   }
 
 
-
   /* ---- 15. The major sector (slides 40-41) ------------------------------------
      Both sectors coloured; the learner taps the bigger. The right one is
      lifted out of the circle along its own middle and set back, lit. */
@@ -3056,7 +3053,6 @@
     keptFig = { key: key, obj: obj };
     return obj;
   }
-
 
 
   /* ---- 16. Its angle (slides 42-43) -------------------------------------------- */
@@ -3219,7 +3215,6 @@
     await wait(BEAT);
     await handOver();
   }
-
 
 
   /* ---- 18. A worked major sector (slides 45-50) --------------------------------- */
@@ -3488,7 +3483,6 @@
       }
     }).then(handOver);
   }
-
 
 
   /* ---- 23. Find the angle (slides 60-63) -------------------------------------------
@@ -3961,29 +3955,18 @@
      is behind a function. Nothing of this skill's own scenes is handed
      over. */
   global.SectorArea = {
-    BEAT: BEAT, SHORT: SHORT, LOOK: LOOK, PEN: PEN, SWEEP: SWEEP, SLOW_PEN: SLOW_PEN,
-    X: X, EQ: EQ, MINUS: MINUS, DD: DD, PIR2: PIR2,
     dom: function () { return dom; },
     mascot: function () { return mascot; },
     held: function (v) { if (arguments.length) held = v; return held; },
-    perch: function () { return perch; },
-    lessonOn: lessonOn, lessonOff: lessonOff,
-    wait: wait, anim: anim, quiet: quiet, tr: tr, keyed: keyed, lineOf: lineOf, voiceOf: voiceOf,
-    shuffled: shuffled, praise: praise, oops: oops, svgEl: svgEl, h: h, fr: fr, c: c,
-    r2: r2, pt: pt, ringD: ringD, arcD: arcD, wedgeD: wedgeD, bandD: bandD, segD: segD,
-    fadeIn: fadeIn, popIn: popIn, fadeOut: fadeOut, cardIn: cardIn, settleFig: settleFig,
-    figure: figure, text: text, circle: circle, drawCircle: drawCircle, sector: sector, underPoints: underPoints,
-    radii: radii, sweep: sweep, arcIn: arcIn, show: show, angleMark: angleMark, angleIn: angleIn,
-    clearPrompt: clearPrompt, speak: speak, mascotJumpIn: mascotJumpIn, mascotJumpOut: mascotJumpOut,
-    perchIn: perchIn, perchSay: perchSay, perchOut: perchOut, say: say, bubbleSay: bubbleSay,
-    sayTop: sayTop, sayAll: sayAll, sayWith: sayWith, morphBits: morphBits, voiceAlone: voiceAlone, hush: hush, leaveHeader: leaveHeader, handOver: handOver,
-    ripple: ripple, burstAt: burstAt,
-    waitPick: waitPick, until: until, angleHandle: angleHandle, clearChoices: clearChoices, askChoice: askChoice,
-    dropdown: dropdown, stepRow: stepRow, stepIn: stepIn, stepDone: stepDone, ddIn: ddIn,
-    noteCard: noteCard, ruleCard: ruleCard, lineIn: lineIn, clearStage: clearStage, stage: stage,
-    bubbleVoice: bubbleVoice, writeSteps: writeSteps, fieldTalk: fieldTalk, keyWord: keyWord,
-    answered: answered, heardOnly: heardOnly, autoLines: autoLines,
-    flyNumber: flyNumber, magnifier: magnifier,
-    boxLeader: boxLeader, figToScene: figToScene
+    wait: wait, anim: anim, keyed: keyed,
+    h: h,
+    pt: pt,
+    figure: figure, text: text, circle: circle, sector: sector,
+    radii: radii, sweep: sweep, show: show,
+    mascotJumpIn: mascotJumpIn,
+    say: say,
+    handOver: handOver,
+    until: until,
+    stage: stage,
   };
 })(window);

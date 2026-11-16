@@ -386,18 +386,6 @@
    line's ghost wraps too, so the two-line card is laid out whole. */
 .aside--message #asideType .type-ghost,
 .aside--message #asideMore .type-ghost { white-space: pre-wrap; }
-/* The key word: the one that names the part, wherever it falls in the
-   line. pillKey (pages.js) tags it in the type and in the ghost alike, so
-   the words land where the layout was reserved. No plate behind it -- a
-   pill reads as a button -- just the heaviest weight, thickened a touch
-   further by a stroke of its own ink, in the rim's orange, so it is the
-   first word the eye finds and plainly the name of the line it matches. */
-.aside--message #asideType .wd.wd--key {
-  font-weight: 800;
-  color: var(--part-circle);
-  -webkit-text-stroke: .025em currentColor;
-  paint-order: stroke fill;
-}
 
 /* ---- The semicircle's central angle ------------------------------------
    A small arc round the centre over the diameter, and "180°" above it.

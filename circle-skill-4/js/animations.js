@@ -29,11 +29,6 @@
   var A = global.GameAudio;
   var live = Object.create(null);     /* key -> the cue's sound still playing */
 
-  /* How long a cue is LOUD, in ms -- the answer chimes ring at the level of
-     the voice for this long and then only tail away -- and when each was
-     last rung. A word said over the loud part is lost under it, so a line
-     that follows a chime waits this out (see ringing). */
-  var RING_MS = { correct: 600, wrong: 600 };
   var rang = Object.create(null);
 
   /* A cue rung again starts over rather than doubling up on itself. Before
@@ -48,14 +43,6 @@
     rang[key] = performance.now();
   }
 
-  /* ms until every chime still ringing has quietened: 0 when none is. */
-  function ringing() {
-    var now = performance.now(), left = 0;
-    Object.keys(RING_MS).forEach(function (k) {
-      if (rang[k]) left = Math.max(left, rang[k] + RING_MS[k] - now);
-    });
-    return left;
-  }
 
   /* ---- the pop a mark makes as it lands -------------------------------
      A run of dots lands in quick succession and the run IS the cadence, so
@@ -352,30 +339,6 @@
     return M.correct(dot);
   }
 
-  /* The dot glowing while it is named, without asking for a tap: a thin,
-     soft halo held close to the dot (.is-glowing, animations.css), so the
-     dot keeps its size. A loop of unknown length, so a class. */
-  function centreGlow(group) {
-    group.classList.add('is-glowing');
-  }
-
-  /* ...and put out from whatever brightness it has reached: the breath's
-     opacity is taken onto the halo before the class goes, then eased off. */
-  function centreUnglow(group, glow) {
-    var from = getComputedStyle(glow).opacity;
-    group.classList.remove('is-glowing');
-    group.classList.add('is-glow-out');
-    M.set(glow, { opacity: from });
-    var tl = M.timeline({
-      willChange: glow, willChangeValue: 'opacity',
-      revert: function () {
-        group.classList.remove('is-glow-out');
-        M.set(glow, { clearProps: 'opacity' });
-      }
-    });
-    tl.to(glow, { opacity: 0, duration: M.dur(0.42), ease: 'power2.in' });
-    return tl;
-  }
 
   /* Named, and done asking: the halo fades and the dot is left as a plain
      point on the diagram -- the same state a `call: false` plant lands in. */
@@ -508,90 +471,6 @@
    * The pulse -- a part, lit while it is named
    * ====================================================================== */
 
-  /* One breath of the pulse, and how many breaths a naming gets. The seconds
-     are the period stated in .is-pulsing (animations.css): the pulse itself
-     is a CSS animation -- it has to survive a beat being skipped without a
-     tween to hold it -- so all that is kept here is how long to leave the
-     class on.
-       The class is taken off and put back on inside one call, with a box
-     read between, because that is what restarts a CSS animation: a part
-     named twice in a scene begins its breathing again rather than joining
-     the cycle already running. */
-  var PULSE_SECS = 1.05;
-  var PULSE_TIMES = 3;
-
-  function partPulse(marks, opts) {
-    var o = opts || {};
-    var times = o.times || PULSE_TIMES;
-    var list = [].concat(marks).filter(Boolean);
-
-    function off() {
-      list.forEach(function (m) {
-        m.classList.remove('is-pulsing');
-        if (m.style) m.style.removeProperty('--pulse-times');
-      });
-    }
-
-    var tl = M.timeline({ revert: off });
-    tl.call(function () {
-      list.forEach(function (m) {
-        m.classList.remove('is-pulsing');
-        void m.getBoundingClientRect().width;
-        if (m.style) m.style.setProperty('--pulse-times', String(times));
-        m.classList.add('is-pulsing');
-      });
-    }, null, 0);
-    /* An empty callback at the far end: it gives the timeline the length of
-       the pulse, so a caller that waits on it waits the right amount and a
-       skip has something to collapse. */
-    tl.call(function () {}, null, M.gap(PULSE_SECS * times));
-    return tl;
-  }
-
-  /* The same pulse, held: breathing for as long as a beat leaves it on
-     instead of for three breaths -- the rim beside the circumference's
-     message, and the radius beside its own, breathe until the learner
-     presses Next. A class and not a
-     tween, as every loop of unknown length in this game is, so resetFigure
-     (pages.js) is what takes it off if the scene is torn down instead.
-       The release IS a tween: the line is caught at whatever width it had
-     reached and eased back to its rest, rather than snapping thin, and the
-     bloom goes with the class once it gets there -- where the three-breath
-     pulse leaves it too.
-       Either takes one mark or several. Several held in one call breathe
-     in step, because their animations start in the same frame -- which is
-     how every radius round the circle breathes as one line. */
-  function pulseHold(marks) {
-    [].concat(marks).filter(Boolean).forEach(function (mark) {
-      mark.classList.remove('is-pulsing');
-      void mark.getBoundingClientRect().width;
-      mark.style.setProperty('--pulse-times', 'infinite');
-      mark.classList.add('is-pulsing');
-    });
-  }
-
-  function pulseRelease(marks) {
-    var list = [].concat(marks).filter(Boolean);
-    var tl = M.timeline({
-      revert: function () {
-        list.forEach(function (mark) { mark.style.filter = ''; });
-        M.set(list, { clearProps: 'strokeWidth' });
-      }
-    });
-    list.forEach(function (mark) {
-      var now = parseFloat(getComputedStyle(mark).strokeWidth);
-      mark.classList.remove('is-pulsing');
-      mark.style.removeProperty('--pulse-times');
-      var rest = parseFloat(getComputedStyle(mark).strokeWidth);
-      mark.style.filter = 'url(#partGlow)';
-      /* autoRound off: GSAP rounds px in-betweens to whole pixels, and a
-         line under three pixels wide visibly steps instead of easing */
-      tl.fromTo(mark, { strokeWidth: now },
-                { strokeWidth: rest, autoRound: false,
-                  duration: M.dur(0.4), ease: 'power2.out' }, 0);
-    });
-    return tl;
-  }
 
   /* ======================================================================
    * Points and lines
@@ -833,37 +712,6 @@
     return drawChords([part]);
   }
 
-  /* One box, arriving on the part it will name: the point on that part pops
-     in, the dashed line draws itself out from the box's edge to that point,
-     and the box lands at the other end of it. Slow enough to be followed --
-     this is the beat that says WHICH box belongs to WHICH part, and it is
-     the only time that is shown.
-       A dashed line cannot be drawn with the dash trick -- the trick IS a
-     dash pattern -- so the leader is drawn through a mask: a solid path over
-     the same line, revealed with the trick, and the dashed one shows through
-     wherever the mask has reached.
-       It ends by handing the three of them to the stylesheet. From there
-     their level is a class and not an inline value, which is what lets a box
-     brighten under the hand later without a tween chasing it. */
-  function boxIn(box) {
-    var parts = [box.g, box.leader];
-    var tl = M.timeline({ revert: function () { undash([box.mask]); } });
-
-    M.set(box.leader, { opacity: 1 });
-    stroke(tl, box.mask, 0.14, 0.52, 'power1.inOut');
-    /* The leader ends on the line itself, with no point of its own: the
-       part it runs to is already a mark on the board. */
-    tl.fromTo(box.g,
-      { opacity: 0, scale: 0.72, transformOrigin: 'center center' },
-      { opacity: 1, scale: 1, duration: M.dur(0.44), ease: M.POP }, M.gap(0.52));
-    tl.call(pop, null, M.gap(0.52));
-
-    tl.call(function () {
-      parts.forEach(function (e) { e.classList.add('is-shown'); });
-      M.set(parts, { clearProps: 'opacity' });
-    });
-    return tl;
-  }
 
   /* And the pair standing back. The box, its line and its point drop to the
      level the whole set rests at -- a class, so the stylesheet can lift one
@@ -894,19 +742,6 @@
     return tl;
   }
 
-  /* What the learner has to reach for, arriving in the band under the
-     circle and leaving it again: the five names in the last activity, and
-     the two answers to the yes/no question before it. One pair of beats for
-     both -- a row of pills is a row of pills. */
-  function trayIn(tray, chips) {
-    tray.removeAttribute('hidden');
-    var tl = M.timeline({ willChange: chips, willChangeValue: 'transform, opacity' });
-    tl.fromTo(chips,
-      { opacity: 0, y: 14, scale: 0.9 },
-      { opacity: 1, y: 0, scale: 1, duration: M.dur(0.36), ease: M.POP,
-        stagger: M.gap(0.08) });
-    return tl;
-  }
   function trayOut(tray, chips) {
     var tl = M.timeline({
       willChange: chips, willChangeValue: 'transform, opacity',
@@ -938,79 +773,6 @@
     return M.incorrect(btn);
   }
 
-  /* A name let go of somewhere that is not its box: back to the tray, of its
-     own accord. */
-  function chipHome(chip) {
-    return M.to(chip, {
-      x: 0, y: 0, scale: 1, duration: M.dur(0.36), ease: 'power3.out',
-      overwrite: 'auto'
-    });
-  }
-
-  /* A name dropped in the right box. It flies the rest of the way into the
-     box and shrinks out as the word is set inside -- the chip becoming the
-     label. dx/dy are how far the box's centre is from the chip's, measured
-     by the caller on screen. */
-  function chipDock(chip, dx, dy) {
-    var x = gsap.getProperty(chip, 'x') || 0;
-    var y = gsap.getProperty(chip, 'y') || 0;
-    return M.to(chip, {
-      x: x + dx, y: y + dy, scale: 0.55, opacity: 0,
-      duration: M.dur(0.4), ease: 'power2.inOut', overwrite: 'auto',
-      onComplete: function () {
-        chip.classList.add('is-docked');
-        M.set(chip, { clearProps: 'transform,opacity' });
-      }
-    });
-  }
-
-  /* The box, answered: the border turns green (a class -- a state it stays
-     in), the word pops in, the tick lands beside it, and the box gives one
-     short pulse. */
-  function boxRight(box) {
-    box.g.classList.remove('is-wrong', 'is-over');
-    box.g.classList.add('is-right');
-    sfx('correct');
-
-    M.set(box.text, { opacity: 0, scale: 0.7, transformOrigin: 'center center' });
-    M.set(box.badge, { opacity: 1, scale: 0, transformOrigin: 'center center' });
-    var tl = M.timeline({
-      willChange: [box.text, box.badge], willChangeValue: 'transform, opacity'
-    });
-    tl.to(box.rect, { scale: 1.05, transformOrigin: 'center center',
-                      duration: M.dur(0.14), ease: 'power2.out' }, 0)
-      .to(box.rect, { scale: 1, duration: M.dur(0.3), ease: M.POP }, M.gap(0.14))
-      .to(box.text, { opacity: 1, scale: 1, duration: M.dur(0.36), ease: 'back.out(1.7)' }, M.gap(0.06))
-      .to(box.badge, { scale: 1, duration: M.dur(0.34), ease: M.POP }, M.gap(0.16));
-    return tl;
-  }
-
-  /* The box, refused: it turns red and shakes its head -- three cycles at a
-     few pixels -- and holds the red for a beat before it is a plain box
-     again. */
-  var SHAKE = [-5, 5, -5, 5, -4, 4, 0];
-
-  function boxWrong(box) {
-    box.g.classList.remove('is-over');
-    box.g.classList.add('is-wrong');
-    sfx('wrong');
-
-    var tl = M.timeline({
-      willChange: box.g, willChangeValue: 'transform',
-      revert: function () {
-        box.g.classList.remove('is-wrong');
-        M.set(box.g, { clearProps: 'transform' });
-      }
-    });
-    var each = M.dur(0.3) / SHAKE.length;
-    SHAKE.forEach(function (x, i) {
-      tl.to(box.g, { x: x, duration: each,
-                     ease: i === SHAKE.length - 1 ? 'power2.out' : 'none' });
-    });
-    /* a hold, so the red is read before it goes */
-    tl.to({}, { duration: M.dur(0.5) });
-    return tl;
-  }
 
   /* ======================================================================
    * Clearing up
@@ -1427,7 +1189,7 @@
      them be. The scene stops one with nudgeStop the moment the learner
      moves. */
   var NUDGE_ON = 0.92;
-  var NUDGE_REST = 16, NUDGE_TOUCH = 1.5;      /* picture units off the rim */
+        /* picture units off the rim */
   var NUDGE_SWELL = 1.22;                      /* the tap's pulse, about the fingertip */
 
   /* Tap here. The hand fades in with its fingertip on the spot and pulses
@@ -1468,30 +1230,6 @@
     return tl;
   }
 
-  /* Carry it there. The hand fades in over the point, presses down onto
-     it, slides along the rim to its mark -- `put(t, gap)` places it, for t
-     from 0 (the point) to 1 (the mark) -- lifts, and fades; then again. */
-  function nudgeSlide(hand, put) {
-    var p = { t: 0, g: NUDGE_REST };
-    function move() { put(p.t, p.g, 1); }
-    move();
-    var tl = M.timeline({ revert: function () { M.set(hand, { clearProps: 'opacity' }); } });
-    if (M.reducedMotion()) {
-      p.t = 0.5; p.g = NUDGE_TOUCH; move();
-      M.set(hand, { opacity: NUDGE_ON });
-      return tl;
-    }
-    tl.__motionEndless = true;
-    tl.call(function () { p.t = 0; p.g = NUDGE_REST; move(); }, null, 0);
-    tl.to(hand, { opacity: NUDGE_ON, duration: 0.3, ease: 'power2.out' }, 0);
-    tl.to(p, { g: NUDGE_TOUCH, duration: 0.24, ease: 'power2.in', onUpdate: move }, 0.2);
-    tl.to(p, { t: 1, duration: 1.3, ease: 'power1.inOut', onUpdate: move }, 0.5);
-    tl.to(p, { g: NUDGE_REST, duration: 0.24, ease: 'power2.out', onUpdate: move }, 1.85);
-    tl.to(hand, { opacity: 0, duration: 0.3, ease: 'power2.in' }, 1.9);
-    tl.to({}, { duration: 0.65 });
-    tl.repeat(-1);
-    return tl;
-  }
 
   /* And put away: the loop is stopped and the hand fades from wherever it
      was. */
@@ -1733,7 +1471,6 @@
   }
 
 
-
   /* ======================================================================
    * Section 5 -- the quiz (the scenes are in quiz.js)
    * ----------------------------------------------------------------------
@@ -1745,82 +1482,6 @@
    * made from.
    * ====================================================================== */
 
-  /* The names arriving under the circles, one after the other, each with
-     the pop a mark makes as it lands. They end in the stylesheet's hands,
-     as the boxes do: from there their level is a class. */
-  function optsIn(list) {
-    var tl = M.timeline({ willChange: list, willChangeValue: 'transform, opacity' });
-    list.forEach(function (g, i) {
-      var at = i * 0.14;
-      tl.fromTo(g,
-        { opacity: 0, scale: 0.72, transformOrigin: 'center center' },
-        { opacity: 1, scale: 1, duration: M.dur(0.44), ease: M.POP }, M.gap(at));
-      tl.call(pop, null, M.gap(at));
-    });
-    tl.call(function () {
-      list.forEach(function (g) { g.classList.add('is-shown'); });
-      M.set(list, { clearProps: 'opacity' });
-    });
-    return tl;
-  }
-
-  /* A name pressed. The colour each one takes is its own class -- the
-     green a state it stays in, the red held for a beat -- so these are
-     the movement that goes with it: one outward pulse for the right
-     name, a head-shake for a wrong one, as a box gives. */
-  function optRight(g) {
-    g.classList.remove('is-wrong');
-    g.classList.add('is-right');
-    sfx('correct');
-    var tl = M.timeline({ revert: function () { M.set(g, { clearProps: 'transform' }); } });
-    tl.to(g, { scale: 1.07, transformOrigin: 'center center',
-               duration: M.dur(0.14), ease: 'power2.out' })
-      .to(g, { scale: 1, duration: M.dur(0.4), ease: M.POP });
-    return tl;
-  }
-  function optWrong(g) {
-    g.classList.add('is-wrong');
-    sfx('wrong');
-    var tl = M.timeline({
-      willChange: g, willChangeValue: 'transform',
-      revert: function () {
-        g.classList.remove('is-wrong');
-        M.set(g, { clearProps: 'transform' });
-      }
-    });
-    var each = M.dur(0.3) / SHAKE.length;
-    SHAKE.forEach(function (x, i) {
-      tl.to(g, { x: x, duration: each, ease: i === SHAKE.length - 1 ? 'power2.out' : 'none' });
-    });
-    tl.to({}, { duration: M.dur(0.5) });
-    return tl;
-  }
-
-  /* The part being asked about, and the rest stood back: `on` comes up to
-     full and `off` drops to a shadow of itself -- far enough down that a
-     coloured line reads as a faint grey one, which is what says "not
-     this". The pieces of the rim among `on` swell once, as an arc is lit
-     everywhere in the lesson; a region's colour is its own beat (segFill,
-     secFill), because the region has to be SEEN to be made. */
-  var QZ_DIM = 0.18;
-
-  /* `dim`, if given, is how far `off` stands back (QZ_DIM otherwise). */
-  function quizFocus(on, off, arcs, dim) {
-    var tl = M.timeline({
-      willChange: on.concat(off), willChangeValue: 'opacity',
-      revert: function () { if (arcs && arcs.length) unswell(arcs); }
-    });
-    if (off.length) tl.to(off, { opacity: dim != null ? dim : QZ_DIM,
-                                 duration: M.dur(0.45), ease: 'power2.inOut' }, 0);
-    if (on.length) tl.to(on, { opacity: 1, duration: M.dur(0.35), ease: 'power2.out' }, 0);
-    if (arcs && arcs.length) swell(tl, arcs, 0.12);
-    return tl;
-  }
-  function quizUnfocus(all) {
-    var tl = M.timeline({ willChange: all, willChangeValue: 'opacity' });
-    tl.to(all, { opacity: 1, duration: M.dur(0.5), ease: 'power2.inOut' });
-    return tl;
-  }
 
   /* A region's colour taken off again, once its name has been given. */
   function fillOut(region) {
@@ -1877,62 +1538,6 @@
     return tl;
   }
 
-  /* The light shower: an activity finished. A few dozen small pieces in the
-     lesson's own fills drift down over the board from its top edge, each
-     swaying a little and turning as it falls, and fade out before they
-     reach the bottom. Light on purpose -- a pat on the back, not a party --
-     and over the board, not the screen, so the figure the learner just
-     finished stays the thing in view. Every position is drawn up before
-     the timeline starts; the pieces are moved by transform and faded, and
-     nothing else. The layer is its own, put on top of the board for the
-     length of the shower and taken out when it is over, however it ends. */
-  var RAIN_N = 30;
-  var RAIN_HUES = ['blue', 'mint', 'lavender', 'coral', 'yellow'];
-
-  function confettiRain(host) {
-    var layer = document.createElement('div');
-    layer.className = 'confetti';
-    layer.setAttribute('aria-hidden', 'true');
-    host.appendChild(layer);
-    var remove = function () { if (layer.parentNode) layer.parentNode.removeChild(layer); };
-
-    var w = layer.clientWidth, h = layer.clientHeight;
-    if (M.reducedMotion() || !w || !h) {      /* motion for its own sake */
-      remove();
-      return M.timeline();
-    }
-
-    var bits = [];
-    var plan = [];
-    for (var i = 0; i < RAIN_N; i++) {
-      var el = document.createElement('span');
-      el.className = 'confetti__bit confetti__bit--' + RAIN_HUES[i % RAIN_HUES.length] +
-                     (i % 3 === 0 ? ' confetti__bit--round' : '');
-      layer.appendChild(el);
-      bits.push(el);
-      var fall = 1.5 + Math.random() * 0.7;
-      plan.push({
-        x: (i + Math.random()) / RAIN_N * w,            /* spread across the width */
-        sway: (Math.random() - 0.5) * 70,
-        drop: h * (0.5 + Math.random() * 0.35),
-        turn: (Math.random() - 0.5) * 720,
-        delay: Math.random() * 0.4,
-        fall: fall
-      });
-    }
-
-    var tl = M.timeline({ willChange: bits, revert: remove });
-    bits.forEach(function (b, n) {
-      var p = plan[n];
-      M.set(b, { x: p.x, y: -16, rotation: p.turn / 4, opacity: 1 });
-      tl.to(b, { y: p.drop, duration: M.dur(p.fall), ease: 'power1.in' }, M.gap(p.delay))
-        .to(b, { x: p.x + p.sway, rotation: p.turn, duration: M.dur(p.fall), ease: 'sine.inOut' },
-            M.gap(p.delay))
-        .to(b, { opacity: 0, duration: M.dur(p.fall * 0.4), ease: 'power2.in' },
-            M.gap(p.delay + p.fall * 0.6));
-    });
-    return tl;
-  }
 
   /* ---- the figure's own speed -------------------------------------------
      How fast the picture is made, apart from everything around it: the
@@ -1969,7 +1574,6 @@
     sfx: sfx,
     /* every cue's clip, for the loader to fetch */
     sounds: function () { return Object.keys(CLIPS).map(function (k) { return CLIPS[k]; }); },
-    ringing: ringing,
     pop: pop,
     boardIn: boardIn,
     boardOut: boardOut,
@@ -1981,17 +1585,11 @@
     rimRun: rimRun,
     /* the centre */
     plantCentre: plantCentre,
-    callCentre: callCentre,
     confirmCentre: confirmCentre,
-    centreGlow: centreGlow,
-    centreUnglow: centreUnglow,
     quietCentre: quietCentre,
     /* the callout */
     callout: callout,
     calloutOut: calloutOut,
-    partPulse: partPulse,
-    pulseHold: pulseHold,
-    pulseRelease: pulseRelease,
     /* points and lines */
     plotDot: plotDot,
     growLine: growLine,
@@ -2004,17 +1602,11 @@
     liftChord: liftChord,
     /* the activity */
     plotPart: plotPart,
-    boxIn: boxIn,
     dimPair: dimPair,
     showParts: showParts,
-    trayIn: trayIn,
     trayOut: trayOut,
     choiceRight: choiceRight,
     choiceWrong: choiceWrong,
-    chipHome: chipHome,
-    chipDock: chipDock,
-    boxRight: boxRight,
-    boxWrong: boxWrong,
     /* clearing up */
     clearFigure: clearFigure,
     /* text boxes and controls */
@@ -2042,7 +1634,6 @@
     labelsOut: labelsOut,
     dashedIn: dashedIn,
     nudgeTap: nudgeTap,
-    nudgeSlide: nudgeSlide,
     nudgeStop: nudgeStop,
     turnArcs: turnArcs,
     slideArcs: slideArcs,
@@ -2062,14 +1653,8 @@
     secFill: secFill,
     secSweep: secSweep,
     /* section 5 -- the quiz */
-    optsIn: optsIn,
-    optRight: optRight,
-    optWrong: optWrong,
-    quizFocus: quizFocus,
-    quizUnfocus: quizUnfocus,
     fillOut: fillOut,
-    confetti: confetti,
-    confettiRain: confettiRain
+    confetti: confetti
   };
   FIGURE_BEATS.forEach(function (name) {
     global.Beats[name] = figure(global.Beats[name]);

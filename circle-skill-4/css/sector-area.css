@@ -167,14 +167,6 @@ body.sa-lesson .board { --row-bottom: 13% !important; }
 }
 :where(body.sa-lesson) .s-arc--minor { stroke: var(--sa-minor-edge); }
 :where(body.sa-lesson) .s-arc--major { stroke: var(--sa-major-edge); }
-/* The breathing the first lesson gives a part it is naming. Its glow
-   filter lives in index.html's picture, so here the swell goes alone. */
-:where(body.sa-lesson) .s-arc.is-pulsing {
-  filter: none;
-  --pulse-w0: 2.6;
-  --pulse-w1: 5.4;
-  --pulse-times: infinite;
-}
 
 :where(body.sa-lesson) .s-radius {
   fill: none;
@@ -227,23 +219,6 @@ body.sa-lesson .board { --row-bottom: 13% !important; }
 /* ---- Equal wedges and the 360 fine ones ---------------------------------- */
 :where(body.sa-lesson) .s-fine { stroke: color-mix(in srgb, var(--part-radius) 55%, #FFFFFF); stroke-width: .7; }
 
-/* ---- The drag handle ------------------------------------------------------ */
-:where(body.sa-lesson) .s-handle { cursor: grab; outline: none; }
-:where(body.sa-lesson) .s-handle.is-held { cursor: grabbing; }
-:where(body.sa-lesson) .s-handle__ring { fill: #FFFFFF; stroke: var(--sa-angle); stroke-width: 3.5; }
-:where(body.sa-lesson) .s-handle__dot { fill: var(--sa-angle); }
-:where(body.sa-lesson) .s-handle__halo {
-  fill: color-mix(in srgb, var(--sa-angle) 30%, transparent);
-  transform-box: fill-box;
-  transform-origin: center;
-  animation: sa-halo 1.6s ease-in-out infinite;
-}
-:where(body.sa-lesson) .s-handle.is-held .s-handle__halo,
-:where(body.sa-lesson) .s-handle.is-done .s-handle__halo { animation: none; opacity: 0; }
-@keyframes sa-halo {
-  0%, 100% { transform: scale(.7); opacity: .2; }
-  50%      { transform: scale(1.25); opacity: .85; }
-}
 
 /* ---- The themed figures at the end --------------------------------------- */
 :where(body.sa-lesson) .s-fan-paper   { fill: color-mix(in srgb, var(--coral-fill) 40%, #FFF6EE); }
@@ -470,23 +445,6 @@ body.sa-lesson .board { --row-bottom: 13% !important; }
 .is-hearing .choice,
 .is-hearing .sa-card { pointer-events: none; }
 
-/* ==========================================================================
-   Cards
-   ========================================================================== */
-/* The note: what the bird would say after an answer -- the working behind
-   it. Plain type on the board, as every sentence in a panel is: no plate,
-   no rim, no shadow (the padding stays, so nothing in the panel moves). */
-:where(body.sa-lesson) .sa-note {
-  position: relative;
-  max-width: 100%;
-  padding: .7em 1em .8em;
-  font-size: .9em;
-  line-height: 1.4;
-  color: var(--text-primary);
-  opacity: 0;
-}
-:where(body.sa-lesson) .sa-note b { color: var(--lavender-border); }
-:where(body.sa-lesson) .sa-note .frac { font-size: .85em; }
 
 /* The rule: a formula the lesson has built, set out on its own -- its tag
    over it, centred -- as plain type on the board. No plate: the padding
@@ -547,12 +505,11 @@ body.sa-lesson .board { --row-bottom: 13% !important; }
 
 @media (prefers-reduced-motion: reduce) {
   :where(body.sa-lesson, #alAsk) .dd.is-asking .dd__face,
-  :where(body.sa-lesson) .s-handle__halo,
   :where(body.sa-lesson) .sa-rule.is-glow { animation: none; }
 }
 
 /* A value and its unit are one word. */
-:where(body.sa-lesson) .c-ans, :where(body.sa-lesson) .sa-note b { white-space: nowrap; }
+:where(body.sa-lesson) .c-ans { white-space: nowrap; }
 
 /* The arrows from a sentence to the parts it names: a guide for the eye,
    not a mark on the figure, so they are drawn light and thin. Stroke
@@ -875,27 +832,6 @@ body.sa-lesson .board { --row-bottom: 13% !important; }
 :where(body.sa-lesson) .sa-drop--r { grid-column: 3; justify-self: start; margin-left: 6%; align-self: end; margin-bottom: 18%; }
 
 
-/* The word a bubble line is about, picked out as a pill: in the minor
-   sector's mint, so "sector" is worn in the colour the lesson has shown
-   it in, and breathing softly while it is read. */
-:where(body.sa-lesson) .bubble .wd.wd--key {
-  display: inline-block;
-  padding: 0 .38em .04em;
-  margin: 0 .06em;
-  border-radius: 999px;
-  color: color-mix(in srgb, var(--mint-border) 70%, #0B3B36);
-  background: linear-gradient(180deg, #E3FBF5 0%, color-mix(in srgb, var(--mint-fill) 70%, #FFFFFF) 100%);
-  box-shadow: inset 0 0 0 .05em color-mix(in srgb, var(--mint-border) 55%, #FFFFFF),
-              inset 0 .08em .06em #FFFFFFB3,
-              0 .06em .04em color-mix(in srgb, var(--mint-border) 45%, transparent);
-  white-space: nowrap;
-}
-:where(body.sa-lesson) .bubble .type .wd.wd--key.in { animation: wd-in .46s cubic-bezier(.2, .7, .3, 1) both, sa-key-glow 2s ease-in-out .5s infinite; }
-@keyframes sa-key-glow {
-  0%, 100% { box-shadow: inset 0 0 0 .05em color-mix(in srgb, var(--mint-border) 55%, #FFFFFF), inset 0 .08em .06em #FFFFFFB3, 0 0 0 0 transparent; }
-  50%      { box-shadow: inset 0 0 0 .05em color-mix(in srgb, var(--mint-border) 55%, #FFFFFF), inset 0 .08em .06em #FFFFFFB3, 0 0 .55em .1em color-mix(in srgb, var(--mint-fill) 75%, transparent); }
-}
-
 /* The angle mark, lit: its own magenta halo. */
 :where(body.sa-lesson) .s-angle, :where(body.sa-lesson) .lbl--angle { --focus: var(--sa-angle); }
 
@@ -1028,8 +964,7 @@ body.sa-lesson .board { --row-bottom: 13% !important; }
 
 /* ---- Practice: tiles on the right, the formula under them ---------------- */
 :where(body.sa-lesson) .sa-panel--practice { align-items: center; gap: 1.4em; }
-:where(body.sa-lesson) .sa-panel--practice .sa-rule,
-:where(body.sa-lesson) .sa-panel--practice .sa-note { align-self: center; }
+:where(body.sa-lesson) .sa-panel--practice .sa-rule { align-self: center; }
 :where(body.sa-lesson) .lbl--along { font-size: 19px; }
 
 /* Practice, asked from a perch: everything kept compact so the bubble, the
@@ -1039,24 +974,12 @@ body.sa-lesson .board { --row-bottom: 13% !important; }
 :where(body.sa-lesson) .sa-panel--practice .sa-speak--above { gap: 0; }
 :where(body.sa-lesson) .sa-panel--practice .sa-rule { padding: .2em 1.1em .25em; gap: .15em; font-size: .86em; }
 
-/* ---- The magnifying glass ------------------------------------------------ */
-:where(body.sa-lesson) .s-lens__spot { fill: none; stroke: var(--lavender-border); stroke-width: 2; stroke-dasharray: 3 3; }
-:where(body.sa-lesson) .s-lens__lead { fill: none; stroke: var(--lavender-border); stroke-width: 1.8; stroke-opacity: .7; }
-:where(body.sa-lesson) .s-lens__back { fill: #FFFFFF; }
 :where(body.sa-lesson) .s-lens__disc { fill: var(--part-circle-fill); }
 :where(body.sa-lesson) .s-lens__wedge { opacity: 1; }
 :where(body.sa-lesson) .s-lens__edge { fill: none; stroke: var(--part-circle); stroke-width: 2.6; }
 :where(body.sa-lesson) .s-lens__radius { fill: none; stroke: var(--part-radius); stroke-width: 3.5; stroke-linecap: round; }
 :where(body.sa-lesson) .s-lens__angle { fill: none; stroke: var(--sa-angle); stroke-width: 2.4; }
 :where(body.sa-lesson) .s-lens__lbl { font-size: 18px; }
-:where(body.sa-lesson) .s-lens__sheen { fill: none; stroke: #FFFFFF; stroke-width: 5; stroke-linecap: round; stroke-opacity: .7; }
-:where(body.sa-lesson) .s-lens__rim {
-  fill: none;
-  stroke: #6F5BE0;
-  stroke-width: 7;
-  filter: drop-shadow(0 3px 5px rgba(50, 30, 140, .35));
-}
-:where(body.sa-lesson) .s-lens__handle { stroke: #4B36C2; stroke-width: 11; stroke-linecap: round; }
 
 /* ---- Practice: bigger bird and type, answers in rows, the formula under
    the figure on the left. ------------------------------------------------ */

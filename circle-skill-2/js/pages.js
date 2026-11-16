@@ -59,33 +59,15 @@
      (Beats.figureSpeed). Only the figure: the bird, the lines and the holds
      keep their pace, and later skills keep theirs. */
   var FIGURE_SPEED = 1.4;
-  /* How long the instruction stands before the bird takes it away and leaves
-     the learner to the activity. */
-  var HOLD_ASK = 2000;
 
-  /* The circumference is the first thing the lesson teaches, and it is
-     taken slowly, to the storyboard's own clock: the instruction is left
-     to be read before the pen moves, the finished ring is left to be looked
-     at before the colour goes in, and the rim is lit for a good while before
-     it is named, and again after. Milliseconds, except the pen's trip round,
-     which is a tween's seconds. */
-  var DRAW_TIME   = 3;      /* s: the pen, once round -- unhurried (user, 2026-10-29: was 4) */
-/* "Let's draw a circle!", then the pen         */
-  var DRAWN_HOLD  = 2000;   /* the ring, closed, before it is filled        */
+        /* s: the pen, once round -- unhurried (user, 2026-10-29: was 4) */
+   /* the ring, closed, before it is filled        */
 /* the filled circle, before the rim is lit     */
 
-  /* The radius, the same way: the circle and its centre left alone, the
-     point popped onto the rim and the line grown out to it both in slow
-     motion, the line lit and named, and the named line looked at before
-     the circle stands aside to say what a radius is. */
-  var DOT_TIME    = 0.9;    /* s: the point on the rim, popping in         */
-  var DOT_HOLD    = 1200;   /* the point, before the line sets out for it  */
-  var LINE_TIME   = 1.8;    /* s: the line, from the centre to the point   */
+      /* s: the point on the rim, popping in         */
+     /* the point, before the line sets out for it  */
+      /* s: the line, from the centre to the point   */
 
-  /* The diameter: every step of the building -- the radius alone, lit,
-     named, copied, joined -- a DIA_HOLD apart, and every note set beside
-     the finished line left NOTE_HOLD to be read before the next. */
-  var DIA_HOLD  = 2000;
 
   /* ---- the figure's own coordinates -------------------------------------
      The three numbers the circle in index.html is drawn with. Everything this
@@ -409,21 +391,6 @@
     box.g.setAttribute('aria-label', T('s1A11yBox'));
   }
 
-  /* The five names, as buttons in the tray. Buttons, so a keyboard can pick
-     one up; the drag is on top of that. */
-  function buildChips(tray, names) {
-    tray.textContent = '';
-    return names.map(function (name) {
-      var b = document.createElement('button');
-      b.type = 'button';
-      b.className = 'chip';
-      b.textContent = T(name);
-      b.dataset.name = name;
-      b.setAttribute('aria-label', T('s1A11yChip', { name: T(name) }));
-      tray.appendChild(b);
-      return b;
-    });
-  }
 
   /* The answers to a yes/no question, as buttons in the same band the names
      use. Real buttons, so Enter and Space work without a line of code.
@@ -457,26 +424,8 @@
     return a;
   }
 
-  /* ---- the callout, aimed ------------------------------------------------
-     The arrow's shaft is a curve from the label in toward the part; the head
-     is worked out from the curve's own direction at the tip, so the barbs
-     sit square on the shaft whichever way it comes in. */
-  /* A small head: the shaft is a light dashed line, and a big solid head
-     on the end of one would outweigh it. */
-  var HEAD = 9;
   var SPREAD = 30 * Math.PI / 180;
 
-  function arrowHead(tip, from) {
-    var dx = tip.x - from.x, dy = tip.y - from.y;
-    var back = Math.atan2(-dy, -dx);
-    function barb(sign) {
-      var a = back + sign * SPREAD;
-      return round2(tip.x + Math.cos(a) * HEAD) + ' ' + round2(tip.y + Math.sin(a) * HEAD);
-    }
-    return 'M' + barb(1) + ' L' + round2(tip.x) + ' ' + round2(tip.y) + ' L' + barb(-1);
-  }
-
-  function markParts() { return [dom.markArrow, dom.markHead, dom.markLabel]; }
 
   /* The speech card beside the slid circle, its bird kept level with the
      bottom of the rim while the card, the pane or the figure resizes.
@@ -507,16 +456,6 @@
     alignMessageToCircle();
   }
 
-  function watchMessageAlign() {
-    stopMessageAlign();
-    alignMessageToCircle();
-    if (global.ResizeObserver) {
-      messageObserver = new ResizeObserver(alignMessageToCircle);
-      messageObserver.observe(dom.bubbleAside);
-      messageObserver.observe(dom.aside);
-      messageObserver.observe(dom.figure);
-    }
-  }
 
   /* ---- the figure, as a whole -------------------------------------------
      Every mark that can be on the circle at once, in one list: what a scene
@@ -1098,113 +1037,12 @@
     return { text: global.I18n ? global.I18n.t(key) : key, vo: key };
   }
 
-  /* A line of more than one sentence, said one sentence at a time -- "Not
-     quite!", then the reason; "Here is another radius.", then "Both are
-     equal in length." -- from ONE key and ONE clip. The recording is played once; each
-     sentence is typed on that clip's own clock (its word cues), and the
-     first is taken off and the next put up as the voice reaches the next
-     sentence's first word. Nothing is heard twice, and the words never run
-     ahead of the voice or behind it. A line with no recording at all is
-     said a sentence at a time at the Typer's pace; a line of one sentence,
-     or one recorded without cues to time it by, is said whole. */
-  var OUT_LEAD = 280;      /* ms: lineOut's length, begun this early */
+        /* ms: lineOut's length, begun this early */
 
-  function sentencesOf(text) {
-    var parts = text.match(/[^.!?]+[.!?]+\s*/g);
-    return parts && parts.length > 1 && parts.join('') === text ? parts : null;
-  }
-
-  function speakBySentence(key, mood) {
-    var line = keyed(key);
-    var I = global.I18n;
-    var parts = sentencesOf(line.text);
-    if (!parts || Flow.isFast()) return speak(line, mood);
-
-    var cues = I && I.cues ? I.cues(key) : null;
-    if (!cues) {
-      if (I && I.voiced && I.voiced().indexOf(key) >= 0) return speak(line, mood);
-      /* no clip: each sentence its own plain line, unless a newer one has
-         taken the header in between */
-      return parts.reduce(function (chain, s, i) {
-        return chain.then(function (n) {
-          if (i > 0 && n !== speaking) return n;
-          var said = speak(s.trim(), mood);
-          var mine = speaking;
-          return said.then(function () { return mine; });
-        });
-      }, Promise.resolve(speaking));
-    }
-
-    /* each sentence with the cues of its own words, from the clip's start */
-    var w = 0;
-    var split = parts.map(function (s) {
-      var n = (s.match(/\S+\s*/g) || []).length;
-      var at = cues.slice(w, w + n);
-      w += n;
-      return { text: s.trim(), at: at };
-    });
-
-    var mine = ++speaking;
-    var has = dom.promptLine.textContent.trim().length > 0;
-    var gone = has ? Flow.anim(Beats.lineOut(dom.promptLine)) : Promise.resolve();
-    return gone.then(function () {
-      if (mine !== speaking) return;
-      M.set(dom.promptLine, { clearProps: 'opacity,transform,filter' });
-      mascot.state(mood || 'talking');
-      var t0 = performance.now();
-      var heard = quiet(voiceOf(line));
-      var typed = split.reduce(function (chain, s, i) {
-        return chain.then(function () {
-          if (mine !== speaking) return;
-          var out = i === 0 ? Promise.resolve() :
-            Flow.wait(t0 + s.at[0] - OUT_LEAD - performance.now()).then(function () {
-              if (mine !== speaking) return;
-              return Flow.anim(Beats.lineOut(dom.promptLine));
-            });
-          return out.then(function () {
-            if (mine !== speaking) return;
-            M.set(dom.promptLine, { clearProps: 'opacity,transform,filter' });
-            /* the cues are from the clip's start; this sentence starts late
-               by however long the clip has run already */
-            var late = performance.now() - t0;
-            return sayInHeader(s.text, {
-              at: s.at.map(function (c) { return Math.max(0, c - late); })
-            });
-          });
-        });
-      }, Promise.resolve());
-      return Promise.all([typed, heard]);
-    }).then(function () {
-      if (mine === speaking) mascot.settle();
-    });
-  }
 
 /* ms: the shortest hold for a line              */
 /* ms a character, for a line not yet recorded   */
 
-  /* A page that turns itself: handOver without the button. The page is
-     counted, and stepped over by a jump, exactly as a Next-ended page is;
-     the lesson simply moves on after `ms`. */
-  function autoTurn(ms) {
-    note(at, page);
-    announce();
-    if (seek > 0) {
-      seek--;
-      turned();
-      if (!seek) Flow.resume();
-      return Promise.resolve();
-    }
-    Flow.resume();
-    return Flow.wait(ms).then(turned);
-  }
-
-  /* The bird and its line off the header, with the header kept open, so
-     the circle under it does not move: the board is left to the figure
-     and the voice. */
-  function birdAway() {
-    return Promise.all([mascotJumpOut(true), Flow.anim(Beats.lineOut(dom.promptLine))])
-      .then(clearPrompt);
-  }
 
   /* The line off the header with the bird LEFT on it: for a page that
      moves on while the bird keeps watching. The row re-centres on the bird
@@ -1225,27 +1063,6 @@
 /* s, at pace 1: when a callout's word goes on */
 /* ms: the word up this much before the name */
 
-  /* ---- an activity finished --------------------------------------------
-     The learner is told so: the cheer, and a light shower of confetti over
-     the board, left to fall while the lesson goes on. */
-  function celebrate() {
-    Beats.sfx('cheer');
-    quiet(Flow.anim(Beats.confettiRain(dom.board)));
-  }
-  /* ...and a word of praise (one of the praise* keys) said by the bird --
-     from where it stands if it is on the header, else up to say it -- as
-     the confetti comes down. The confetti goes with the right answer's
-     chime; the word waits for the chime to ring out, or it is said under
-     it and lost: the chime is as loud as the voice, and the word is
-     shorter than the chime. */
-  function praise(key) {
-    celebrate();
-    return Flow.wait(Beats.ringing())
-      .then(function () {
-        return birdOnHeader() ? speak(keyed(key), 'happy') : arriveSaying(keyed(key), 'happy');
-      })
-      .then(function () { mascot.settle(); });
-  }
 
   /* Whether the bird is standing on the header now, and so can simply say
      its next line there rather than having to come up to say it. */
@@ -1293,73 +1110,6 @@
      wears: the pane dressed as the card and the bird brought up under it.
      The name in the line is set heavier, in the rim's orange. */
 
-  /* The key word (.wd--key, arcs.css): the first word of the line that
-     says the part's name, tagged in the typed line AND in the invisible
-     layout copy under it, so the type lands exactly where the ghost
-     reserved. Run after reserve, before reveal. */
-  function pillKey(name) {
-    if (!name) return;
-    var want = String(name).toLowerCase();
-    ['.type-ghost', '.type .txt'].forEach(function (sel) {
-      var words = dom.asideType.querySelectorAll(sel + ' .wd');
-      for (var i = 0; i < words.length; i++) {
-        if (words[i].textContent.trim().replace(/[.,!?]+$/, '')
-                    .toLowerCase() === want) {
-          words[i].classList.add('wd--key');
-          break;
-        }
-      }
-    });
-  }
-
-  /* The card put up: the pane dressed and the bird brought in as the name
-     on the circle goes -- the card is about to say it better -- then the
-     line (or the pair of lines, laid out together, so the card is its
-     finished size from the first word) reserved,
-     the pill put on, and the card popped. Hands
-     back the reveals, one per line, for the scene to say in its own time,
-     alongside whatever it wants to run with them.
-       `anchor` is the circle the card stands beside -- another section
-     passes its own (see the kit); left out, it is this section's rim. The
-     callout faded here is this board's one shared #mark, whichever section
-     aimed it; a section with marks of its own sends them in `also` when
-     the card comes down. */
-  function cardUp(lines, marks, key, anchor) {
-    dom.aside.classList.add('aside--message');
-    dom.aside.removeAttribute('hidden');
-    alignMessageTo(anchor);
-    return Promise.all([
-      Flow.anim(Beats.calloutOut(dom.mark, markParts())),
-      mascotJumpIn(dom.slotAside)
-    ]).then(function () {
-      return Flow.wait(M.reducedMotion() ? 0 : M.FAST * 1000);
-    }).then(function () {
-      var texts = [].concat(lines);
-      Beats.bubbleArm(dom.bubbleAside);
-      var reveals = [sayAside.reserve(texts[0])];
-      if (texts.length > 1) {
-        dom.bubbleAside.classList.add('msg-two');
-        dom.asideMore.removeAttribute('hidden');
-        reveals.push(sayMore.reserve(texts[1]));
-      }
-      pillKey(key);
-      return Flow.anim(Beats.bubbleIn(dom.bubbleAside)).then(function () {
-        watchMessageAlign();
-        return reveals;
-      });
-    });
-  }
-
-  /* And taken down on Next, all at once: the card shut, the bird away --
-     with whatever else the scene sends along (the swept radii, the
-     figure's group). The pane itself is handed back by restoreAside, as
-     ever. `marks` is kept in both signatures only so the callers line up;
-     the parts are no longer lit while the card is up. */
-  function cardAway(marks, also) {
-    stopMessageAlign();
-    var jobs = [Flow.anim(Beats.bubbleOut(dom.bubbleAside)), mascotJumpOut()];
-    return Promise.all(jobs.concat(also || []));
-  }
 
   /* ---- the circle, drawn --------------------------------------------------
      The outline, by a slow pen: the first circle of the lesson is the one
@@ -1531,369 +1281,12 @@
       function (err) { off(); throw err; });
   }
 
-  /* ---- the drag, shown ---------------------------------------------------
-     A faint card and a hand carried from the tray to the box the learner is
-     to fill, while the instruction is said: the gesture shown, not the
-     answer -- the card is blank, the size of a name. It plays twice and is
-     gone; gone at once when the learner presses a name. It is one tracked
-     timeline, so a skip lands it (at nothing) and Replay or a jump takes it
-     away with the scene. Nothing under reduced motion: a demonstration that
-     only moves has nothing to show standing still.
-       `to` is the box to aim at -- anything with a client rect. */
-  var GUIDE_ALPHA = 0.5;     /* "a little low": seen, never mistaken for a name */
-  var GUIDE_LOOPS = 2;
+       /* "a little low": seen, never mistaken for a name */
 
-  function dragGuide(to) {
-    var none = { stop: function () {} };
-    if (!to || Flow.isFast() || M.reducedMotion() || dom.tray.hasAttribute('hidden')) return none;
-    var sample = dom.tray.querySelector('[data-name]');
-    var tray = dom.tray.getBoundingClientRect();
-    var end = to.getBoundingClientRect();
-    if (!sample || !tray.width || !end.width) return none;
-    var size = sample.getBoundingClientRect();
 
-    var wrap = document.createElement('div');
-    wrap.className = 'drag-guide';
-    wrap.setAttribute('aria-hidden', 'true');
-    var card = document.createElement('div');
-    card.className = 'drag-guide__card';
-    card.style.width = size.width + 'px';
-    card.style.height = size.height + 'px';
-    card.style.left = -size.width / 2 + 'px';
-    card.style.top = -size.height / 2 + 'px';
-    wrap.appendChild(card);
-    var NS = 'http://www.w3.org/2000/svg';
-    var hand = document.createElementNS(NS, 'svg');
-    hand.setAttribute('class', 'drag-guide__hand');
-    hand.setAttribute('viewBox', '-16 -2 44 52');
-    var path = document.createElementNS(NS, 'path');
-    path.setAttribute('d', global.Arcs ? global.Arcs.HAND_D : '');
-    hand.appendChild(path);
-    wrap.appendChild(hand);
-    document.body.appendChild(wrap);
+        /* px: a press that travelled less than this was a tap */
+     /* px: how far outside a box still counts as on it     */
 
-    /* from the top of the tray, over no name in particular, to the box */
-    var sx = tray.left + tray.width / 2, sy = tray.top;
-    var ex = end.left + end.width / 2, ey = end.top + end.height / 2;
-
-    function stop() { if (tl.totalProgress() < 1) tl.totalProgress(1); }
-    var tl = M.timeline({
-      willChange: [wrap, card], willChangeValue: 'transform, opacity',
-      revert: function () {
-        dom.tray.removeEventListener('pointerdown', stop, true);
-        if (wrap.parentNode) wrap.parentNode.removeChild(wrap);
-      }
-    });
-    tl.set(wrap, { x: sx, y: sy, opacity: 0 })
-      .to(wrap, { opacity: GUIDE_ALPHA, duration: M.dur(0.3), ease: 'power2.out' })
-      .to(card, { scale: 0.94, duration: M.dur(0.15), ease: 'power2.out' })
-      .to(wrap, { x: ex, y: ey, duration: M.dur(1.0), ease: 'power2.inOut' })
-      .to(card, { scale: 1, duration: M.dur(0.2), ease: 'back.out(2)' })
-      .to(wrap, { opacity: 0, duration: M.dur(0.3), ease: 'power2.in' }, '+=' + M.dur(0.25));
-    tl.repeat(GUIDE_LOOPS - 1).repeatDelay(M.dur(0.4));
-    dom.tray.addEventListener('pointerdown', stop, true);
-    return { stop: stop };
-  }
-
-  /* ---- the activity's interaction -----------------------------------------
-     Five names, five boxes, and two ways to put one in the other:
-
-       drag   press a name, carry it over a box, let go
-       tap    tap a name to pick it up, then tap the box -- which is also
-              what a keyboard does, with Enter or Space on each
-
-     Neither finishes on one element, so neither can be a Flow.once on a box.
-     Instead the last right answer fires a click at a hidden element of its
-     own (see #gate in index.html) and the scene waits on THAT -- an ordinary
-     Flow.once, cancelled with the rest of the chain when a scene is retired,
-     and the listeners come off whichever way it ends.
-       The bird comments from inside the handlers (`opts.onWrong`). Those
-     lines are waits the chain never awaits, so they go through quiet(). */
-  var TAP_SLOP = 8;      /* px: a press that travelled less than this was a tap */
-  var DROP_SLACK = 10;   /* px: how far outside a box still counts as on it     */
-
-  function armQuiz(q, names, opts) {
-    var o = opts || {};
-    var failed = false;         /* any box refused, this round */
-    var misses = 0;             /* how many times                */
-    var live = true;
-    var picked = null;          /* the chip in hand, in tap mode */
-    var drag = null;            /* the press in progress, if any */
-    var placed = 0;
-
-    q.g = o.group || dom.quiz;
-    q.g.classList.add('is-live');
-
-    function boxAt(x, y) {
-      for (var i = 0; i < q.boxes.length; i++) {
-        var b = q.boxes[i];
-        if (b.filled) continue;
-        var r = b.rect.getBoundingClientRect();
-        if (x >= r.left - DROP_SLACK && x <= r.right + DROP_SLACK &&
-            y >= r.top - DROP_SLACK && y <= r.bottom + DROP_SLACK) return b;
-      }
-      return null;
-    }
-    /* The box under the hand, and only that one, comes up out of the quiet
-       level the whole set rests at -- with the line that ties it to the
-       circle, because what the learner is checking is which part this box
-       is for. */
-    function hover(box) {
-      q.boxes.forEach(function (b) {
-        var on = (b === box);
-        [b.g, b.leader].forEach(function (e) { e.classList.toggle('is-over', on); });
-      });
-      /* a section that lights the part a box is for while a name is held
-         over it (skill 3's sectors) is told which box that is, or null */
-      if (o.onHover) o.onHover(box);
-    }
-    function pick(chip) {
-      if (picked) picked.classList.remove('is-picked');
-      picked = chip;
-      if (chip) chip.classList.add('is-picked');
-    }
-    function home(chip) {
-      chip.classList.remove('is-lifted');
-      Beats.chipHome(chip);
-    }
-
-    function attempt(box, chip) {
-      hover(null);
-      if (!box || box.filled) return home(chip);
-      if (box.name === chip.dataset.name) return right(box, chip);
-      return wrong(box, chip);
-    }
-    function right(box, chip) {
-      dock(box, chip);
-      if (placed >= q.boxes.length) finish();
-    }
-    /* A name into its box: the flight, the word set inside, the tick. */
-    function dock(box, chip) {
-      box.filled = true;
-      placed++;
-      pick(null);
-      chip.classList.remove('is-lifted');
-
-      var c = chip.getBoundingClientRect();
-      var r = box.rect.getBoundingClientRect();
-      Beats.chipDock(chip,
-        (r.left + r.width / 2) - (c.left + c.width / 2),
-        (r.top + r.height / 2) - (c.top + c.height / 2));
-
-      box.text.textContent = T(box.name);
-      box.g.setAttribute('aria-label', T('s1A11yBoxRight', { name: T(box.name) }));
-      Beats.boxRight(box);
-      /* and told of each name that lands right, as it does of a wrong one */
-      if (o.onRight) o.onRight(box, chip);
-    }
-    function boxFor(name) {
-      for (var i = 0; i < q.boxes.length; i++) {
-        if (q.boxes[i].name === name) return q.boxes[i];
-      }
-      return null;
-    }
-    function wrong(box, chip) {
-      failed = true;
-      misses++;
-      pick(null);
-      /* Refused: the box shakes its head and the name goes home to be tried
-         again -- for as long as the caller allows. `chances` is how many
-         wrong drops it takes, in reveal mode, before the lesson steps in. */
-      if (o.wrong !== 'reveal' || misses < (o.chances || 1)) {
-        if (o.onWrong) o.onWrong(box, chip);
-        Beats.boxWrong(box);
-        home(chip);
-        return;
-      }
-      /* The last chance spent. The refused box shakes its head, and then
-         the lesson answers for the learner: the name in hand flies on to the
-         box it belongs in, and whatever is still in the tray follows it into
-         the boxes that are left -- so the board ends up right whichever way
-         it was answered, and the explanation that follows is about a right
-         board. Nothing is live in between: a drop mid-flight would be an
-         answer to a question already spent. */
-      live = false;
-      chip.classList.remove('is-lifted');
-      quiet(Flow.anim(Beats.boxWrong(box))
-        .then(function () {
-          var rest = names.filter(function (c) {
-            return !c.classList.contains('is-docked');
-          });
-          /* the one in hand first, then the others, each a beat apart */
-          rest.sort(function (x, y) { return x === chip ? -1 : y === chip ? 1 : 0; });
-          return rest.reduce(function (chain, c) {
-            return chain.then(function () {
-              var target = boxFor(c.dataset.name);
-              if (target && !target.filled) dock(target, c);
-              return Flow.wait(420);
-            });
-          }, Promise.resolve());
-        })
-        .then(done));
-    }
-    function finish() {
-      if (!live) return;
-      live = false;
-      done();
-    }
-    function done() {
-      dom.gate.dispatchEvent(new MouseEvent('click'));
-    }
-
-    /* ---- the chips ---- */
-    function onDown(ev) {
-      if (!live || drag) return;
-      var chip = ev.currentTarget;
-      if (chip.classList.contains('is-docked')) return;
-      ev.preventDefault();
-      drag = {
-        chip: chip, id: ev.pointerId, ox: ev.clientX, oy: ev.clientY, moved: false,
-        x0: gsap.getProperty(chip, 'x') || 0, y0: gsap.getProperty(chip, 'y') || 0
-      };
-      if (chip.setPointerCapture) {
-        try { chip.setPointerCapture(ev.pointerId); } catch (e) { /* fine */ }
-      }
-      chip.classList.add('is-lifted');
-      M.to(chip, { scale: 1.06, duration: M.dur(0.12), ease: 'power2.out', overwrite: 'auto' });
-    }
-    function onMove(ev) {
-      if (!drag || ev.pointerId !== drag.id) return;
-      var dx = ev.clientX - drag.ox, dy = ev.clientY - drag.oy;
-      if (!drag.moved && Math.abs(dx) + Math.abs(dy) > TAP_SLOP) drag.moved = true;
-      if (!drag.moved) return;
-      M.set(drag.chip, { x: drag.x0 + dx, y: drag.y0 + dy });
-      hover(boxAt(ev.clientX, ev.clientY));
-    }
-    function onUp(ev) {
-      if (!drag || ev.pointerId !== drag.id) return;
-      var d = drag;
-      drag = null;
-      if (!d.moved) {
-        /* A tap: the name is picked up, or put down again. */
-        d.chip.classList.remove('is-lifted');
-        M.to(d.chip, { scale: 1, duration: M.dur(0.15), ease: 'power2.out', overwrite: 'auto' });
-        pick(picked === d.chip ? null : d.chip);
-        return;
-      }
-      attempt(boxAt(ev.clientX, ev.clientY), d.chip);
-    }
-    function onCancel(ev) {
-      if (!drag || ev.pointerId !== drag.id) return;
-      var d = drag;
-      drag = null;
-      hover(null);
-      home(d.chip);
-    }
-    function onChipKey(ev) {
-      if (!live) return;
-      if (ev.key !== 'Enter' && ev.key !== ' ' && ev.key !== 'Spacebar') return;
-      ev.preventDefault();
-      var chip = ev.currentTarget;
-      if (chip.classList.contains('is-docked')) return;
-      pick(picked === chip ? null : chip);
-    }
-
-    /* ---- the boxes, in tap mode ---- */
-    function boxOf(ev) {
-      var g = ev.currentTarget;
-      for (var i = 0; i < q.boxes.length; i++) if (q.boxes[i].g === g) return q.boxes[i];
-      return null;
-    }
-    function onBoxUp(ev) {
-      if (!live || drag || !picked) return;
-      var box = boxOf(ev);
-      if (box) attempt(box, picked);
-    }
-    function onBoxKey(ev) {
-      if (!live || !picked) return;
-      if (ev.key !== 'Enter' && ev.key !== ' ' && ev.key !== 'Spacebar') return;
-      ev.preventDefault();
-      var box = boxOf(ev);
-      if (box) attempt(box, picked);
-    }
-    /* A plain hover, with nothing in the hand. During a drag the chip holds
-       the pointer, so neither of these fires and the drag's own reckoning
-       of which box it is over is the only one running. */
-    function onBoxEnter(ev) {
-      if (!live || drag) return;
-      hover(boxOf(ev));
-    }
-    function onBoxLeave() {
-      if (!live || drag) return;
-      hover(null);
-    }
-
-    function off() {
-      live = false;
-      names.forEach(function (c) {
-        c.removeEventListener('pointerdown', onDown);
-        c.removeEventListener('keydown', onChipKey);
-      });
-      q.boxes.forEach(function (b) {
-        b.g.removeEventListener('pointerup', onBoxUp);
-        b.g.removeEventListener('keydown', onBoxKey);
-        b.g.removeEventListener('pointerenter', onBoxEnter);
-        b.g.removeEventListener('pointerleave', onBoxLeave);
-      });
-      document.removeEventListener('pointermove', onMove);
-      document.removeEventListener('pointerup', onUp);
-      document.removeEventListener('pointercancel', onCancel);
-      q.g.classList.remove('is-live');
-      hover(null);
-      pick(null);
-      drag = null;
-    }
-
-    names.forEach(function (c) {
-      c.addEventListener('pointerdown', onDown);
-      c.addEventListener('keydown', onChipKey);
-    });
-    q.boxes.forEach(function (b) {
-      b.g.addEventListener('pointerup', onBoxUp);
-      b.g.addEventListener('keydown', onBoxKey);
-      b.g.addEventListener('pointerenter', onBoxEnter);
-      b.g.addEventListener('pointerleave', onBoxLeave);
-    });
-    document.addEventListener('pointermove', onMove);
-    document.addEventListener('pointerup', onUp);
-    document.addEventListener('pointercancel', onCancel);
-
-    /* `auto` (ms): after that long, any name still to place goes into its
-       own box by itself, exactly as a right drop would put it there -- for
-       the last name of a set, when there is nothing left to choose. */
-    if (o.auto != null) {
-      quiet(Flow.wait(o.auto).then(function () {
-        if (!live) return;
-        q.boxes.forEach(function (b) {
-          if (b.filled || !live) return;
-          for (var i = 0; i < names.length; i++) {
-            if (names[i].dataset.name === b.name && !names[i].classList.contains('is-docked')) {
-              right(b, names[i]);
-              return;
-            }
-          }
-        });
-      }));
-    }
-
-    /* Every name still in the tray put into its own box, at once. This is
-       the last-chance reveal above, minus the beat between each one: what a
-       skip needs, which is a finished board rather than a half-built one for
-       the explanation that follows to be about. */
-    function fill() {
-      q.boxes.forEach(function (b) {
-        if (b.filled) return;
-        for (var i = 0; i < names.length; i++) {
-          if (names[i].dataset.name === b.name) { dock(b, names[i]); return; }
-        }
-      });
-    }
-
-    /* Hands back how it went: right only if no box was ever refused. */
-    return Flow.once(dom.gate, { auto: true }).then(
-      function () { live = false; fill(); off(); return { right: !failed }; },
-      function (err) { off(); throw err; });
-  }
 
   /* ======================================================================
    * The lesson, one scene per stretch between two Next presses
@@ -1974,23 +1367,7 @@
       .then(function () { return handOver(dom.nextBtn); });
   }
 
-  /* ======================================================================
-   * Scene 1 -- the circle and its parts: circumference, centre, radius,
-   * diameter. Four pages on ONE circle: the header stays open until the
-   * diameter's last line, so the circle drawn on page 1 is the very circle
-   * the centre, the radius and the diameter go onto; only then does the
-   * header close and the circle pop up, bigger, in the middle. The
-   * bird stays on the header for the whole of a page it speaks on --
-   * talking as the voice names the part -- rather than hopping off between
-   * beats while the figure is still moving, which reads as flicker. It
-   * leaves with page 1's line as page 2 opens (the centre has no line of its
-   * own), comes back up for the radius, and stays until the diameter's page
-   * is done. The names are heard, not
-   * written, and the label on the figure is the only word put down for
-   * them. Pages 1 and 3 turn
-   * themselves (autoTurn); pages 2 and 4 wait for Next.
-   * ====================================================================== */
-  var AUTO_TURN  = 2500;    /* ms: a self-turning page, left to be looked at */
+      /* ms: a self-turning page, left to be looked at */
 /* the drawn rim's glow: twice, and no more     */
 /* the current round the rim, as the line is said */
 /* s: and never quicker than this               */
@@ -2042,37 +1419,6 @@
        o.praise the word of praise said once both are in (a praise* key),
                 over a light shower of confetti */
 
-  function namePair(o) {
-    var placed = 0;
-    /* A wrong drop is answered and the answer left up; a right one is told
-       "Correct!" -- except the one that fills the last box, which the
-       praise answers. The instruction is never said again: the learner
-       already knows what to do. */
-    function sayWrong(name) {
-      return speakBySentence(o.wrong[name] || 'fbNotQuite', 'confused');
-    }
-    function sayRight() {
-      placed++;
-      if (placed < o.boxes.length || !o.praise) quiet(speak(keyed('fbCorrect'), 'happy'));
-    }
-
-    chips = buildChips(dom.tray, o.names);
-    return Flow.anim(Beats.trayIn(dom.tray, chips))
-      .then(function () { return arriveSaying(keyed(o.ask)); })
-      .then(function () {
-        mascot.settle();
-        return armQuiz({ boxes: o.boxes }, chips, {
-          group: o.group,
-          onWrong: function (box, chip) { quiet(sayWrong(chip.dataset.name)); },
-          onRight: sayRight
-        });
-      })
-      .then(function () { return Flow.wait(SHORT); })
-      .then(function () { return o.praise ? praise(o.praise) : null; })
-      .then(function () { return Flow.wait(BEAT); })
-      .then(function () { return birdAway(); })
-      .then(function () { return autoTurn(AUTO_TURN); });
-  }
 
   /* The lesson in playing order. `name` is what the level bar shows and
      nothing else reads it. */
@@ -2357,29 +1703,24 @@
      pauses, the figure's own geometry. Values that are not known until
      init() has run are handed over as functions. */
   var kit = {
-    LINES: LINES, BEAT: BEAT, SHORT: SHORT, HOLD_ASK: HOLD_ASK, TAP_SLOP: TAP_SLOP,
+    BEAT: BEAT, SHORT: SHORT,
     /* skill 1's pace -- the pen once round, the point, the line, and the
        holds between them -- for a later page that draws a circle and wants
        to be watched at the same speed as the first one was */
-    DRAW_TIME: DRAW_TIME, DRAWN_HOLD: DRAWN_HOLD, DOT_TIME: DOT_TIME,
-    DOT_HOLD: DOT_HOLD, LINE_TIME: LINE_TIME, DIA_HOLD: DIA_HOLD,
-    CX: CX, CY: CY, RR: RR, VB_W: VB_W, VB_H: VB_H, BOX_W: BOX_W, BOX_H: BOX_H, LEAD_STUB: LEAD_STUB,
+    CX: CX, CY: CY, RR: RR, VB_W: VB_W, VB_H: VB_H, BOX_W: BOX_W, BOX_H: BOX_H,
     dom: function () { return dom; },
     mascot: function () { return mascot; },
-    el: el, seg: seg, round2: round2, onRim: onRim, arrowHead: arrowHead,
-    buildBox: buildBox, emptyBox: emptyBox,
-    buildChips: buildChips, buildChoices: buildChoices, shuffle: shuffle,
+    el: el, round2: round2,
+    buildBox: buildBox,
+    buildChoices: buildChoices, shuffle: shuffle,
     /* the two rows in the footer are the board's, so the board can take
        them away in a wipe: a section that fills one says so here */
-    chips: function (list) { if (list) chips = list; return chips; },
     choices: function (list) { if (list) choiceBtns = list; return choiceBtns; },
     handOver: handOver, speak: speak, arriveSaying: arriveSaying,
     clearPrompt: clearPrompt, mascotJumpIn: mascotJumpIn, mascotJumpOut: mascotJumpOut,
     mascotHopTo: mascotHopTo, birdOnHeader: birdOnHeader,
     sayBubble: function (text) { return sayBubble(text); },
     clearBubble: function () { sayBubble.clear(); },
-    restoreBubble: restoreBubble,
-    sayAside: function () { return sayAside; },
     /* the hero bubble's typer or the header's, itself -- for a section
        that reserves a line before the bird has got to it (skill 3); one
        typer per box, so it is handed over, never made twice */
@@ -2390,11 +1731,11 @@
     /* the speech card every stood-aside explanation wears: a section
        passes its own circle as the anchor, and hands the pane back
        through restoreAside as ever */
-    cardUp: cardUp, cardAway: cardAway, alignMessage: alignMessageTo,
-    wipeBoard: wipeBoard, collapseHeader: collapseHeader, resetFooter: resetFooter,
-    askChoice: askChoice, armQuiz: armQuiz, namePair: namePair, dragGuide: dragGuide,
+    alignMessage: alignMessageTo,
+    wipeBoard: wipeBoard, collapseHeader: collapseHeader,
+    askChoice: askChoice,
     /* the speaking helpers by key, and a page that turns itself */
-    keyed: keyed, hear: hear, onWord: onWord, celebrate: celebrate, praise: praise, wordAt: wordAt, autoTurn: autoTurn, birdAway: birdAway, lineAway: lineAway, AUTO_TURN: AUTO_TURN,
+    keyed: keyed, hear: hear, onWord: onWord, lineAway: lineAway,
     ripple: ripple, quiet: quiet, clearInline: clearInline
   };
 

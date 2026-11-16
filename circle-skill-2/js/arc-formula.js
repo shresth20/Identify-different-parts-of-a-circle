@@ -1379,5 +1379,5 @@
 
   /* Lent to skill 3, whose whole turn keeps its measure off the radii the
      same way (sCentralTerm, sector-area.js); read when a scene plays. */
-  global.ArcFormula = { clearOfRadii: clearOfRadii };
+  global.ArcFormula = {  };
 })(window);

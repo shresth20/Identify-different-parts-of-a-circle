@@ -185,15 +185,6 @@
     return 'M' + C.x + ' ' + C.y + ' L' + r2(p.x) + ' ' + r2(p.y) +
            ' A' + r + ' ' + r + ' 0 ' + (span > 180 ? 1 : 0) + ' 0 ' + r2(e.x) + ' ' + r2(e.y) + ' Z';
   }
-  /* A ring-shaped wedge, for the folds of the fan. */
-  function bandD(C, r0, r1, a0, a1) {
-    var p = pt(C, r1, a0), q = pt(C, r1, a1), s = pt(C, r0, a1), t = pt(C, r0, a0);
-    var big = (a1 - a0) > 180 ? 1 : 0;
-    return 'M' + r2(t.x) + ' ' + r2(t.y) + ' L' + r2(p.x) + ' ' + r2(p.y) +
-           ' A' + r1 + ' ' + r1 + ' 0 ' + big + ' 0 ' + r2(q.x) + ' ' + r2(q.y) +
-           ' L' + r2(s.x) + ' ' + r2(s.y) +
-           ' A' + r0 + ' ' + r0 + ' 0 ' + big + ' 1 ' + r2(t.x) + ' ' + r2(t.y) + ' Z';
-  }
   function segD(p, q) { return 'M' + r2(p.x) + ' ' + r2(p.y) + ' L' + r2(q.x) + ' ' + r2(q.y); }
 
   /* ======================================================================
@@ -600,12 +591,6 @@
     }).then(function () { if (mine === speaking) mascot.settle(); });
   }
 
-  /* A line in the field bubble, or across the top of the board. */
-  function bubbleSay(text) {
-    var line = lineOf(text);
-    var heard = quiet(voiceOf(line));
-    return Promise.all([sayBubble(line), heard]);
-  }
   function sayTop(text) {
     var line = lineOf(text);
     var reveal = sayPrompt.reserve(line);
@@ -620,23 +605,6 @@
      at the same time. A line not yet recorded holds for the time it would
      take to say; under Skip nothing is heard and only `along` is played. */
   var VO_MIN = 1600, VO_PACE = 65;
-  function voiceAlone(key, along) {
-    if (Flow.isFast() || !global.I18n) return Promise.resolve(along ? along() : null);
-    var floor = Math.max(VO_MIN, tr(key).length * VO_PACE);
-    /* a bird that is away (a jump from the level bar) comes up onto the
-       header first, so the voice is never heard from nobody */
-    var up = birdOnHeader() || perch ? Promise.resolve() : mascotJumpIn();
-    return up.then(hush).then(function () {
-      var from = Date.now();
-      var mine = speaking;
-      mascot.state('talking');
-      var heard = voiceOf({ text: '', vo: key }).then(function (played) {
-        if (mine === speaking) mascot.settle();
-        if (!played) return wait(floor - (Date.now() - from));
-      });
-      return Promise.all([heard, along ? along() : null]);
-    });
-  }
 
   /* Feedback said as a run of short lines, each replacing the last: "Not
      quite! Look again." first, and the reason after it. A newer answer
@@ -850,86 +818,6 @@
     };
   }
 
-  /* The moving end of a sector's radius as a handle: pressed and dragged
-     round -- or turned with the arrow keys -- it hands the angle, 1° to
-     359°, to `turn`, which redraws whatever reads it (the figure, the
-     working, the caption). The other radius stays at `at`; `deg.v` is the
-     angle it starts from. `done` settles once the learner has turned it
-     far enough to have seen the change (at once under Skip, at `auto` under
-     autoplay); `away()` then fades it off the figure. */
-  function angleHandle(svg, C, at, deg, turn, auto) {
-    var hd = svgEl('g', { 'class': 's-handle', tabindex: 0, role: 'slider',
-      'aria-label': tr('s3A11yHandle'),
-      'aria-valuemin': 1, 'aria-valuemax': 359 }, C.top);
-    svgEl('circle', { 'class': 's-handle__halo', cx: 0, cy: 0, r: 22 }, hd);
-    svgEl('circle', { 'class': 's-handle__ring', cx: 0, cy: 0, r: 12 }, hd);
-    svgEl('circle', { 'class': 's-handle__dot', cx: 0, cy: 0, r: 5 }, hd);
-    svgEl('circle', { cx: 0, cy: 0, r: 28, fill: 'transparent' }, hd);
-    function place() {
-      var q = pt(C, C.r, at - deg.v);
-      hd.setAttribute('transform', 'translate(' + r2(q.x) + ' ' + r2(q.y) + ')');
-      hd.setAttribute('aria-valuenow', Math.round(deg.v));
-    }
-    function set(v) { turn(v); place(); }
-    place();
-    M.set(hd, { opacity: 0 });
-    var live = true, grabbing = false, travelled = 0;
-    var explored = until(function () { set(auto); });
-    function angleOf(ev) {
-      var q = svg.createSVGPoint();
-      q.x = ev.clientX; q.y = ev.clientY;
-      q = q.matrixTransform(svg.getScreenCTM().inverse());
-      var a2 = Math.atan2(C.y - q.y, q.x - C.x) * 180 / Math.PI;
-      var v = ((at - a2) % 360 + 360) % 360;
-      if (deg.v > 300 && v < 60) v = 359;
-      if (deg.v < 60 && v > 300) v = 1;
-      return Math.max(1, Math.min(359, v));
-    }
-    hd.addEventListener('pointerdown', function (ev) {
-      if (!live) return;
-      grabbing = true;
-      hd.classList.add('is-held');
-      try { hd.setPointerCapture(ev.pointerId); } catch (e) {}
-      ev.preventDefault();
-    });
-    hd.addEventListener('pointermove', function (ev) {
-      if (!grabbing) return;
-      var v = angleOf(ev);
-      travelled += Math.abs(v - deg.v);
-      set(v);
-    });
-    function letGo() {
-      if (!grabbing) return;
-      grabbing = false;
-      hd.classList.remove('is-held');
-      explored.check(travelled >= 40);
-    }
-    hd.addEventListener('pointerup', letGo);
-    hd.addEventListener('pointercancel', letGo);
-    hd.addEventListener('keydown', function (ev) {
-      if (!live) return;
-      var step = ev.key === 'ArrowUp' || ev.key === 'ArrowLeft' ? 1 :
-                 ev.key === 'ArrowDown' || ev.key === 'ArrowRight' ? -1 : 0;
-      if (!step) return;
-      ev.preventDefault();
-      set(Math.max(1, Math.min(359, deg.v + step * 5)));
-      travelled += 5;
-      explored.check(travelled >= 40);
-    });
-    return {
-      el: hd,
-      shown: anim(popIn(hd)),
-      done: explored.done.then(function () {
-        live = false;
-        grabbing = false;
-        hd.classList.remove('is-held');
-        hd.classList.add('is-done');
-      }),
-      away: function () {
-        return anim(fadeOut(hd)).then(function () { if (hd.parentNode) hd.parentNode.removeChild(hd); });
-      }
-    };
-  }
 
   /* ---- the answers in the footer ------------------------------------------ */
   function clearChoices() {
@@ -1163,18 +1051,6 @@
   function stepDone(s) { s.classList.add('is-done'); }
   function ddIn(s) { return s.querySelector('[data-dd]'); }
 
-  /* A line said, and the moments in it, by its words: at[word] settles as
-     the voice reaches that word (or when the line is over, if it never
-     does), at.done when the line is. The words are listened for BEFORE the
-     line starts -- onWord only hears a line that begins after it is asked. */
-  function sayWith(line, words, mood) {
-    var at = {};
-    words.forEach(function (w) { at[w] = K.onWord(line.text, w, function () {}); });
-    var said = say(line, mood);
-    words.forEach(function (w) { at[w] = Promise.race([at[w], said]); });
-    at.done = said;
-    return at;
-  }
 
   /* Bits of a written row worked out where they stand (user, 2026-10-11:
      "show the simplification in the same line"). r.__bits[from .. upto)
@@ -1226,22 +1102,11 @@
     r.__bits = r.__bits.slice(0, from).concat(outs, r.__bits.slice(upto));
   }
 
-  function noteCard(host, html, cls) {
-    var n = h('div', 'sa-note' + (cls ? ' ' + cls : ''), html, host);
-    /* Popped only when the scene asks for it, so a card can be laid out
-       ahead of the beat it belongs to. */
-    return { el: n, get shown() { return anim(cardIn(n)); } };
-  }
   function ruleCard(host, tag, eq, cls) {
     var r = h('div', 'sa-rule' + (cls ? ' ' + cls : ''),
       (tag ? '<span class="sa-rule__tag">' + tag + '</span>' : '') +
       '<span class="sa-rule__eq">' + eq + '</span>', host);
     return { el: r, get shown() { return anim(cardIn(r)); } };
-  }
-  function lineIn(host, html, cls) {
-    var l = h('p', 'sa-line' + (cls ? ' ' + cls : ''), html, host);
-    M.set(l, { opacity: 0 });
-    return l;
   }
 
   /* ---- the stage -------------------------------------------------------------
@@ -1354,14 +1219,7 @@
      hello to this skill in its bubble (the lesson's own welcome screen is
      skill 1's, shown once). The board comes back in with the next scene. */
 
-  /* ---- 1. Which one is a sector? -----------------------------------------
-     The board opens on three cards, each with one part of a circle already
-     drawn and lit: a segment (cut by a chord), a sector (cut by two radii),
-     an arc (cut by two points). They come in finished, together -- drawing
-     them one by one was too slow (user, 2026-10-29) -- and the bird then
-     asks which one shows a sector, so the learner meets the word beside the
-     two things it is not. */
-  var SLOW_PEN = 1.6;          /* s: a circle drawn in slow motion             */
+            /* s: a circle drawn in slow motion             */
 
   /* ---- 2. Name the two sectors ----------------------------------------------
      The sector card's own circle -- the very element, not a copy -- lifted
@@ -1371,53 +1229,7 @@
      blank boxes, two name cards come in under it, and the learner drags
      each name to its box. */
   var carry = null;            /* the figure the cards scene hands on */
-  var maskN = 0;
 
-  /* The line that ties a box to the region it names: the first lesson's
-     own leader (buildBox in pages.js, .q-leader in style.css) -- a dashed
-     line that runs level out of the box's side for a short stub, turns
-     once, and runs straight to its spot on the region, with no head. It
-     is drawn as boxIn draws it there: a solid copy in a mask is grown
-     along it and the dashes show through behind it. In the scene's own
-     pixels, at the first lesson's weight and dash scaled by `unit` (what
-     one of its picture units measures on this board, see nameBox). */
-  function boxLeader(ink, box, to) {
-    var R = ink.getBoundingClientRect();
-    var b = box.rect.getBoundingClientRect();
-    var u = box.unit;
-    var left = (b.left + b.width / 2) < (R.left + R.width / 2);
-    var edge = { x: (left ? b.right : b.left) - R.left, y: b.top + b.height / 2 - R.top };
-    var turn = { x: edge.x + (left ? 1 : -1) * K.LEAD_STUB * u, y: edge.y };
-    var d = 'M' + r2(edge.x) + ' ' + r2(edge.y) + ' L' + r2(turn.x) + ' ' + r2(turn.y) +
-            ' L' + r2(to.x) + ' ' + r2(to.y);
-    var defs = ink.querySelector('defs') || svgEl('defs', {}, ink);
-    var id = 'saLead' + (++maskN);
-    var mask = svgEl('mask', { id: id, maskUnits: 'userSpaceOnUse', x: 0, y: 0,
-                               width: r2(R.width), height: r2(R.height) }, defs);
-    var pen = svgEl('path', { 'class': 'q-leader-mask', d: d }, mask);
-    pen.style.strokeWidth = r2(8 * u) + 'px';
-    var line = svgEl('path', { 'class': 'q-leader is-shown', d: d, mask: 'url(#' + id + ')' }, ink);
-    line.style.strokeWidth = r2(2 * u) + 'px';
-    line.style.strokeDasharray = r2(4 * u) + ' ' + r2(7 * u);
-    /* armQuiz lifts a box's leader with it (is-over); this is that line */
-    box.leader = line;
-    M.set(pen, { opacity: 0 });
-    return {
-      draw: function () {
-        M.set(pen, { opacity: 1 });
-        return anim(Beats.growLine(pen, 0.52, 'power1.inOut'));
-      }
-    };
-  }
-
-  /* Where a point of a figure's own picture is, in the scene's pixels. */
-  function figToScene(svg, scene, p) {
-    var q = svg.createSVGPoint();
-    q.x = p.x; q.y = p.y;
-    var sp = q.matrixTransform(svg.getScreenCTM());
-    var r = scene.getBoundingClientRect();
-    return { x: sp.x - r.left, y: sp.y - r.top };
-  }
 
 /* picture units of air round the pill, for its pulse */
 
@@ -1428,67 +1240,6 @@
      what has been done, with the word it was about picked out, and what
      comes next. Next brings the board back. */
 
-  /* The word a bubble line is about, worn as a pill -- in the typed line
-     and in the hidden layout copy under it alike, so the words land
-     exactly where the copy reserved them. Run after reserve, before the
-     reveal. */
-  function keyWord(wrap, word) {
-    ['.type-ghost', '.type .txt'].forEach(function (sel) {
-      var words = wrap.querySelectorAll(sel + ' .wd');
-      for (var i = 0; i < words.length; i++) {
-        if (words[i].textContent.trim().replace(/[.,!?]+$/, '').toLowerCase() === word) {
-          words[i].classList.add('wd--key');
-          break;
-        }
-      }
-    });
-  }
-
-  /* A word on the field: off the board, over the landscape, two lines in
-     the bubble -- the first with its key word worn as a pill -- then Next,
-     and the board grows back in for what comes next. */
-  async function fieldTalk(first, key, second) {
-    await perchOut();
-    await leaveHeader();
-    mascot.placeIn(dom.slotHero);
-    mascot.el.classList.remove('is-away');
-    mascot.idle();
-    if (dom.board.classList.contains('show')) await anim(Beats.boardOut(dom.board));
-    dom.stage.textContent = '';
-    dom.choices.textContent = '';
-    dom.choices.setAttribute('hidden', '');
-    await wait(SHORT);
-
-    mascot.state('talking');
-    Beats.bubbleArm(dom.bubble);
-    var line = lineOf(first);
-    var reveal = sayBubble.reserve(line.text);
-    if (key) keyWord(dom.bubble, key);
-    Beats.bubbleIn(dom.bubble);
-    var heard = quiet(voiceOf(line));
-    await Promise.all([reveal(), heard]);
-    mascot.settle();
-    var rest = [].concat(second);
-    for (var i = 0; i < rest.length; i++) {
-      await wait(1400);
-      mascot.state('talking');
-      await bubbleSay(rest[i]);
-      mascot.settle();
-    }
-    await wait(SHORT);
-    await handOver();
-
-    await anim(Beats.bubbleOut(dom.bubble));
-    sayBubble.clear();
-    await anim(Beats.boardIn(dom.board));
-    /* The board has closed over the bird: it is away now, so the next
-       page's leave-taking has nothing to spring off the field -- a bird
-       springing up from under the board was seen behind it (user,
-       2026-10-09) -- and its next jump in comes up from behind the board
-       as ever. */
-    mascot.el.classList.add('is-away');
-    await wait(SHORT);
-  }
 
   /* ---- 4. The central angle ------------------------------------------------
      The first of the terms. One circle in the middle of the board, drawn
@@ -1515,89 +1266,6 @@
      learner says what the area is for any angle θ. */
   var areaFig = null;
 
-  /* A number carried from one place in the working to another: a copy of
-     it lifted off the first and flown, on a low arc, to where the second
-     will stand. In the frame's own pixels; the copy is gone when it lands. */
-  function flyNumber(from, to, seconds) {
-    var f = dom.frame.getBoundingClientRect();
-    var a = from.getBoundingClientRect(), b = to.getBoundingClientRect();
-    var cs = getComputedStyle(from);
-    var bit = h('span', 'sa-fly', from.textContent, dom.frame);
-    bit.style.left = (a.left - f.left) + 'px';
-    bit.style.top = (a.top - f.top) + 'px';
-    bit.style.fontSize = cs.fontSize;
-    bit.style.fontWeight = cs.fontWeight;
-    bit.style.color = cs.color;
-    var dx = (b.left + b.width / 2) - (a.left + a.width / 2);
-    var dy = (b.top + b.height / 2) - (a.top + a.height / 2);
-    var k = (parseFloat(getComputedStyle(to).fontSize) || 1) / (parseFloat(cs.fontSize) || 1);
-    var pen = { t: 0 };
-    var tl = M.timeline({ revert: function () { if (bit.parentNode) bit.parentNode.removeChild(bit); } });
-    tl.to(pen, {
-      t: 1, duration: M.dur(seconds || 1.1), ease: 'power2.inOut',
-      onUpdate: function () {
-        var t = pen.t;
-        M.set(bit, { x: dx * t, y: dy * t - Math.sin(Math.PI * t) * 46,
-                     scale: 1 + (k - 1) * t + Math.sin(Math.PI * t) * 0.25 });
-      }
-    });
-    tl.call(function () { if (bit.parentNode) bit.parentNode.removeChild(bit); });
-    return anim(tl);
-  }
-
-  /* ---- the magnifying glass ---------------------------------------------
-     A lens over a figure that shows one small spot of it, enlarged: a ring
-     round the spot, a fine line out to the glass, and inside the glass the
-     spot redrawn k times larger -- redrawn, not scaled, so its lines keep
-     their own weight and the gap between two radii is what grows. `draw`
-     is handed a map from figure to lens and the group to draw into. */
-  var lensN = 0;
-  function magnifier(svg, focus, at, k, draw) {
-    var R = 68;
-    var g = svgEl('g', { 'class': 's-lens' }, svg);
-    var ring = svgEl('circle', { 'class': 's-lens__spot', cx: r2(focus.x), cy: r2(focus.y), r: r2(R / k + 2) }, g);
-    var dx = at.x - focus.x, dy = at.y - focus.y, d = Math.sqrt(dx * dx + dy * dy) || 1;
-    var a0 = { x: focus.x + dx / d * (R / k + 2), y: focus.y + dy / d * (R / k + 2) };
-    var a1 = { x: at.x - dx / d * (R + 5), y: at.y - dy / d * (R + 5) };
-    var lead = svgEl('path', { 'class': 's-lens__lead', d: segD(a0, a1) }, g);
-    var glass = svgEl('g', { 'class': 's-lens__glass' }, g);
-    var id = 'saLens' + (++lensN);
-    var defs = svg.querySelector('defs') || svgEl('defs', {}, svg);
-    var clip = svgEl('clipPath', { id: id }, defs);
-    svgEl('circle', { cx: r2(at.x), cy: r2(at.y), r: R }, clip);
-    /* the handle, out from the rim of the glass, away from the spot */
-    var hx = dx / d, hy = dy / d;
-    var h0 = { x: at.x + hx * (R + 4), y: at.y + hy * (R + 4) };
-    var h1 = { x: at.x + hx * (R + 44), y: at.y + hy * (R + 44) };
-    svgEl('path', { 'class': 's-lens__handle', d: segD(h0, h1) }, glass);
-    svgEl('circle', { 'class': 's-lens__back', cx: r2(at.x), cy: r2(at.y), r: R }, glass);
-    var inner = svgEl('g', { 'clip-path': 'url(#' + id + ')' }, glass);
-    draw(function (p) {
-      return { x: at.x + k * (p.x - focus.x), y: at.y + k * (p.y - focus.y) };
-    }, inner);
-    svgEl('path', { 'class': 's-lens__sheen',
-      d: 'M' + r2(at.x - R * .62) + ' ' + r2(at.y - R * .2) + ' A' + R * .7 + ' ' + R * .7 + ' 0 0 1 ' +
-         r2(at.x - R * .1) + ' ' + r2(at.y - R * .66) }, glass);
-    svgEl('circle', { 'class': 's-lens__rim', cx: r2(at.x), cy: r2(at.y), r: R }, glass);
-    M.set([ring, lead, glass], { opacity: 0 });
-    return {
-      show: function () {
-        return anim(popIn(ring, { from: 0.3 }))
-          .then(function () { return anim(Beats.growLine(lead, 0.45)); })
-          .then(function () {
-            Beats.pop();
-            return anim(M.fromTo(glass, { opacity: 0, scale: 0.2, transformOrigin: r2(at.x) + 'px ' + r2(at.y) + 'px' },
-              { opacity: 1, scale: 1, duration: M.dur(0.55), ease: 'back.out(1.5)' }));
-          });
-      },
-      hide: function () {
-        return anim(M.to(glass, { opacity: 0, scale: 0.3, transformOrigin: r2(at.x) + 'px ' + r2(at.y) + 'px',
-                                   duration: M.dur(0.35), ease: 'power2.in' }))
-          .then(function () { return anim(fadeOut([ring, lead])); })
-          .then(function () { if (g.parentNode) g.parentNode.removeChild(g); });
-      }
-    };
-  }
 
   /* ---- 11. A worked example (slides 28-34) ----------------------------------
      The working on the left, one line at a time, and each line the learner
@@ -1787,29 +1455,26 @@
      is behind a function. Nothing of this skill's own scenes is handed
      over. */
   global.SectorArea = {
-    BEAT: BEAT, SHORT: SHORT, LOOK: LOOK, PEN: PEN, SWEEP: SWEEP, SLOW_PEN: SLOW_PEN,
-    X: X, EQ: EQ, MINUS: MINUS, DD: DD, PIR2: PIR2,
+    BEAT: BEAT, SHORT: SHORT, LOOK: LOOK,
+    X: X, EQ: EQ, MINUS: MINUS, DD: DD,
     dom: function () { return dom; },
     mascot: function () { return mascot; },
     held: function (v) { if (arguments.length) held = v; return held; },
-    perch: function () { return perch; },
-    lessonOn: lessonOn, lessonOff: lessonOff,
-    wait: wait, anim: anim, quiet: quiet, tr: tr, keyed: keyed, lineOf: lineOf, voiceOf: voiceOf,
-    shuffled: shuffled, praise: praise, oops: oops, svgEl: svgEl, h: h, fr: fr, c: c,
-    r2: r2, pt: pt, ringD: ringD, arcD: arcD, wedgeD: wedgeD, bandD: bandD, segD: segD,
-    fadeIn: fadeIn, popIn: popIn, fadeOut: fadeOut, cardIn: cardIn, settleFig: settleFig,
-    figure: figure, text: text, circle: circle, drawCircle: drawCircle, sector: sector, underPoints: underPoints,
+    lessonOn: lessonOn,
+    wait: wait, anim: anim, quiet: quiet, keyed: keyed,
+    svgEl: svgEl, h: h, fr: fr, c: c,
+    r2: r2, pt: pt,
+    fadeIn: fadeIn, popIn: popIn, fadeOut: fadeOut, cardIn: cardIn,
+    figure: figure, text: text, circle: circle, drawCircle: drawCircle, sector: sector,
     radii: radii, sweep: sweep, arcIn: arcIn, show: show, angleMark: angleMark, angleIn: angleIn,
     clearPrompt: clearPrompt, speak: speak, mascotJumpIn: mascotJumpIn, mascotJumpOut: mascotJumpOut,
-    perchIn: perchIn, perchSay: perchSay, perchOut: perchOut, say: say, bubbleSay: bubbleSay,
-    sayTop: sayTop, sayAll: sayAll, sayWith: sayWith, morphBits: morphBits, voiceAlone: voiceAlone, hush: hush, leaveHeader: leaveHeader, handOver: handOver,
+    perchIn: perchIn, perchSay: perchSay, perchOut: perchOut, say: say,
+    sayTop: sayTop, hush: hush, leaveHeader: leaveHeader, handOver: handOver,
     ripple: ripple, burstAt: burstAt,
-    waitPick: waitPick, until: until, angleHandle: angleHandle, clearChoices: clearChoices, askChoice: askChoice,
+    until: until, askChoice: askChoice,
     dropdown: dropdown, stepRow: stepRow, stepIn: stepIn, stepDone: stepDone, ddIn: ddIn,
-    noteCard: noteCard, ruleCard: ruleCard, lineIn: lineIn, clearStage: clearStage, stage: stage,
-    bubbleVoice: bubbleVoice, writeSteps: writeSteps, fieldTalk: fieldTalk, keyWord: keyWord,
-    answered: answered, heardOnly: heardOnly, autoLines: autoLines,
-    flyNumber: flyNumber, magnifier: magnifier,
-    boxLeader: boxLeader, figToScene: figToScene
+    ruleCard: ruleCard, stage: stage,
+    bubbleVoice: bubbleVoice, writeSteps: writeSteps,
+    autoLines: autoLines,
   };
 })(window);
