@@ -927,20 +927,6 @@ body {
     0 var(--edge) 0 var(--pill-wall),
     0 16px 28px var(--shadow-deep);
 }
-/* Picked up by a tap and waiting for its box. */
-.chip.is-picked {
-  border-color: var(--lavender-border);
-  box-shadow:
-    0 var(--edge) 0 var(--pill-wall),
-    0 0 0 4px color-mix(in srgb, var(--lavender-fill) 45%, transparent),
-    0 calc(var(--edge) + 3px) 10px var(--shadow-soft);
-}
-/* In its box: the space it took in the tray is kept, so the others do not
-   close up and shuffle under the learner's hand. */
-.chip.is-docked {
-  visibility: hidden;
-  pointer-events: none;
-}
 
 /* ---- The two answers to a yes/no question -------------------------------
    The same pill as a name in the tray, in the same band under the circle,

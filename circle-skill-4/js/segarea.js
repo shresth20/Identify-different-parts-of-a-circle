@@ -2962,7 +2962,6 @@
   /* What the sections after this one are built from: the cut the cards
      are drawn with, and the geometry helper. */
   global.SegArea = {
-    CUT: CUT,
-    circleAt: circleAt
+
   };
 })(window);

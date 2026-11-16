@@ -1039,24 +1039,12 @@ body.sa-lesson .board { --row-bottom: 13% !important; }
 :where(body.sa-lesson) .sa-panel--practice .sa-speak--above { gap: 0; }
 :where(body.sa-lesson) .sa-panel--practice .sa-rule { padding: .2em 1.1em .25em; gap: .15em; font-size: .86em; }
 
-/* ---- The magnifying glass ------------------------------------------------ */
-:where(body.sa-lesson) .s-lens__spot { fill: none; stroke: var(--lavender-border); stroke-width: 2; stroke-dasharray: 3 3; }
-:where(body.sa-lesson) .s-lens__lead { fill: none; stroke: var(--lavender-border); stroke-width: 1.8; stroke-opacity: .7; }
-:where(body.sa-lesson) .s-lens__back { fill: #FFFFFF; }
 :where(body.sa-lesson) .s-lens__disc { fill: var(--part-circle-fill); }
 :where(body.sa-lesson) .s-lens__wedge { opacity: 1; }
 :where(body.sa-lesson) .s-lens__edge { fill: none; stroke: var(--part-circle); stroke-width: 2.6; }
 :where(body.sa-lesson) .s-lens__radius { fill: none; stroke: var(--part-radius); stroke-width: 3.5; stroke-linecap: round; }
 :where(body.sa-lesson) .s-lens__angle { fill: none; stroke: var(--sa-angle); stroke-width: 2.4; }
 :where(body.sa-lesson) .s-lens__lbl { font-size: 18px; }
-:where(body.sa-lesson) .s-lens__sheen { fill: none; stroke: #FFFFFF; stroke-width: 5; stroke-linecap: round; stroke-opacity: .7; }
-:where(body.sa-lesson) .s-lens__rim {
-  fill: none;
-  stroke: #6F5BE0;
-  stroke-width: 7;
-  filter: drop-shadow(0 3px 5px rgba(50, 30, 140, .35));
-}
-:where(body.sa-lesson) .s-lens__handle { stroke: #4B36C2; stroke-width: 11; stroke-linecap: round; }
 
 /* ---- Practice: bigger bird and type, answers in rows, the formula under
    the figure on the left. ------------------------------------------------ */

@@ -1733,7 +1733,6 @@
   }
 
 
-
   /* ======================================================================
    * Section 5 -- the quiz (the scenes are in quiz.js)
    * ----------------------------------------------------------------------
@@ -1981,7 +1980,6 @@
     rimRun: rimRun,
     /* the centre */
     plantCentre: plantCentre,
-    callCentre: callCentre,
     confirmCentre: confirmCentre,
     centreGlow: centreGlow,
     centreUnglow: centreUnglow,

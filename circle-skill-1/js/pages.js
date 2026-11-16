@@ -59,9 +59,6 @@
      (Beats.figureSpeed). Only the figure: the bird, the lines and the holds
      keep their pace, and later skills keep theirs. */
   var FIGURE_SPEED = 1.4;
-  /* How long the instruction stands before the bird takes it away and leaves
-     the learner to the activity. */
-  var HOLD_ASK = 2000;
 
   /* The circumference is the first thing the lesson teaches, and it is
      taken slowly, to the storyboard's own clock: the instruction is left
@@ -84,10 +81,6 @@
   var DOT_HOLD    = 1200;   /* the point, before the line sets out for it  */
   var LINE_TIME   = 1.8;    /* s: the line, from the centre to the point   */
 
-  /* The diameter: every step of the building -- the radius alone, lit,
-     named, copied, joined -- a DIA_HOLD apart, and every note set beside
-     the finished line left NOTE_HOLD to be read before the next. */
-  var DIA_HOLD  = 2000;
 
   /* The chord: the circle and its centre left a moment, then the two
      points, a PAIR_GAP apart, and the line between them -- each step a
@@ -1090,57 +1083,9 @@
             function (err) { jumpDone(); throw err; });
   }
 
-  /* Straight from the spot it stands on to another -- the header to a
-     pane, a pane to the header -- in ONE arc over the board, never behind
-     it: for a bird that has just finished a line and is wanted somewhere
-     else at once (user, 2026-10-09: no leaving behind the board and
-     coming up again). The sprite itself makes the trip: it is re-parented
-     to the new spot, set back to where it stood by a transform, and
-     carried to rest -- across evenly, and up and over on the way, growing
-     or shrinking to the new spot's size as it goes. Leaving the header
-     closes it, as a jump out does, unless `keep`; the header is closed
-     BEFORE the new spot is measured, so the bird lands where the spot
-     will really be. A bird that is away comes up from behind the board
-     as ever. */
-  var HOP_TIME = 0.72;      /* s: the trip across                        */
-  var HOP_RISE = 0.9;       /* of the bird's height: how high the arc goes */
+        /* s: the trip across                        */
+         /* of the bird's height: how high the arc goes */
 
-  function mascotHopTo(slot, keep) {
-    var el = mascot.el;
-    slot = slot || dom.slotHeader;
-    if (el.hidden || el.classList.contains('is-away')) return mascotJumpIn(slot);
-    if (el.parentNode === slot) return Promise.resolve();
-    var leaves = el.parentNode === dom.slotHeader && !keep;
-    var was = el.getBoundingClientRect();
-    /* the header's own move, not awaited: the hop is what the scene waits on */
-    if (slot === dom.slotHeader) quiet(Flow.anim(openHeader()));
-    if (leaves) quiet(Flow.anim(collapseHeader(true)));
-    mascot.placeIn(slot);
-    var now = el.getBoundingClientRect();
-    if (!was.width || !now.width || M.reducedMotion()) return Promise.resolve();
-
-    var dx = (was.left + was.width / 2) - (now.left + now.width / 2);
-    var dy = (was.bottom) - (now.bottom);
-    var k = was.height / now.height;
-    /* The arc rises only on a trip UP the board. A bird on the header
-       already stands at the board's top edge, which clips whatever goes
-       above it, so a trip down from there is a leap straight across and
-       down -- quick to leave, settling as it lands. */
-    var rise = dy > 0 ? Math.max(was.height, now.height) * HOP_RISE : 0;
-    M.set(el, { x: dx, y: dy, scale: k, transformOrigin: '50% 100%' });
-    var tl = M.timeline({
-      willChange: el, willChangeValue: 'transform',
-      revert: function () { M.set(el, { clearProps: 'transform' }); }
-    });
-    tl.to(el, { x: 0, scale: 1, duration: M.dur(HOP_TIME), ease: 'power1.inOut' }, 0);
-    if (rise) {
-      tl.to(el, { y: dy - rise, duration: M.dur(HOP_TIME * 0.45), ease: 'power2.out' }, 0)
-        .to(el, { y: 0, duration: M.dur(HOP_TIME * 0.55), ease: 'power2.in' }, M.gap(HOP_TIME * 0.45));
-    } else {
-      tl.to(el, { y: 0, duration: M.dur(HOP_TIME), ease: 'power2.inOut' }, 0);
-    }
-    return Flow.anim(tl);
-  }
 
   /* The bird comes up to say a line.
        The line is RESERVED before the jump starts. The prompt row is centred
@@ -2958,44 +2903,39 @@
      pauses, the figure's own geometry. Values that are not known until
      init() has run are handed over as functions. */
   var kit = {
-    LINES: LINES, BEAT: BEAT, SHORT: SHORT, HOLD_ASK: HOLD_ASK, TAP_SLOP: TAP_SLOP,
+    BEAT: BEAT, SHORT: SHORT,
     /* skill 1's pace -- the pen once round, the point, the line, and the
        holds between them -- for a later page that draws a circle and wants
        to be watched at the same speed as the first one was */
-    DRAW_TIME: DRAW_TIME, DRAWN_HOLD: DRAWN_HOLD, DOT_TIME: DOT_TIME,
-    DOT_HOLD: DOT_HOLD, LINE_TIME: LINE_TIME, DIA_HOLD: DIA_HOLD,
-    CX: CX, CY: CY, RR: RR, VB_W: VB_W, VB_H: VB_H, BOX_W: BOX_W, BOX_H: BOX_H, LEAD_STUB: LEAD_STUB,
+    CX: CX, CY: CY, RR: RR, VB_W: VB_W, VB_H: VB_H, BOX_W: BOX_W, BOX_H: BOX_H,
     dom: function () { return dom; },
     mascot: function () { return mascot; },
-    el: el, seg: seg, round2: round2, onRim: onRim, arrowHead: arrowHead,
+    el: el, seg: seg, round2: round2, arrowHead: arrowHead,
     buildBox: buildBox, emptyBox: emptyBox,
-    buildChips: buildChips, buildChoices: buildChoices, shuffle: shuffle,
+    buildChips: buildChips, shuffle: shuffle,
     /* the two rows in the footer are the board's, so the board can take
        them away in a wipe: a section that fills one says so here */
     chips: function (list) { if (list) chips = list; return chips; },
     choices: function (list) { if (list) choiceBtns = list; return choiceBtns; },
     handOver: handOver, speak: speak, arriveSaying: arriveSaying,
     clearPrompt: clearPrompt, mascotJumpIn: mascotJumpIn, mascotJumpOut: mascotJumpOut,
-    mascotHopTo: mascotHopTo, birdOnHeader: birdOnHeader,
     sayBubble: function (text) { return sayBubble(text); },
     clearBubble: function () { sayBubble.clear(); },
-    restoreBubble: restoreBubble,
     sayAside: function () { return sayAside; },
     /* the hero bubble's typer or the header's, itself -- for a section
        that reserves a line before the bird has got to it (skill 3); one
        typer per box, so it is handed over, never made twice */
     typer: function (which) { return which === 'prompt' ? sayPrompt : sayBubble; },
     /* a section's own typer put on the recordings' clock (see onVoice) */
-    onVoice: onVoice,
     restoreAside: restoreAside,
     /* the speech card every stood-aside explanation wears: a section
        passes its own circle as the anchor, and hands the pane back
        through restoreAside as ever */
     cardUp: cardUp, cardAway: cardAway, alignMessage: alignMessageTo,
-    wipeBoard: wipeBoard, collapseHeader: collapseHeader, resetFooter: resetFooter,
-    askChoice: askChoice, armQuiz: armQuiz, namePair: namePair, dragGuide: dragGuide,
+    wipeBoard: wipeBoard, collapseHeader: collapseHeader,
+    armQuiz: armQuiz, namePair: namePair, dragGuide: dragGuide,
     /* the speaking helpers by key, and a page that turns itself */
-    keyed: keyed, hear: hear, onWord: onWord, celebrate: celebrate, praise: praise, wordAt: wordAt, autoTurn: autoTurn, birdAway: birdAway, lineAway: lineAway, AUTO_TURN: AUTO_TURN,
+    keyed: keyed, hear: hear, onWord: onWord, celebrate: celebrate, praise: praise, autoTurn: autoTurn, AUTO_TURN: AUTO_TURN,
     ripple: ripple, quiet: quiet, clearInline: clearInline
   };
 

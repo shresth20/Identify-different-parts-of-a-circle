@@ -982,11 +982,8 @@
      stays this section's: its wipe and reset hooks put it away whoever
      spoke from it last. */
   global.Circum = {
-    verdict: verdict,
-    armChoices: armChoices,
     ask: askFormula,
     explain: explain,
-    closeOut: closeOut,
     clearAsk: clearAsk,
     putAway: restorePane,
     seatBird: seatBird

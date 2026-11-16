@@ -167,14 +167,6 @@ body.sa-lesson .board { --row-bottom: 13% !important; }
 }
 :where(body.sa-lesson) .s-arc--minor { stroke: var(--sa-minor-edge); }
 :where(body.sa-lesson) .s-arc--major { stroke: var(--sa-major-edge); }
-/* The breathing the first lesson gives a part it is naming. Its glow
-   filter lives in index.html's picture, so here the swell goes alone. */
-:where(body.sa-lesson) .s-arc.is-pulsing {
-  filter: none;
-  --pulse-w0: 2.6;
-  --pulse-w1: 5.4;
-  --pulse-times: infinite;
-}
 
 :where(body.sa-lesson) .s-radius {
   fill: none;

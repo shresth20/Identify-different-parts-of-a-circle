@@ -84,7 +84,7 @@
      learner left the lesson's own circles. */
   var ARC = { a: 25, span: 110 };
   var SHIFT = -250;        /* the circle's slide to the left half, picture units */
-  var DROP_SLACK = 12;     /* px: how far outside the slot still counts as on it */
+       /* px: how far outside the slot still counts as on it */
 
   /* ---- the two rounds ----------------------------------------------------
      One shape for both: which piece is lit and which stands back, the names
@@ -221,50 +221,6 @@
     return tl;
   }
 
-  /* The slot, refused: it turns red and shakes its head, holds the red for
-     a beat, and is a plain slot again -- boxWrong (animations.js), for the
-     one box this skill keeps in HTML. */
-  var SHAKE = [-5, 5, -5, 5, -4, 4, 0];
-
-  function slotWrong() {
-    var s = dom.alSlot;
-    s.classList.remove('is-over');
-    s.classList.add('is-wrong');
-    Beats.sfx('wrong');
-    var tl = M.timeline({
-      willChange: s, willChangeValue: 'transform',
-      revert: function () {
-        s.classList.remove('is-wrong');
-        M.set(s, { clearProps: 'transform' });
-      }
-    });
-    var each = M.dur(0.3) / SHAKE.length;
-    SHAKE.forEach(function (x, i) {
-      tl.to(s, { x: x, duration: each,
-                 ease: i === SHAKE.length - 1 ? 'power2.out' : 'none' });
-    });
-    tl.to({}, { duration: M.dur(0.5) });        /* the red, read before it goes */
-    return tl;
-  }
-
-  /* The slot, answered: it turns green, the word pops in, and the slot
-     gives one short pulse -- boxRight, for the same box. */
-  function slotRight(name) {
-    var s = dom.alSlot, t = dom.alSlotText;
-    s.classList.remove('is-over', 'is-wrong');
-    s.classList.add('is-right');
-    t.textContent = name;
-    s.setAttribute('aria-label', T('s2AlSlotRight', { name: name }));
-    Beats.sfx('correct');
-
-    M.set(t, { opacity: 0, scale: 0.7, transformOrigin: 'center center' });
-    var tl = M.timeline({ willChange: [s, t], willChangeValue: 'transform, opacity' });
-    tl.to(s, { scale: 1.06, transformOrigin: 'center center',
-               duration: M.dur(0.14), ease: 'power2.out' }, 0)
-      .to(s, { scale: 1, duration: M.dur(0.3), ease: M.POP }, M.gap(0.14))
-      .to(t, { opacity: 1, scale: 1, duration: M.dur(0.36), ease: 'back.out(1.7)' }, M.gap(0.1));
-    return tl;
-  }
 
   /* ---- the bird's verdicts ------------------------------------------------
      Said on the header: the word ("Try again!" / "Correct!") and then the
@@ -292,201 +248,6 @@
     }, opening);
   }
 
-  /* ======================================================================
-   * The interaction: one name into one slot
-   * ----------------------------------------------------------------------
-   * The names under the sentence and the slot in it, with the three ways
-   * the app always offers: drag a name over the slot and let go, tap a name and
-   * then tap the slot, or pick both up with the keyboard. A wrong name is
-   * refused -- the slot shakes, the name goes home, `onWrong` is told which
-   * one so the bird can say why -- and the learner tries again for as long
-   * as it takes. The right one flies in, the word is set in the slot, and
-   * the wait resolves.
-   *
-   * The wait is the lesson's gate (see #gate in index.html): an ordinary
-   * Flow.once, cancelled with the rest of the chain when the scene is
-   * retired, with the listeners coming off whichever way it ends. A skip
-   * answers the round for the learner -- the right name is docked -- so the
-   * beats after this are about a board that says what they say it says.
-   * ====================================================================== */
-  function armSlot(spec) {
-    var names = chips;
-    var live = true;
-    var filled = false;
-    var misses = 0;
-    var picked = null;            /* the name in hand, in tap mode  */
-    var drag = null;              /* the press in progress, if any  */
-    var word = T(spec.word || spec.answer);   /* what is set in the slot */
-
-    dom.alAsk.classList.add('is-live');
-    dom.alSlot.setAttribute('tabindex', '0');
-
-    function overSlot(x, y) {
-      if (filled) return false;
-      var r = dom.alSlot.getBoundingClientRect();
-      return x >= r.left - DROP_SLACK && x <= r.right + DROP_SLACK &&
-             y >= r.top - DROP_SLACK && y <= r.bottom + DROP_SLACK;
-    }
-    function hover(on) {
-      dom.alSlot.classList.toggle('is-over', !!on && !filled);
-    }
-    function pick(chip) {
-      if (picked) picked.classList.remove('is-picked');
-      picked = chip;
-      if (chip) chip.classList.add('is-picked');
-    }
-    function home(chip) {
-      chip.classList.remove('is-lifted');
-      Beats.chipHome(chip);
-    }
-
-    function attempt(chip) {
-      hover(false);
-      if (filled) return home(chip);
-      if (chip.dataset.name === spec.answer) return right(chip);
-      return wrong(chip);
-    }
-    /* The name into the slot: the flight, the word set inside, the pulse. */
-    function dock(chip) {
-      filled = true;
-      pick(null);
-      chip.classList.remove('is-lifted');
-
-      var c = chip.getBoundingClientRect();
-      var r = dom.alSlot.getBoundingClientRect();
-      Beats.chipDock(chip,
-        (r.left + r.width / 2) - (c.left + c.width / 2),
-        (r.top + r.height / 2) - (c.top + c.height / 2));
-      slotRight(word);
-    }
-    function right(chip) {
-      dock(chip);
-      dom.gate.dispatchEvent(new MouseEvent('click'));
-    }
-    function wrong(chip) {
-      misses++;
-      pick(null);
-      slotWrong();
-      home(chip);
-      if (spec.onWrong) spec.onWrong(chip.dataset.name, misses);
-    }
-
-    /* ---- the names ---- */
-    function onDown(ev) {
-      if (!live || drag || filled) return;
-      var chip = ev.currentTarget;
-      if (chip.classList.contains('is-docked')) return;
-      ev.preventDefault();
-      drag = {
-        chip: chip, id: ev.pointerId, ox: ev.clientX, oy: ev.clientY, moved: false,
-        x0: gsap.getProperty(chip, 'x') || 0, y0: gsap.getProperty(chip, 'y') || 0
-      };
-      if (chip.setPointerCapture) {
-        try { chip.setPointerCapture(ev.pointerId); } catch (e) { /* fine */ }
-      }
-      chip.classList.add('is-lifted');
-      M.to(chip, { scale: 1.06, duration: M.dur(0.12), ease: 'power2.out', overwrite: 'auto' });
-    }
-    function onMove(ev) {
-      if (!drag || ev.pointerId !== drag.id) return;
-      var dx = ev.clientX - drag.ox, dy = ev.clientY - drag.oy;
-      if (!drag.moved && Math.abs(dx) + Math.abs(dy) > K.TAP_SLOP) drag.moved = true;
-      if (!drag.moved) return;
-      M.set(drag.chip, { x: drag.x0 + dx, y: drag.y0 + dy });
-      hover(overSlot(ev.clientX, ev.clientY));
-    }
-    function onUp(ev) {
-      if (!drag || ev.pointerId !== drag.id) return;
-      var d = drag;
-      drag = null;
-      if (!d.moved) {
-        /* A tap is an answer: the name goes to the slot as if it had
-           been carried there (user, 2026-10-09: "I am not able to click
-           the options"). A drag still works the same way. */
-        d.chip.classList.remove('is-lifted');
-        M.to(d.chip, { scale: 1, duration: M.dur(0.15), ease: 'power2.out', overwrite: 'auto' });
-        attempt(d.chip);
-        return;
-      }
-      if (overSlot(ev.clientX, ev.clientY)) attempt(d.chip);
-      else { hover(false); home(d.chip); }
-    }
-    function onCancel(ev) {
-      if (!drag || ev.pointerId !== drag.id) return;
-      var d = drag;
-      drag = null;
-      hover(false);
-      home(d.chip);
-    }
-    function onChipKey(ev) {
-      if (!live || filled) return;
-      if (ev.key !== 'Enter' && ev.key !== ' ' && ev.key !== 'Spacebar') return;
-      ev.preventDefault();
-      var chip = ev.currentTarget;
-      if (chip.classList.contains('is-docked')) return;
-      attempt(chip);
-    }
-
-    /* ---- the slot, in tap mode ---- */
-    function onSlotUp() {
-      if (!live || drag || !picked || filled) return;
-      attempt(picked);
-    }
-    function onSlotKey(ev) {
-      if (!live || !picked || filled) return;
-      if (ev.key !== 'Enter' && ev.key !== ' ' && ev.key !== 'Spacebar') return;
-      ev.preventDefault();
-      attempt(picked);
-    }
-    function onSlotEnter() { if (live && !drag && picked) hover(true); }
-    function onSlotLeave() { if (!drag) hover(false); }
-
-    function off() {
-      live = false;
-      names.forEach(function (c) {
-        c.removeEventListener('pointerdown', onDown);
-        c.removeEventListener('keydown', onChipKey);
-      });
-      dom.alSlot.removeEventListener('pointerup', onSlotUp);
-      dom.alSlot.removeEventListener('keydown', onSlotKey);
-      dom.alSlot.removeEventListener('pointerenter', onSlotEnter);
-      dom.alSlot.removeEventListener('pointerleave', onSlotLeave);
-      document.removeEventListener('pointermove', onMove);
-      document.removeEventListener('pointerup', onUp);
-      document.removeEventListener('pointercancel', onCancel);
-      dom.alAsk.classList.remove('is-live');
-      dom.alSlot.setAttribute('tabindex', '-1');
-      hover(false);
-      pick(null);
-      drag = null;
-    }
-
-    names.forEach(function (c) {
-      c.addEventListener('pointerdown', onDown);
-      c.addEventListener('keydown', onChipKey);
-    });
-    dom.alSlot.addEventListener('pointerup', onSlotUp);
-    dom.alSlot.addEventListener('keydown', onSlotKey);
-    dom.alSlot.addEventListener('pointerenter', onSlotEnter);
-    dom.alSlot.addEventListener('pointerleave', onSlotLeave);
-    document.addEventListener('pointermove', onMove);
-    document.addEventListener('pointerup', onUp);
-    document.addEventListener('pointercancel', onCancel);
-
-    /* What a skip puts down for the learner: the right name, docked the way
-       a hand-dropped one is -- without firing the gate, which the skip has
-       already answered. */
-    function fillIn() {
-      if (filled) return;
-      for (var i = 0; i < names.length; i++) {
-        if (names[i].dataset.name === spec.answer) { dock(names[i]); return; }
-      }
-    }
-
-    return Flow.once(dom.gate, { auto: true }).then(
-      function () { fillIn(); off(); return { misses: misses }; },
-      function (err) { off(); throw err; });
-  }
 
   /* ======================================================================
    * The blank as a dropdown (user, 2026-10-12: "change the select option to
@@ -856,8 +617,6 @@
   global.ArcLen = {
     fieldTalk: fieldTalk,
     state: function () { return ARC; },
-    askIn: askIn,
-    askOut: askOut,
-    armSlot: armSlot
+
   };
 })(window);

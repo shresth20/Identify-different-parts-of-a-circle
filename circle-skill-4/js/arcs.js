@@ -85,7 +85,6 @@
   function norm(d)    { d = d % 360; return d < 0 ? d + 360 : d; }   /* [0, 360)    */
   function norm180(d) { d = norm(d); return d > 180 ? d - 360 : d; } /* (-180, 180] */
   function clamp(v, lo, hi) { return Math.max(lo, Math.min(hi, v)); }
-  function coin(a, b) { return Math.random() < 0.5 ? [a, b] : [b, a]; }
 
   /* A point `r` from the centre, `deg` degrees round. */
   function P(deg, r) {
@@ -269,12 +268,6 @@
 
   function dots() { return [dom.pointA.dot, dom.pointB.dot]; }
 
-  /* A callout aimed at a piece: the tip just outside the rim at `deg`, the
-     word off to whichever side the piece is on, and the shaft running
-     level out from under the word before it curves in to the tip -- the
-     shape section 1's callouts have. Kept inside the picture top and
-     bottom, where the circle comes close to the edge. */
-  var CALL_TIP = 12, CALL_REACH = 46, CALL_LIFT = 16, CALL_BEND = 22;
 
   /* The two boxes, hung off the circle where the pieces are: each to the
      side its piece is on, tied by its leader to the outer edge of the
@@ -772,10 +765,8 @@
      behind state(). */
   global.Arcs = {
     state: function () { return arc; },
-    MIN_SPAN: MIN_SPAN, MAX_SPAN: MAX_SPAN,
-    norm: norm, norm180: norm180, clamp: clamp, coin: coin,
-    P: P, arcD: arcD, place: place, reversed: reversed,
-    hand: hand, handAt: handAt, rippleAt: rippleAt, HAND_D: HAND_D,
+    place: place,
+    hand: hand,
     pickPoints: pickPoints
   };
 })(window);
